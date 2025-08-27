@@ -201,25 +201,21 @@ export interface BulkResponse {
 
 class GMBApiClient {
   private baseUrl: string;
-  private accessToken: string | null = null;
 
   constructor(baseUrl: string = '/api') {
     this.baseUrl = baseUrl;
   }
 
-  // Set access token for authenticated requests
-  setAccessToken(token: string) {
-    this.accessToken = token;
-  }
-
-  // Get headers with authorization
+  // Get headers with authorization from localStorage
   private getHeaders(): HeadersInit {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
 
-    if (this.accessToken) {
-      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    // Get access token from localStorage
+    const accessToken = localStorage.getItem('access_token');
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
     }
 
     return headers;
