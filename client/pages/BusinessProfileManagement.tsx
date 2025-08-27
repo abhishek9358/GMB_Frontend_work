@@ -400,10 +400,10 @@ export default function BusinessProfileManagement() {
 
       {/* Dirty State Indicator */}
       {isDirty && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div className="mb-4 p-3 bg-gbp-blue-50 border border-gbp-blue-200 rounded-lg">
           <div className="flex items-center space-x-2">
-            <AlertCircle className="w-4 h-4 text-yellow-600" />
-            <span className="text-sm text-yellow-800">
+            <AlertCircle className="w-4 h-4 text-gbp-blue-600" />
+            <span className="text-sm text-gbp-blue-800">
               You have unsaved changes. Don't forget to save!
             </span>
           </div>
