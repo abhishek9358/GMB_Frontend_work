@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Plus, 
-  Edit, 
+import {
+  Search,
+  Plus,
+  Edit,
   Save,
   X,
-  Eye, 
-  Star, 
-  MapPin, 
-  Phone, 
-  Globe, 
+  Eye,
+  Star,
+  MapPin,
+  Phone,
+  Globe,
   Clock,
   MoreVertical,
   Filter,
@@ -26,6 +26,8 @@ import {
 import { BusinessProfile } from '../services/gmbApi';
 import { useGMBProfiles } from '../hooks/useGMBProfiles';
 import { populateSampleData } from '../utils/sampleData';
+import { validateBusinessProfile, ValidationError } from '../utils/validation';
+import { ValidationSummary } from '../components/ui/FormField';
 
 // Import all the form components
 import BasicInfoForm from '../components/profile/BasicInfoForm';
@@ -45,6 +47,8 @@ function ComprehensiveProfileEditor({ profile, onSave, onCancel, isLoading }: Co
   const [activeTab, setActiveTab] = useState('basic');
   const [editedProfile, setEditedProfile] = useState<BusinessProfile>(profile);
   const [hasChanges, setHasChanges] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [showValidation, setShowValidation] = useState(false);
 
   const tabs = [
     { id: 'basic', label: 'About', icon: Building2 },
@@ -58,9 +62,35 @@ function ComprehensiveProfileEditor({ profile, onSave, onCancel, isLoading }: Co
     const updated = { ...editedProfile, ...updates };
     setEditedProfile(updated);
     setHasChanges(true);
+
+    // Clear validation errors when user makes changes
+    if (showValidation) {
+      setShowValidation(false);
+      setValidationErrors([]);
+    }
   };
 
   const handleSave = () => {
+    // Validate the profile before saving
+    const validation = validateBusinessProfile(editedProfile);
+
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
+      setShowValidation(true);
+
+      // Scroll to top to show validation errors
+      const modalContent = document.querySelector('.profile-editor-content');
+      if (modalContent) {
+        modalContent.scrollTop = 0;
+      }
+
+      return;
+    }
+
+    // Clear any previous validation errors
+    setValidationErrors([]);
+    setShowValidation(false);
+
     onSave(editedProfile);
   };
 
@@ -123,7 +153,17 @@ function ComprehensiveProfileEditor({ profile, onSave, onCancel, isLoading }: Co
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 profile-editor-content">
+          {/* Validation Summary */}
+          {showValidation && validationErrors.length > 0 && (
+            <div className="mb-6">
+              <ValidationSummary
+                errors={validationErrors}
+                title="Please fix the following errors before saving:"
+              />
+            </div>
+          )}
+
           {activeTab === 'basic' && (
             <BasicInfoForm
               profile={editedProfile}
@@ -182,11 +222,20 @@ function ComprehensiveProfileEditor({ profile, onSave, onCancel, isLoading }: Co
             <button
               onClick={handleSave}
               disabled={isLoading || !hasChanges}
-              className="px-6 py-2 bg-gbp-blue-500 text-white rounded-lg hover:bg-gbp-blue-600 transition-colors disabled:opacity-50 flex items-center space-x-2"
+              className={`px-6 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2 ${
+                showValidation && validationErrors.length > 0
+                  ? 'bg-red-500 hover:bg-red-600 text-white'
+                  : 'bg-gbp-blue-500 hover:bg-gbp-blue-600 text-white'
+              }`}
             >
               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
               <Save className="w-4 h-4" />
-              <span>Save Changes</span>
+              <span>
+                {showValidation && validationErrors.length > 0
+                  ? `Fix ${validationErrors.length} Error${validationErrors.length !== 1 ? 's' : ''}`
+                  : 'Save Changes'
+                }
+              </span>
             </button>
           </div>
         </div>
