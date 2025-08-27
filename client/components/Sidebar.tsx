@@ -9,11 +9,13 @@ import {
   Settings,
   Users,
   FileText,
+  UserCheck,
 } from "lucide-react";
 
 const navigationItems = [
   { to: "/", label: "Dashboard", icon: Home },
   { to: "/businesses", label: "Businesses", icon: Building2 },
+  { to: "/profiles", label: "Profile Management", icon: UserCheck },
   { to: "/automation", label: "Automation", icon: Zap },
   { to: "/reviews", label: "Reviews", icon: MessageSquare },
   { to: "/reports", label: "Reports", icon: BarChart3 },

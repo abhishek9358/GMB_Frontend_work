@@ -3,6 +3,7 @@ import MainLayout from "./layouts/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Businesses from "./pages/Businesses";
 import BusinessOnboarding from "./pages/BusinessOnboarding";
+import ProfileManagement from "./pages/ProfileManagement";
 import Automation from "./pages/Automation";
 import Reviews from "./pages/Reviews";
 import Reports from "./pages/Reports";
@@ -17,6 +18,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="businesses" element={<Businesses />} />
           <Route path="businesses/add" element={<BusinessOnboarding />} />
+          <Route path="profiles" element={<ProfileManagement />} />
           <Route path="automation" element={<Automation />} />
           <Route path="reviews" element={<Reviews />} />
           <Route path="reports" element={<Reports />} />
