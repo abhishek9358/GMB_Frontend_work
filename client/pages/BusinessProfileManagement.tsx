@@ -1,29 +1,43 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  Save, 
-  RefreshCw, 
-  Building2, 
-  Phone, 
-  MapPin, 
-  Clock, 
+import {
+  ArrowLeft,
+  Save,
+  RefreshCw,
+  Building2,
+  Phone,
+  MapPin,
+  Clock,
   Settings,
   AlertCircle,
   CheckCircle,
-  Loader2
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import gmbProfileService, { BusinessProfile as ServiceBusinessProfile } from "@/services/gmbProfileService";
+import gmbProfileService, {
+  BusinessProfile as ServiceBusinessProfile,
+} from "@/services/gmbProfileService";
 
 // Use imported BusinessProfile type from service
 type BusinessProfile = ServiceBusinessProfile;
@@ -49,13 +63,13 @@ const businessCategories = [
   "Beauty salon",
   "Gym/Fitness center",
   "Hotel/Lodging",
-  "Other"
+  "Other",
 ];
 
 export default function BusinessProfileManagement() {
   const { locationName } = useParams<{ locationName: string }>();
   const navigate = useNavigate();
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<BusinessProfile>({
@@ -132,26 +146,29 @@ export default function BusinessProfileManagement() {
   });
 
   const [isDirty, setIsDirty] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">(
+    "idle",
+  );
 
   // Load business profile data
   useEffect(() => {
     const loadProfile = async () => {
       if (!locationName) return;
-      
+
       setLoading(true);
       try {
         const result = await gmbProfileService.getBusinessProfile(locationName);
 
         if (result.success && result.data) {
-          const transformedProfile = gmbProfileService.transformApiDataToProfile(result.data);
+          const transformedProfile =
+            gmbProfileService.transformApiDataToProfile(result.data);
           setProfile(transformedProfile);
         } else {
-          console.error('Failed to load profile:', result.error);
+          console.error("Failed to load profile:", result.error);
           // Keep the empty form for manual entry
         }
       } catch (error) {
-        console.error('Error loading profile:', error);
+        console.error("Error loading profile:", error);
       } finally {
         setLoading(false);
       }
@@ -162,7 +179,7 @@ export default function BusinessProfileManagement() {
 
   // Handle form changes
   const handleChange = (section: string, field: string, value: any) => {
-    setProfile(prev => ({
+    setProfile((prev) => ({
       ...prev,
       [section]: {
         ...prev[section as keyof BusinessProfile],
@@ -170,11 +187,16 @@ export default function BusinessProfileManagement() {
       },
     }));
     setIsDirty(true);
-    setSaveStatus('idle');
+    setSaveStatus("idle");
   };
 
-  const handleNestedChange = (section: string, subsection: string, field: string, value: any) => {
-    setProfile(prev => ({
+  const handleNestedChange = (
+    section: string,
+    subsection: string,
+    field: string,
+    value: any,
+  ) => {
+    setProfile((prev) => ({
       ...prev,
       [section]: {
         ...prev[section as keyof BusinessProfile],
@@ -185,11 +207,16 @@ export default function BusinessProfileManagement() {
       },
     }));
     setIsDirty(true);
-    setSaveStatus('idle');
+    setSaveStatus("idle");
   };
 
-  const handleArrayChange = (section: string, index: number, field: string, value: any) => {
-    setProfile(prev => {
+  const handleArrayChange = (
+    section: string,
+    index: number,
+    field: string,
+    value: any,
+  ) => {
+    setProfile((prev) => {
       const sectionData = prev[section as keyof BusinessProfile] as any;
       const newArray = [...sectionData];
       newArray[index] = { ...newArray[index], [field]: value };
@@ -199,7 +226,7 @@ export default function BusinessProfileManagement() {
       };
     });
     setIsDirty(true);
-    setSaveStatus('idle');
+    setSaveStatus("idle");
   };
 
   // Save profile
@@ -207,30 +234,33 @@ export default function BusinessProfileManagement() {
     if (!locationName) return;
 
     setSaving(true);
-    setSaveStatus('idle');
+    setSaveStatus("idle");
 
     try {
       // Validate profile data before saving
       const validation = gmbProfileService.validateProfile(profile);
       if (!validation.isValid) {
-        console.error('Validation errors:', validation.errors);
-        setSaveStatus('error');
+        console.error("Validation errors:", validation.errors);
+        setSaveStatus("error");
         return;
       }
 
-      const result = await gmbProfileService.updateBusinessProfile(locationName, profile);
+      const result = await gmbProfileService.updateBusinessProfile(
+        locationName,
+        profile,
+      );
 
       if (result.success) {
-        setSaveStatus('success');
+        setSaveStatus("success");
         setIsDirty(false);
-        setTimeout(() => setSaveStatus('idle'), 3000);
+        setTimeout(() => setSaveStatus("idle"), 3000);
       } else {
-        console.error('Failed to save profile:', result.error);
-        setSaveStatus('error');
+        console.error("Failed to save profile:", result.error);
+        setSaveStatus("error");
       }
     } catch (error) {
-      console.error('Error saving profile:', error);
-      setSaveStatus('error');
+      console.error("Error saving profile:", error);
+      setSaveStatus("error");
     } finally {
       setSaving(false);
     }
@@ -245,22 +275,24 @@ export default function BusinessProfileManagement() {
       const result = await gmbProfileService.getBusinessProfile(locationName);
 
       if (result.success && result.data) {
-        const transformedProfile = gmbProfileService.transformApiDataToProfile(result.data);
+        const transformedProfile = gmbProfileService.transformApiDataToProfile(
+          result.data,
+        );
         setProfile(transformedProfile);
         setIsDirty(false);
-        setSaveStatus('idle');
+        setSaveStatus("idle");
       } else {
-        console.error('Failed to refresh profile:', result.error);
+        console.error("Failed to refresh profile:", result.error);
       }
     } catch (error) {
-      console.error('Error refreshing profile:', error);
+      console.error("Error refreshing profile:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const addHoursPeriod = () => {
-    setProfile(prev => ({
+    setProfile((prev) => ({
       ...prev,
       regularHours: {
         periods: [
@@ -278,7 +310,7 @@ export default function BusinessProfileManagement() {
   };
 
   const removeHoursPeriod = (index: number) => {
-    setProfile(prev => ({
+    setProfile((prev) => ({
       ...prev,
       regularHours: {
         periods: prev.regularHours.periods.filter((_, i) => i !== index),
@@ -308,7 +340,7 @@ export default function BusinessProfileManagement() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/businesses')}
+            onClick={() => navigate("/businesses")}
             className="flex items-center space-x-2"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -319,26 +351,26 @@ export default function BusinessProfileManagement() {
               Manage Business Profile
             </h1>
             <p className="text-gray-600 mt-1">
-              {profile.name || 'Business Profile Management'}
+              {profile.name || "Business Profile Management"}
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-3">
           {/* Save Status */}
-          {saveStatus === 'success' && (
+          {saveStatus === "success" && (
             <div className="flex items-center space-x-2 text-green-600">
               <CheckCircle className="w-4 h-4" />
               <span className="text-sm">Saved</span>
             </div>
           )}
-          {saveStatus === 'error' && (
+          {saveStatus === "error" && (
             <div className="flex items-center space-x-2 text-red-600">
               <AlertCircle className="w-4 h-4" />
               <span className="text-sm">Save failed</span>
             </div>
           )}
-          
+
           {/* Action Buttons */}
           <Button
             variant="outline"
@@ -350,13 +382,17 @@ export default function BusinessProfileManagement() {
             <RefreshCw className="w-4 h-4" />
             <span>Refresh</span>
           </Button>
-          
+
           <Button
             onClick={handleSave}
             disabled={saving || !isDirty}
             className="flex items-center space-x-2"
           >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
             <span>Save Changes</span>
           </Button>
         </div>
@@ -378,15 +414,24 @@ export default function BusinessProfileManagement() {
       <div className="bg-white rounded-lg border border-gray-200">
         <Tabs defaultValue="business-info" className="w-full">
           <TabsList className="grid w-full grid-cols-5 rounded-t-lg">
-            <TabsTrigger value="business-info" className="flex items-center space-x-2">
+            <TabsTrigger
+              value="business-info"
+              className="flex items-center space-x-2"
+            >
               <Building2 className="w-4 h-4" />
               <span>Business Info</span>
             </TabsTrigger>
-            <TabsTrigger value="contact" className="flex items-center space-x-2">
+            <TabsTrigger
+              value="contact"
+              className="flex items-center space-x-2"
+            >
               <Phone className="w-4 h-4" />
               <span>Contact</span>
             </TabsTrigger>
-            <TabsTrigger value="location" className="flex items-center space-x-2">
+            <TabsTrigger
+              value="location"
+              className="flex items-center space-x-2"
+            >
               <MapPin className="w-4 h-4" />
               <span>Location</span>
             </TabsTrigger>
@@ -416,17 +461,19 @@ export default function BusinessProfileManagement() {
                     <Input
                       id="business-name"
                       value={profile.name}
-                      onChange={(e) => handleChange('', 'name', e.target.value)}
+                      onChange={(e) => handleChange("", "name", e.target.value)}
                       placeholder="Enter business name"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="business-title">Business Title</Label>
                     <Input
                       id="business-title"
                       value={profile.title}
-                      onChange={(e) => handleChange('', 'title', e.target.value)}
+                      onChange={(e) =>
+                        handleChange("", "title", e.target.value)
+                      }
                       placeholder="Enter business title"
                     />
                   </div>
@@ -437,7 +484,9 @@ export default function BusinessProfileManagement() {
                     <Label htmlFor="category">Business Category</Label>
                     <Select
                       value={profile.category}
-                      onValueChange={(value) => handleChange('', 'category', value)}
+                      onValueChange={(value) =>
+                        handleChange("", "category", value)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category" />
@@ -451,14 +500,16 @@ export default function BusinessProfileManagement() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="opening-date">Opening Date</Label>
                     <Input
                       id="opening-date"
                       type="date"
                       value={profile.openingDate}
-                      onChange={(e) => handleChange('', 'openingDate', e.target.value)}
+                      onChange={(e) =>
+                        handleChange("", "openingDate", e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -469,7 +520,9 @@ export default function BusinessProfileManagement() {
                     id="description"
                     rows={4}
                     value={profile.description}
-                    onChange={(e) => handleChange('', 'description', e.target.value)}
+                    onChange={(e) =>
+                      handleChange("", "description", e.target.value)
+                    }
                     placeholder="Describe your business..."
                   />
                 </div>
@@ -490,23 +543,41 @@ export default function BusinessProfileManagement() {
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="primary-phone">Primary Phone Number</Label>
+                      <Label htmlFor="primary-phone">
+                        Primary Phone Number
+                      </Label>
                       <Input
                         id="primary-phone"
                         type="tel"
                         value={profile.phoneNumbers.primary}
-                        onChange={(e) => handleNestedChange('phoneNumbers', '', 'primary', e.target.value)}
+                        onChange={(e) =>
+                          handleNestedChange(
+                            "phoneNumbers",
+                            "",
+                            "primary",
+                            e.target.value,
+                          )
+                        }
                         placeholder="+1 (555) 123-4567"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
-                      <Label htmlFor="secondary-phone">Secondary Phone Number</Label>
+                      <Label htmlFor="secondary-phone">
+                        Secondary Phone Number
+                      </Label>
                       <Input
                         id="secondary-phone"
                         type="tel"
                         value={profile.phoneNumbers.secondary}
-                        onChange={(e) => handleNestedChange('phoneNumbers', '', 'secondary', e.target.value)}
+                        onChange={(e) =>
+                          handleNestedChange(
+                            "phoneNumbers",
+                            "",
+                            "secondary",
+                            e.target.value,
+                          )
+                        }
                         placeholder="+1 (555) 123-4568"
                       />
                     </div>
@@ -518,7 +589,9 @@ export default function BusinessProfileManagement() {
                       id="website"
                       type="url"
                       value={profile.websiteUri}
-                      onChange={(e) => handleChange('', 'websiteUri', e.target.value)}
+                      onChange={(e) =>
+                        handleChange("", "websiteUri", e.target.value)
+                      }
                       placeholder="https://www.example.com"
                     />
                   </div>
@@ -527,7 +600,9 @@ export default function BusinessProfileManagement() {
                     <Switch
                       id="chat-enabled"
                       checked={profile.chatEnabled}
-                      onCheckedChange={(checked) => handleChange('', 'chatEnabled', checked)}
+                      onCheckedChange={(checked) =>
+                        handleChange("", "chatEnabled", checked)
+                      }
                     />
                     <Label htmlFor="chat-enabled">Enable Chat</Label>
                   </div>
@@ -551,11 +626,18 @@ export default function BusinessProfileManagement() {
                     <Label htmlFor="address-line">Address Line</Label>
                     <Input
                       id="address-line"
-                      value={profile.storefrontAddress.addressLines[0] || ''}
+                      value={profile.storefrontAddress.addressLines[0] || ""}
                       onChange={(e) => {
-                        const newAddressLines = [...profile.storefrontAddress.addressLines];
+                        const newAddressLines = [
+                          ...profile.storefrontAddress.addressLines,
+                        ];
                         newAddressLines[0] = e.target.value;
-                        handleNestedChange('storefrontAddress', '', 'addressLines', newAddressLines);
+                        handleNestedChange(
+                          "storefrontAddress",
+                          "",
+                          "addressLines",
+                          newAddressLines,
+                        );
                       }}
                       placeholder="123 Main Street"
                     />
@@ -567,27 +649,48 @@ export default function BusinessProfileManagement() {
                       <Input
                         id="city"
                         value={profile.storefrontAddress.locality}
-                        onChange={(e) => handleNestedChange('storefrontAddress', '', 'locality', e.target.value)}
+                        onChange={(e) =>
+                          handleNestedChange(
+                            "storefrontAddress",
+                            "",
+                            "locality",
+                            e.target.value,
+                          )
+                        }
                         placeholder="New York"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="state">State/Province</Label>
                       <Input
                         id="state"
                         value={profile.storefrontAddress.administrativeArea}
-                        onChange={(e) => handleNestedChange('storefrontAddress', '', 'administrativeArea', e.target.value)}
+                        onChange={(e) =>
+                          handleNestedChange(
+                            "storefrontAddress",
+                            "",
+                            "administrativeArea",
+                            e.target.value,
+                          )
+                        }
                         placeholder="NY"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="postal-code">Postal Code</Label>
                       <Input
                         id="postal-code"
                         value={profile.storefrontAddress.postalCode}
-                        onChange={(e) => handleNestedChange('storefrontAddress', '', 'postalCode', e.target.value)}
+                        onChange={(e) =>
+                          handleNestedChange(
+                            "storefrontAddress",
+                            "",
+                            "postalCode",
+                            e.target.value,
+                          )
+                        }
                         placeholder="10001"
                       />
                     </div>
@@ -597,15 +700,28 @@ export default function BusinessProfileManagement() {
                     <Label htmlFor="service-area">Service Area</Label>
                     <Select
                       value={profile.serviceArea.businessType}
-                      onValueChange={(value) => handleNestedChange('serviceArea', '', 'businessType', value)}
+                      onValueChange={(value) =>
+                        handleNestedChange(
+                          "serviceArea",
+                          "",
+                          "businessType",
+                          value,
+                        )
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="CUSTOMER_LOCATION_ONLY">Customer Location Only</SelectItem>
-                        <SelectItem value="CUSTOMER_AND_BUSINESS_LOCATION">Customer & Business Location</SelectItem>
-                        <SelectItem value="BUSINESS_LOCATION_ONLY">Business Location Only</SelectItem>
+                        <SelectItem value="CUSTOMER_LOCATION_ONLY">
+                          Customer Location Only
+                        </SelectItem>
+                        <SelectItem value="CUSTOMER_AND_BUSINESS_LOCATION">
+                          Customer & Business Location
+                        </SelectItem>
+                        <SelectItem value="BUSINESS_LOCATION_ONLY">
+                          Business Location Only
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -626,10 +742,20 @@ export default function BusinessProfileManagement() {
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   {profile.regularHours.periods.map((period, index) => (
-                    <div key={index} className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
+                    <div
+                      key={index}
+                      className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg"
+                    >
                       <Select
                         value={period.openDay}
-                        onValueChange={(value) => handleArrayChange('regularHours.periods', index, 'openDay', value)}
+                        onValueChange={(value) =>
+                          handleArrayChange(
+                            "regularHours.periods",
+                            index,
+                            "openDay",
+                            value,
+                          )
+                        }
                       >
                         <SelectTrigger className="w-32">
                           <SelectValue />
@@ -642,23 +768,37 @@ export default function BusinessProfileManagement() {
                           ))}
                         </SelectContent>
                       </Select>
-                      
+
                       <Input
                         type="time"
                         value={period.openTime}
-                        onChange={(e) => handleArrayChange('regularHours.periods', index, 'openTime', e.target.value)}
+                        onChange={(e) =>
+                          handleArrayChange(
+                            "regularHours.periods",
+                            index,
+                            "openTime",
+                            e.target.value,
+                          )
+                        }
                         className="w-32"
                       />
-                      
+
                       <span className="text-gray-500">to</span>
-                      
+
                       <Input
                         type="time"
                         value={period.closeTime}
-                        onChange={(e) => handleArrayChange('regularHours.periods', index, 'closeTime', e.target.value)}
+                        onChange={(e) =>
+                          handleArrayChange(
+                            "regularHours.periods",
+                            index,
+                            "closeTime",
+                            e.target.value,
+                          )
+                        }
                         className="w-32"
                       />
-                      
+
                       <Button
                         variant="outline"
                         size="sm"
@@ -669,7 +809,7 @@ export default function BusinessProfileManagement() {
                       </Button>
                     </div>
                   ))}
-                  
+
                   <Button
                     variant="outline"
                     onClick={addHoursPeriod}
@@ -695,18 +835,32 @@ export default function BusinessProfileManagement() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(profile.accessibility).map(([key, value]) => (
-                      <div key={key} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`accessibility-${key}`}
-                          checked={value}
-                          onCheckedChange={(checked) => handleNestedChange('accessibility', '', key, checked)}
-                        />
-                        <Label htmlFor={`accessibility-${key}`} className="text-sm">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                        </Label>
-                      </div>
-                    ))}
+                    {Object.entries(profile.accessibility).map(
+                      ([key, value]) => (
+                        <div key={key} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`accessibility-${key}`}
+                            checked={value}
+                            onCheckedChange={(checked) =>
+                              handleNestedChange(
+                                "accessibility",
+                                "",
+                                key,
+                                checked,
+                              )
+                            }
+                          />
+                          <Label
+                            htmlFor={`accessibility-${key}`}
+                            className="text-sm"
+                          >
+                            {key
+                              .replace(/([A-Z])/g, " $1")
+                              .replace(/^./, (str) => str.toUpperCase())}
+                          </Label>
+                        </div>
+                      ),
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -726,10 +880,14 @@ export default function BusinessProfileManagement() {
                         <Checkbox
                           id={`amenities-${key}`}
                           checked={value}
-                          onCheckedChange={(checked) => handleNestedChange('amenities', '', key, checked)}
+                          onCheckedChange={(checked) =>
+                            handleNestedChange("amenities", "", key, checked)
+                          }
                         />
                         <Label htmlFor={`amenities-${key}`} className="text-sm">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                          {key
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/^./, (str) => str.toUpperCase())}
                         </Label>
                       </div>
                     ))}
@@ -752,10 +910,14 @@ export default function BusinessProfileManagement() {
                         <Checkbox
                           id={`crowd-${key}`}
                           checked={value}
-                          onCheckedChange={(checked) => handleNestedChange('crowd', '', key, checked)}
+                          onCheckedChange={(checked) =>
+                            handleNestedChange("crowd", "", key, checked)
+                          }
                         />
                         <Label htmlFor={`crowd-${key}`} className="text-sm">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                          {key
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/^./, (str) => str.toUpperCase())}
                         </Label>
                       </div>
                     ))}
@@ -778,10 +940,14 @@ export default function BusinessProfileManagement() {
                         <Checkbox
                           id={`parking-${key}`}
                           checked={value}
-                          onCheckedChange={(checked) => handleNestedChange('parking', '', key, checked)}
+                          onCheckedChange={(checked) =>
+                            handleNestedChange("parking", "", key, checked)
+                          }
                         />
                         <Label htmlFor={`parking-${key}`} className="text-sm">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                          {key
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/^./, (str) => str.toUpperCase())}
                         </Label>
                       </div>
                     ))}
@@ -804,10 +970,14 @@ export default function BusinessProfileManagement() {
                         <Checkbox
                           id={`pets-${key}`}
                           checked={value}
-                          onCheckedChange={(checked) => handleNestedChange('pets', '', key, checked)}
+                          onCheckedChange={(checked) =>
+                            handleNestedChange("pets", "", key, checked)
+                          }
                         />
                         <Label htmlFor={`pets-${key}`} className="text-sm">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                          {key
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/^./, (str) => str.toUpperCase())}
                         </Label>
                       </div>
                     ))}
@@ -830,31 +1000,52 @@ export default function BusinessProfileManagement() {
                         <Checkbox
                           id="online-estimates"
                           checked={profile.serviceOptions.onlineEstimates}
-                          onCheckedChange={(checked) => handleNestedChange('serviceOptions', '', 'onlineEstimates', checked)}
+                          onCheckedChange={(checked) =>
+                            handleNestedChange(
+                              "serviceOptions",
+                              "",
+                              "onlineEstimates",
+                              checked,
+                            )
+                          }
                         />
                         <Label htmlFor="online-estimates" className="text-sm">
                           Online Estimates
                         </Label>
                       </div>
-                      
+
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="onsite-services"
                           checked={profile.serviceOptions.onSiteServices}
-                          onCheckedChange={(checked) => handleNestedChange('serviceOptions', '', 'onSiteServices', checked)}
+                          onCheckedChange={(checked) =>
+                            handleNestedChange(
+                              "serviceOptions",
+                              "",
+                              "onSiteServices",
+                              checked,
+                            )
+                          }
                         />
                         <Label htmlFor="onsite-services" className="text-sm">
                           On-site Services
                         </Label>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="languages">Languages Spoken</Label>
                       <Input
                         id="languages"
-                        value={profile.serviceOptions.languageSpoken.join(', ')}
-                        onChange={(e) => handleNestedChange('serviceOptions', '', 'languageSpoken', e.target.value.split(', ').filter(Boolean))}
+                        value={profile.serviceOptions.languageSpoken.join(", ")}
+                        onChange={(e) =>
+                          handleNestedChange(
+                            "serviceOptions",
+                            "",
+                            "languageSpoken",
+                            e.target.value.split(", ").filter(Boolean),
+                          )
+                        }
                         placeholder="English, Spanish, French"
                       />
                     </div>

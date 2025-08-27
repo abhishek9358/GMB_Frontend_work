@@ -45,7 +45,7 @@ export default function Businesses() {
           setBusinesses([]);
         }
       } catch (error) {
-        console.error('Error loading businesses from localStorage:', error);
+        console.error("Error loading businesses from localStorage:", error);
         setBusinesses([]);
       } finally {
         setLoading(false);
@@ -71,7 +71,7 @@ export default function Businesses() {
   // Filter businesses based on selected filter and search term
   const filteredBusinesses = businesses.filter((business) => {
     // Apply search filter
-    const matchesSearch = 
+    const matchesSearch =
       business.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       business.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
       business.address.toLowerCase().includes(searchTerm.toLowerCase());
@@ -80,21 +80,31 @@ export default function Businesses() {
 
     // Apply status filter (simplified for localStorage businesses)
     if (selectedFilter === "all") return true;
-    
+
     // For localStorage businesses, we can only filter by basic criteria
     // since we don't have the full status information
     if (selectedFilter === "verified") {
-      return business.location?.status?.some((status: string) => status.includes('VERIFIED')) || false;
+      return (
+        business.location?.status?.some((status: string) =>
+          status.includes("VERIFIED"),
+        ) || false
+      );
     }
-    
+
     return true; // For other filters, show all for now
   });
 
   // Calculate status breakdown from current businesses
   const statusBreakdown: StatusBreakdown = {
-    verified: businesses.filter(b => b.location?.status?.some((s: string) => s.includes('VERIFIED'))).length,
-    unverified: businesses.filter(b => b.location?.status?.some((s: string) => s.includes('UNVERIFIED'))).length,
-    suspended: businesses.filter(b => b.location?.status?.some((s: string) => s.includes('SUSPENDED'))).length,
+    verified: businesses.filter((b) =>
+      b.location?.status?.some((s: string) => s.includes("VERIFIED")),
+    ).length,
+    unverified: businesses.filter((b) =>
+      b.location?.status?.some((s: string) => s.includes("UNVERIFIED")),
+    ).length,
+    suspended: businesses.filter((b) =>
+      b.location?.status?.some((s: string) => s.includes("SUSPENDED")),
+    ).length,
     disabled: 0,
     incomplete: 0,
     duplicate: 0,
@@ -155,7 +165,7 @@ export default function Businesses() {
                   </span>
                 </div>
               </button>
-              
+
               <button
                 onClick={() => setSelectedFilter("verified")}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
@@ -171,7 +181,7 @@ export default function Businesses() {
                   </span>
                 </div>
               </button>
-              
+
               <button
                 onClick={() => setSelectedFilter("unverified")}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
@@ -210,7 +220,8 @@ export default function Businesses() {
           {/* Results Count */}
           <div className="mb-4">
             <p className="text-sm text-gray-600">
-              Showing {filteredBusinesses.length} of {businesses.length} businesses
+              Showing {filteredBusinesses.length} of {businesses.length}{" "}
+              businesses
             </p>
           </div>
 
@@ -222,25 +233,32 @@ export default function Businesses() {
                   <Globe className="w-8 h-8 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {businesses.length === 0 ? "No businesses added yet" : "No businesses found"}
+                  {businesses.length === 0
+                    ? "No businesses added yet"
+                    : "No businesses found"}
                 </h3>
                 <p className="text-gray-500">
-                  {businesses.length === 0 
-                    ? "Get started by adding your first business" 
-                    : searchTerm || selectedFilter !== "all" 
-                      ? "Try adjusting your search criteria or filters" 
+                  {businesses.length === 0
+                    ? "Get started by adding your first business"
+                    : searchTerm || selectedFilter !== "all"
+                      ? "Try adjusting your search criteria or filters"
                       : "No businesses match your criteria"}
                 </p>
-                <button 
+                <button
                   onClick={() => navigate("/businesses/add")}
                   className="mt-4 bg-gbp-blue-500 text-white px-6 py-3 rounded-lg font-medium hover:bg-gbp-blue-600 transition-colors"
                 >
-                  {businesses.length === 0 ? "Add Your First Business" : "Add More Businesses"}
+                  {businesses.length === 0
+                    ? "Add Your First Business"
+                    : "Add More Businesses"}
                 </button>
               </div>
             ) : (
               filteredBusinesses.map((business) => (
-                <div key={business.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:border-gray-300 transition-colors">
+                <div
+                  key={business.id}
+                  className="bg-white rounded-lg border border-gray-200 p-6 hover:border-gray-300 transition-colors"
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-start space-x-4">
@@ -257,13 +275,15 @@ export default function Businesses() {
                             <h3 className="text-lg font-semibold text-gray-900 truncate">
                               {business.name}
                             </h3>
-                            {business.location?.status?.some((s: string) => s.includes('VERIFIED')) && (
+                            {business.location?.status?.some((s: string) =>
+                              s.includes("VERIFIED"),
+                            ) && (
                               <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
                                 Verified
                               </span>
                             )}
                           </div>
-                          
+
                           <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
                             <span className="flex items-center">
                               <span className="text-yellow-400 mr-1">★</span>
@@ -273,17 +293,21 @@ export default function Businesses() {
                               {business.category}
                             </span>
                           </div>
-                          
-                          <p className="text-sm text-gray-600 mb-3">{business.address}</p>
-                          
+
+                          <p className="text-sm text-gray-600 mb-3">
+                            {business.address}
+                          </p>
+
                           <div className="flex items-center space-x-4 text-sm">
                             {business.phone && (
-                              <span className="text-gray-600">{business.phone}</span>
+                              <span className="text-gray-600">
+                                {business.phone}
+                              </span>
                             )}
                             {business.website && (
-                              <a 
-                                href={business.website} 
-                                target="_blank" 
+                              <a
+                                href={business.website}
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-gbp-blue-600 hover:text-gbp-blue-700"
                               >
@@ -298,7 +322,11 @@ export default function Businesses() {
                     {/* Action Button */}
                     <div className="flex-shrink-0 ml-4">
                       <button
-                        onClick={() => navigate(`/businesses/${encodeURIComponent(business.id)}/manage`)}
+                        onClick={() =>
+                          navigate(
+                            `/businesses/${encodeURIComponent(business.id)}/manage`,
+                          )
+                        }
                         className="bg-gray-50 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
                       >
                         Manage

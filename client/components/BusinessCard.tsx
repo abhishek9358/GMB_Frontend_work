@@ -23,9 +23,9 @@ export default function BusinessCard({ location }: BusinessCardProps) {
       ...address.addressLines,
       address.locality,
       address.administrativeArea,
-      address.postalCode
+      address.postalCode,
     ].filter(Boolean);
-    
+
     return parts.length > 0 ? parts.join(", ") : "No address provided";
   };
 
@@ -57,7 +57,9 @@ export default function BusinessCard({ location }: BusinessCardProps) {
 
               {/* Status Badge */}
               <div className="mb-3">
-                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(location.status)}`}>
+                <span
+                  className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(location.status)}`}
+                >
                   {getPrimaryStatus()}
                 </span>
               </div>
@@ -85,15 +87,17 @@ export default function BusinessCard({ location }: BusinessCardProps) {
               )}
 
               {/* Location ID */}
-              <div className="text-xs text-gray-500">
-                ID: {location._id}
-              </div>
+              <div className="text-xs text-gray-500">ID: {location._id}</div>
             </div>
 
             {/* Actions */}
             <div className="flex flex-col space-y-2 ml-4">
               <button
-                onClick={() => navigate(`/businesses/${encodeURIComponent(location._id)}/manage`)}
+                onClick={() =>
+                  navigate(
+                    `/businesses/${encodeURIComponent(location._id)}/manage`,
+                  )
+                }
                 className="bg-gbp-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gbp-blue-600 transition-colors"
               >
                 Manage

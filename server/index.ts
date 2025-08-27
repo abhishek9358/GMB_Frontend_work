@@ -8,7 +8,7 @@ import {
   patchBusinessProfile,
   getBusinessReviewsRoute,
   getBusinessPhotosRoute,
-  getBusinessPostsRoute
+  getBusinessPostsRoute,
 } from "./routes/businessProfile";
 
 export function createServer() {

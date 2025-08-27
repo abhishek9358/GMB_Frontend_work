@@ -24,15 +24,21 @@ function App() {
           <Route path="/auth/callback" element={<AuthCallback />} />
 
           {/* Protected routes */}
-          <Route path="/" element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<Dashboard />} />
             <Route path="businesses" element={<Businesses />} />
             <Route path="businesses/add" element={<BusinessOnboarding />} />
-            <Route path="businesses/:locationName/manage" element={<BusinessProfileManagement />} />
+            <Route
+              path="businesses/:locationName/manage"
+              element={<BusinessProfileManagement />}
+            />
             <Route path="automation" element={<Automation />} />
             <Route path="reviews" element={<Reviews />} />
             <Route path="reports" element={<Reports />} />
