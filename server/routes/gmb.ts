@@ -1,5 +1,4 @@
 import express from 'express';
-import { gmbApi } from '../../client/services/gmbApi';
 
 const router = express.Router();
 

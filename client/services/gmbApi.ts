@@ -217,17 +217,20 @@ class GMBApiClient {
     }
   }
 
-  // Create a new business profile (placeholder - would need actual create endpoint)
+  // Create a new business profile
   async createBusinessProfile(profileData: Partial<BusinessProfile>): Promise<ApiResponse<BusinessProfile>> {
     try {
-      // This would be implemented when you have a create endpoint
-      // For now, we'll simulate with localStorage or return a placeholder
-      console.log('Create business profile:', profileData);
-      
-      return {
-        success: true,
-        data: profileData as BusinessProfile,
-      };
+      const response = await fetch(`${this.baseUrl}/business/create`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(profileData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
     } catch (error) {
       console.error('Error creating business profile:', error);
       return {
@@ -237,19 +240,23 @@ class GMBApiClient {
     }
   }
 
-  // Update business profile (placeholder - would need actual update endpoint)
+  // Update business profile
   async updateBusinessProfile(
     locationName: string,
     profileData: Partial<BusinessProfile>
   ): Promise<ApiResponse<BusinessProfile>> {
     try {
-      // This would be implemented when you have an update endpoint
-      console.log('Update business profile:', locationName, profileData);
-      
-      return {
-        success: true,
-        data: profileData as BusinessProfile,
-      };
+      const response = await fetch(`${this.baseUrl}/business/${encodeURIComponent(locationName)}`, {
+        method: 'PUT',
+        headers: this.getHeaders(),
+        body: JSON.stringify(profileData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
     } catch (error) {
       console.error('Error updating business profile:', error);
       return {
@@ -259,15 +266,19 @@ class GMBApiClient {
     }
   }
 
-  // Delete business profile (placeholder - would need actual delete endpoint)
+  // Delete business profile
   async deleteBusinessProfile(locationName: string): Promise<ApiResponse<void>> {
     try {
-      // This would be implemented when you have a delete endpoint
-      console.log('Delete business profile:', locationName);
-      
-      return {
-        success: true,
-      };
+      const response = await fetch(`${this.baseUrl}/business/${encodeURIComponent(locationName)}`, {
+        method: 'DELETE',
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
     } catch (error) {
       console.error('Error deleting business profile:', error);
       return {
