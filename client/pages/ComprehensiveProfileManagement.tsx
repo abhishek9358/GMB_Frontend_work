@@ -474,7 +474,7 @@ export default function ComprehensiveProfileManagement() {
               onClick={loadProfiles}
               className="flex items-center space-x-2 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <Sync className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4" />
               <span>Refresh</span>
             </button>
             <button className="bg-gbp-blue-500 text-white px-4 py-2 rounded-lg hover:bg-gbp-blue-600 transition-colors flex items-center space-x-2">
