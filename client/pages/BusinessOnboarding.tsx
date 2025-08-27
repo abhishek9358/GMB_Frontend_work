@@ -16,10 +16,16 @@ export default function BusinessOnboarding() {
     const fetchBusinesses = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/accounts');
+
+        // Fetch live business locations from GMB API
+        const response = await fetch('/account/locations');
+
+        if (response.status === 401) {
+          throw new Error('Authentication required. Please sign in to access your Google Business Profile locations.');
+        }
 
         if (!response.ok) {
-          let errorMessage = 'Failed to fetch businesses';
+          let errorMessage = 'Failed to fetch businesses from Google My Business';
           try {
             const errorData = await response.json();
             errorMessage = errorData.message || errorData.error || errorMessage;
@@ -29,10 +35,68 @@ export default function BusinessOnboarding() {
           throw new Error(errorMessage);
         }
 
-        const result: LocationsResponse = await response.json();
-        setData(result);
+        const result = await response.json();
+
+        // Check if the response is successful
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to fetch business locations');
+        }
+
+        // Transform the live API response to match the expected format
+        const transformedData: LocationsResponse = {
+          locations: result.data.locations.map((location: any) => ({
+            _id: location.name.split('/').pop() || location.name, // Extract location ID from name
+            account: location.name.split('/')[0] + '/' + location.name.split('/')[1], // Extract account part
+            name: location.name,
+            title: location.title,
+            storefrontAddress: {
+              addressLines: location.address ? [location.address.split(',')[0]] : [],
+              locality: location.address ? location.address.split(',')[1]?.trim() : '',
+              administrativeArea: location.address ? location.address.split(',')[2]?.trim() : '',
+              postalCode: '',
+              regionCode: 'US',
+              languageCode: 'en'
+            },
+            status: [location.verificationState || 'UNKNOWN'],
+            categories: [],
+            verificationState: location.verificationState || 'UNKNOWN',
+            accessLevels: [],
+            isSubscribed: false,
+            whitelabel: {},
+            slug: location.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+          })),
+          summary: {
+            totalLocations: result.summary?.total || result.data.locations.length,
+            statusBreakdown: {
+              verified: result.summary?.verified || 0,
+              unverified: result.summary?.unverified || 0,
+              suspended: 0,
+              disabled: 0,
+              googleUpdates: 0,
+              duplicate: 0,
+              missingStoreCodes: 0,
+              incomplete: 0,
+              verificationPending: result.summary?.pending || 0,
+              verificationExpired: 0,
+              unknown: 0
+            },
+            categoryBreakdown: {
+              totalCategories: 0,
+              uniqueCategories: 0,
+              primaryCategories: 0,
+              additionalCategories: 0,
+              businessesWithMultipleCategories: 0,
+              topCategories: [],
+              allCategories: {}
+            }
+          }
+        };
+
+        setData(transformedData);
+        console.log('Live business data fetched successfully:', transformedData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        console.error('Error fetching live business data:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred while fetching live business data');
       } finally {
         setLoading(false);
       }
