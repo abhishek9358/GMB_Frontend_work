@@ -813,7 +813,7 @@ export default function BusinessProfileManagement() {
                   <Button
                     variant="outline"
                     onClick={addHoursPeriod}
-                    className="w-full"
+                    className="w-full border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300"
                   >
                     Add Hours Period
                   </Button>
