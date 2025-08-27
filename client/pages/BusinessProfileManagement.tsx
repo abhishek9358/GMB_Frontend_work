@@ -204,25 +204,28 @@ export default function BusinessProfileManagement() {
 
   // Save profile
   const handleSave = async () => {
+    if (!locationName) return;
+
     setSaving(true);
     setSaveStatus('idle');
-    
+
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch(`/api/business/${locationName}/update`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-        body: JSON.stringify(profile),
-      });
-      
-      if (response.ok) {
+      // Validate profile data before saving
+      const validation = gmbProfileService.validateProfile(profile);
+      if (!validation.isValid) {
+        console.error('Validation errors:', validation.errors);
+        setSaveStatus('error');
+        return;
+      }
+
+      const result = await gmbProfileService.updateBusinessProfile(locationName, profile);
+
+      if (result.success) {
         setSaveStatus('success');
         setIsDirty(false);
         setTimeout(() => setSaveStatus('idle'), 3000);
       } else {
+        console.error('Failed to save profile:', result.error);
         setSaveStatus('error');
       }
     } catch (error) {
