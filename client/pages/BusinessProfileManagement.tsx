@@ -238,20 +238,19 @@ export default function BusinessProfileManagement() {
 
   // Refresh data
   const handleRefresh = async () => {
+    if (!locationName) return;
+
     setLoading(true);
     try {
-      // Re-fetch data from API
-      const response = await fetch(`/api/business/${locationName}/details`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setProfile(data);
+      const result = await gmbProfileService.getBusinessProfile(locationName);
+
+      if (result.success && result.data) {
+        const transformedProfile = gmbProfileService.transformApiDataToProfile(result.data);
+        setProfile(transformedProfile);
         setIsDirty(false);
         setSaveStatus('idle');
+      } else {
+        console.error('Failed to refresh profile:', result.error);
       }
     } catch (error) {
       console.error('Error refreshing profile:', error);
