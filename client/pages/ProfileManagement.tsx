@@ -20,7 +20,9 @@ import {
   Building2,
   MessageSquare
 } from 'lucide-react';
-import { gmbApi, BusinessProfile } from '../services/gmbApi';
+import { BusinessProfile } from '../services/gmbApi';
+import { useGMBProfiles } from '../hooks/useGMBProfiles';
+import { populateSampleData } from '../utils/sampleData';
 
 interface ProfileCardProps {
   profile: BusinessProfile;
@@ -351,49 +353,35 @@ function ProfileForm({ profile, onSave, onCancel, isLoading }: ProfileFormProps)
 }
 
 export default function ProfileManagement() {
-  const [profiles, setProfiles] = useState<BusinessProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    profiles,
+    loading,
+    error,
+    loadProfiles,
+    createProfile,
+    updateProfile,
+    deleteProfile,
+    clearError
+  } = useGMBProfiles();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingProfile, setEditingProfile] = useState<BusinessProfile | null>(null);
   const [viewingProfile, setViewingProfile] = useState<BusinessProfile | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Load profiles on component mount
+  // Initialize sample data for testing
   useEffect(() => {
-    loadProfiles();
+    populateSampleData();
   }, []);
-
-  const loadProfiles = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await gmbApi.getBusinessProfiles();
-      if (response.success && response.data) {
-        setProfiles(response.data);
-      } else {
-        setError(response.error || 'Failed to load profiles');
-      }
-    } catch (err) {
-      setError('Failed to load profiles');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleCreateProfile = async (profileData: Partial<BusinessProfile>) => {
     setActionLoading(true);
     try {
-      const response = await gmbApi.createBusinessProfile(profileData);
-      if (response.success && response.data) {
-        setProfiles([...profiles, response.data]);
+      const result = await createProfile(profileData);
+      if (result.success) {
         setShowCreateForm(false);
-      } else {
-        setError(response.error || 'Failed to create profile');
       }
-    } catch (err) {
-      setError('Failed to create profile');
     } finally {
       setActionLoading(false);
     }
@@ -401,20 +389,13 @@ export default function ProfileManagement() {
 
   const handleUpdateProfile = async (profileData: Partial<BusinessProfile>) => {
     if (!editingProfile) return;
-    
+
     setActionLoading(true);
     try {
-      const response = await gmbApi.updateBusinessProfile(editingProfile.basicInfo.name, profileData);
-      if (response.success && response.data) {
-        setProfiles(profiles.map(p => 
-          p.basicInfo.name === editingProfile.basicInfo.name ? response.data! : p
-        ));
+      const result = await updateProfile(editingProfile.basicInfo.name, profileData);
+      if (result.success) {
         setEditingProfile(null);
-      } else {
-        setError(response.error || 'Failed to update profile');
       }
-    } catch (err) {
-      setError('Failed to update profile');
     } finally {
       setActionLoading(false);
     }
@@ -427,14 +408,7 @@ export default function ProfileManagement() {
 
     setActionLoading(true);
     try {
-      const response = await gmbApi.deleteBusinessProfile(profile.basicInfo.name);
-      if (response.success) {
-        setProfiles(profiles.filter(p => p.basicInfo.name !== profile.basicInfo.name));
-      } else {
-        setError(response.error || 'Failed to delete profile');
-      }
-    } catch (err) {
-      setError('Failed to delete profile');
+      await deleteProfile(profile.basicInfo.name);
     } finally {
       setActionLoading(false);
     }
