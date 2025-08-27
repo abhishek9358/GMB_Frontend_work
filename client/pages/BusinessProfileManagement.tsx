@@ -386,7 +386,7 @@ export default function BusinessProfileManagement() {
           <Button
             onClick={handleSave}
             disabled={saving || !isDirty}
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 bg-gbp-blue-500 hover:bg-gbp-blue-600 text-white"
           >
             {saving ? (
               <Loader2 className="w-4 h-4 animate-spin" />
