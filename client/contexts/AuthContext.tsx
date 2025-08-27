@@ -1,111 +1,74 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  picture?: string;
-}
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
   isAuthenticated: boolean;
-  login: (redirectTo?: string) => void;
-  logout: () => void;
+  isLoading: boolean;
   checkAuthStatus: () => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
 interface AuthProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
-  const isAuthenticated = !!user;
 
   const checkAuthStatus = async () => {
     try {
       setIsLoading(true);
-
-      // Check for stored access token
-      const accessToken = localStorage.getItem("access_token");
-      const userData = localStorage.getItem("user_data");
-
-      if (accessToken && userData) {
-        // Verify token is still valid by making a test API call to your existing backend
-        const response = await fetch("http://localhost:3000/api/auth/verify", {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-
-        if (response.ok) {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
-        } else {
-          // Token invalid, clear storage
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("user_data");
-          setUser(null);
-        }
+      
+      // Check if user is authenticated by trying to fetch accounts
+      const response = await fetch('/api/accounts');
+      
+      if (response.ok) {
+        setIsAuthenticated(true);
+      } else if (response.status === 401) {
+        setIsAuthenticated(false);
       } else {
-        setUser(null);
+        // Other errors might be temporary, keep current state
+        console.warn('Auth check failed with status:', response.status);
       }
     } catch (error) {
-      console.error("Auth check failed:", error);
-      setUser(null);
+      console.error('Auth check failed:', error);
+      setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = (redirectTo?: string) => {
-    // Store redirect URL for after login
-    if (redirectTo) {
-      localStorage.setItem("auth_redirect", redirectTo);
-    }
-
-    // Redirect to Google OAuth on your existing backend
-    window.location.href = "http://localhost:3000/api/auth/google";
-  };
-
   const logout = () => {
-    // Clear local storage
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("user_data");
-    localStorage.removeItem("auth_redirect");
-
-    setUser(null);
-
-    // Redirect to login page
-    window.location.href = "/login";
+    setIsAuthenticated(false);
+    // In a real app, you might want to call a logout endpoint
+    // For now, just clear the authentication state
+    window.location.href = '/login';
   };
 
   useEffect(() => {
     checkAuthStatus();
   }, []);
 
-  const value: AuthContextType = {
-    user,
-    isLoading,
+  const value = {
     isAuthenticated,
-    login,
-    logout,
+    isLoading,
     checkAuthStatus,
+    logout
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-}
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
