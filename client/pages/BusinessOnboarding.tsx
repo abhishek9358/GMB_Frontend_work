@@ -18,14 +18,17 @@ export default function BusinessOnboarding() {
         setLoading(true);
 
         // Fetch live business locations from GMB API
-        const response = await fetch('/account/locations');
+        const response = await fetch("/account/locations");
 
         if (response.status === 401) {
-          throw new Error('Authentication required. Please sign in to access your Google Business Profile locations.');
+          throw new Error(
+            "Authentication required. Please sign in to access your Google Business Profile locations.",
+          );
         }
 
         if (!response.ok) {
-          let errorMessage = 'Failed to fetch businesses from Google My Business';
+          let errorMessage =
+            "Failed to fetch businesses from Google My Business";
           try {
             const errorData = await response.json();
             errorMessage = errorData.message || errorData.error || errorMessage;
@@ -39,34 +42,42 @@ export default function BusinessOnboarding() {
 
         // Check if the response is successful
         if (!result.success) {
-          throw new Error(result.error || 'Failed to fetch business locations');
+          throw new Error(result.error || "Failed to fetch business locations");
         }
 
         // Transform the live API response to match the expected format
         const transformedData: LocationsResponse = {
           locations: result.data.locations.map((location: any) => ({
-            _id: location.name.split('/').pop() || location.name, // Extract location ID from name
-            account: location.name.split('/')[0] + '/' + location.name.split('/')[1], // Extract account part
+            _id: location.name.split("/").pop() || location.name, // Extract location ID from name
+            account:
+              location.name.split("/")[0] + "/" + location.name.split("/")[1], // Extract account part
             name: location.name,
             title: location.title,
             storefrontAddress: {
-              addressLines: location.address ? [location.address.split(',')[0]] : [],
-              locality: location.address ? location.address.split(',')[1]?.trim() : '',
-              administrativeArea: location.address ? location.address.split(',')[2]?.trim() : '',
-              postalCode: '',
-              regionCode: 'US',
-              languageCode: 'en'
+              addressLines: location.address
+                ? [location.address.split(",")[0]]
+                : [],
+              locality: location.address
+                ? location.address.split(",")[1]?.trim()
+                : "",
+              administrativeArea: location.address
+                ? location.address.split(",")[2]?.trim()
+                : "",
+              postalCode: "",
+              regionCode: "US",
+              languageCode: "en",
             },
-            status: [location.verificationState || 'UNKNOWN'],
+            status: [location.verificationState || "UNKNOWN"],
             categories: [],
-            verificationState: location.verificationState || 'UNKNOWN',
+            verificationState: location.verificationState || "UNKNOWN",
             accessLevels: [],
             isSubscribed: false,
             whitelabel: {},
-            slug: location.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+            slug: location.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
           })),
           summary: {
-            totalLocations: result.summary?.total || result.data.locations.length,
+            totalLocations:
+              result.summary?.total || result.data.locations.length,
             statusBreakdown: {
               verified: result.summary?.verified || 0,
               unverified: result.summary?.unverified || 0,
@@ -78,7 +89,7 @@ export default function BusinessOnboarding() {
               incomplete: 0,
               verificationPending: result.summary?.pending || 0,
               verificationExpired: 0,
-              unknown: 0
+              unknown: 0,
             },
             categoryBreakdown: {
               totalCategories: 0,
@@ -87,16 +98,23 @@ export default function BusinessOnboarding() {
               additionalCategories: 0,
               businessesWithMultipleCategories: 0,
               topCategories: [],
-              allCategories: {}
-            }
-          }
+              allCategories: {},
+            },
+          },
         };
 
         setData(transformedData);
-        console.log('Live business data fetched successfully:', transformedData);
+        console.log(
+          "Live business data fetched successfully:",
+          transformedData,
+        );
       } catch (err) {
-        console.error('Error fetching live business data:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred while fetching live business data');
+        console.error("Error fetching live business data:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "An error occurred while fetching live business data",
+        );
       } finally {
         setLoading(false);
       }
@@ -106,13 +124,18 @@ export default function BusinessOnboarding() {
   }, []);
 
   // Filter locations based on search term
-  const filteredLocations = data?.locations.filter((location) => {
-    const matchesSearch = 
-      location.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      location.storefrontAddress.locality.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      location.storefrontAddress.administrativeArea.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  }) || [];
+  const filteredLocations =
+    data?.locations.filter((location) => {
+      const matchesSearch =
+        location.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        location.storefrontAddress.locality
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        location.storefrontAddress.administrativeArea
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
+      return matchesSearch;
+    }) || [];
 
   const toggleBusinessSelection = (businessId: string) => {
     setSelectedBusinesses((prev) =>
@@ -133,11 +156,11 @@ export default function BusinessOnboarding() {
         name: location.title,
         rating: 5, // Default rating as shown in image
         reviewCount: 0, // Default review count
-        address: `${location.storefrontAddress.addressLines?.[0] || ''}, ${location.storefrontAddress.locality}, ${location.storefrontAddress.administrativeArea}`,
+        address: `${location.storefrontAddress.addressLines?.[0] || ""}, ${location.storefrontAddress.locality}, ${location.storefrontAddress.administrativeArea}`,
         // category: location.categories?.primaryCategory?.displayName || 'Business',
         // phone: location.phoneNumbers?.primary || '',
         // website: location.websiteUri || '',
-        location: location // Store full location data
+        location: location, // Store full location data
       }));
 
     // Store in localStorage for now (in a real app, this would be sent to an API)
@@ -168,7 +191,9 @@ export default function BusinessOnboarding() {
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center space-x-2">
             <Loader2 className="w-6 h-6 animate-spin text-gbp-blue-500" />
-            <span className="text-gray-600">Loading available businesses...</span>
+            <span className="text-gray-600">
+              Loading available businesses...
+            </span>
           </div>
         </div>
       </div>
@@ -186,7 +211,7 @@ export default function BusinessOnboarding() {
             Failed to load available businesses
           </h3>
           <p className="text-gray-500 mb-4">{error}</p>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="bg-gbp-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-gbp-blue-600 transition-colors"
           >
@@ -211,7 +236,8 @@ export default function BusinessOnboarding() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Add Business</h1>
             <p className="text-gray-600 mt-1">
-              Select businesses to add to your account ({data?.summary.totalLocations || 0} available)
+              Select businesses to add to your account (
+              {data?.summary.totalLocations || 0} available)
             </p>
           </div>
         </div>
@@ -252,25 +278,30 @@ export default function BusinessOnboarding() {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
         {filteredLocations.map((location, index) => {
           const isSelected = selectedBusinesses.includes(location._id);
-          const address = `${location.storefrontAddress.addressLines?.[0] || ''} ${location.storefrontAddress.locality} ${location.storefrontAddress.administrativeArea}`.trim();
-          
+          const address =
+            `${location.storefrontAddress.addressLines?.[0] || ""} ${location.storefrontAddress.locality} ${location.storefrontAddress.administrativeArea}`.trim();
+
           return (
             <div
               key={location._id}
               className={`flex items-center justify-between p-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors ${
-                isSelected ? 'bg-blue-50' : ''
+                isSelected ? "bg-blue-50" : ""
               }`}
             >
               {/* Left side with location icon and business details */}
               <div className="flex items-center space-x-4">
                 {/* Location Pin Icon */}
                 <div className="w-6 h-6 flex items-center justify-center">
-                  <svg 
-                    className="w-5 h-5 text-blue-500" 
-                    fill="currentColor" 
+                  <svg
+                    className="w-5 h-5 text-blue-500"
+                    fill="currentColor"
                     viewBox="0 0 20 20"
                   >
-                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    <path
+                      fillRule="evenodd"
+                      d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
 
@@ -284,17 +315,19 @@ export default function BusinessOnboarding() {
                         className="w-4 h-4 text-yellow-400 fill-current"
                       />
                     ))}
-                    <span className="text-sm font-medium text-gray-900 ml-1">5</span>
+                    <span className="text-sm font-medium text-gray-900 ml-1">
+                      5
+                    </span>
                   </div>
-                  
+
                   {/* Business name */}
                   <h3 className="text-base font-medium text-gray-900 mb-1">
                     {location.title}
                   </h3>
-                  
+
                   {/* Address */}
                   <p className="text-sm text-gray-600">
-                    {address || 'Address not available'}
+                    {address || "Address not available"}
                   </p>
                 </div>
               </div>
@@ -305,11 +338,11 @@ export default function BusinessOnboarding() {
                   onClick={() => toggleBusinessSelection(location._id)}
                   className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
                     isSelected
-                      ? 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600'
-                      : 'bg-white text-blue-500 border-blue-500 hover:bg-blue-50'
+                      ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
+                      : "bg-white text-blue-500 border-blue-500 hover:bg-blue-50"
                   }`}
                 >
-                  {isSelected ? 'Selected' : 'Select Profile'}
+                  {isSelected ? "Selected" : "Select Profile"}
                 </button>
               </div>
             </div>
