@@ -119,7 +119,7 @@ function ComprehensiveProfileEditor({ profile, onSave, onCancel, isLoading }: Co
                 className="flex items-center space-x-2 px-3 py-2 text-gbp-blue-600 border border-gbp-blue-600 rounded-lg hover:bg-gbp-blue-50 transition-colors"
                 title="Sync with live GMB profile"
               >
-                <Sync className="w-4 h-4" />
+                <RefreshCw className="w-4 h-4" />
                 <span className="text-sm">Sync</span>
               </button>
               <button
@@ -313,7 +313,7 @@ function ProfileCard({ profile, onView, onEdit, onDelete, onSync }: ProfileCardP
                 }}
                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
               >
-                <Sync className="w-4 h-4" />
+                <RefreshCw className="w-4 h-4" />
                 <span>Sync with GMB</span>
               </button>
               <div className="border-t border-gray-100 my-1"></div>
