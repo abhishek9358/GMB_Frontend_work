@@ -376,12 +376,114 @@ class GMBApiClient {
     }
   }
 
-  // Get list of all business profiles (placeholder - aggregates from localStorage and API)
+  // Auto-fill profile data from live GMB API
+  async autoFillProfileData(locationName: string): Promise<ApiResponse<BusinessProfile>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/business/${encodeURIComponent(locationName)}/auto-fill`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error auto-filling profile data:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to auto-fill profile data',
+      };
+    }
+  }
+
+  // Push updates to live GMB profile
+  async pushToLiveProfile(locationName: string, profileData: Partial<BusinessProfile>): Promise<ApiResponse<void>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/business/${encodeURIComponent(locationName)}/push-live`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(profileData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error pushing to live profile:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to push updates to live profile',
+      };
+    }
+  }
+
+  // Sync profile with live GMB data
+  async syncWithLiveProfile(locationName: string): Promise<ApiResponse<BusinessProfile>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/business/${encodeURIComponent(locationName)}/sync`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error syncing with live profile:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to sync with live profile',
+      };
+    }
+  }
+
+  // Get account information and available locations
+  async getAccountLocations(accountId?: string): Promise<ApiResponse<{ locations: Array<{ name: string; title: string; }> }>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/account/locations${accountId ? `?accountId=${accountId}` : ''}`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching account locations:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch account locations',
+      };
+    }
+  }
+
+  // Get list of all business profiles (enhanced with API integration)
   async getBusinessProfiles(): Promise<ApiResponse<BusinessProfile[]>> {
     try {
-      // For now, we'll get from localStorage businesses and fetch details for each
+      // First try to get from the API
+      const response = await fetch(`${this.baseUrl}/business/profiles`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+
+      if (response.ok) {
+        const apiData = await response.json();
+        if (apiData.success && apiData.data) {
+          return apiData;
+        }
+      }
+
+      // Fallback to localStorage if API is not available
       const localBusinesses = JSON.parse(localStorage.getItem('userBusinesses') || '[]');
-      
+
       if (localBusinesses.length === 0) {
         return {
           success: true,
@@ -389,40 +491,45 @@ class GMBApiClient {
         };
       }
 
-      // If we have location names, we could fetch details for each
-      // For now, return the localStorage data in the expected format
+      // Convert localStorage data to BusinessProfile format
       const profiles: BusinessProfile[] = localBusinesses.map((business: any) => ({
         basicInfo: {
           name: business.location?.name || business.id,
           title: business.name,
           categories: business.location?.categories || [],
           description: business.location?.profile?.description,
+          openingDate: business.location?.openingDate,
+        },
+        contact: {
           phoneNumbers: business.location?.phoneNumbers || [],
           websiteUri: business.location?.websiteUri,
+          chatEnabled: false,
+        },
+        location: {
           storefrontAddress: business.location?.storefrontAddress || {
-            regionCode: '',
-            languageCode: '',
+            regionCode: 'IN',
+            languageCode: 'en',
             postalCode: '',
             administrativeArea: '',
             locality: '',
             addressLines: [business.address || ''],
           },
+          coordinates: business.location?.latlng,
           serviceArea: business.location?.serviceArea,
         },
         hours: {
           regularHours: business.location?.regularHours,
-          specialHours: business.location?.specialHours,
-          moreHours: business.location?.moreHours,
+          specialHours: business.location?.specialHours || [],
+          moreHours: business.location?.moreHours || [],
         },
-        location: {
-          address: business.location?.storefrontAddress,
-          coordinates: business.location?.latlng,
-        },
-        businessAttributes: {
-          accessibility: [],
-          amenities: [],
-          parking: [],
-          serviceOptions: [],
+        attributes: {
+          accessibility: business.location?.attributes?.accessibility || [],
+          amenities: business.location?.attributes?.amenities || [],
+          crowd: business.location?.attributes?.crowd || [],
+          parking: business.location?.attributes?.parking || [],
+          pets: business.location?.attributes?.pets || [],
+          serviceOptions: business.location?.attributes?.serviceOptions || [],
+          fromTheBusiness: business.location?.attributes?.fromTheBusiness || [],
         },
         reviews: {
           summary: {
@@ -432,16 +539,18 @@ class GMBApiClient {
           reviews: [],
         },
         media: {
-          photos: [],
+          photos: business.location?.media?.photos || [],
           coverPhoto: business.location?.profile?.coverPhoto,
           logo: business.location?.profile?.logo,
         },
-        posts: [],
+        posts: business.location?.posts || [],
         performance: null,
         metadata: {
           openInfo: business.location?.openInfo,
-          verificationState: business.location?.metadata?.verificationState,
+          verificationState: business.location?.metadata?.verificationState || 'UNVERIFIED',
           lastUpdated: new Date().toISOString(),
+          isPublished: business.location?.metadata?.isPublished,
+          storeCode: business.location?.metadata?.storeCode,
         },
       }));
 
