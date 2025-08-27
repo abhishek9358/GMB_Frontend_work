@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
+import { handleAccounts } from "./routes/accounts";
 import { gmbRouter } from "./routes/gmb";
 import { gmbLiveRouter } from "./routes/gmbLive";
 
@@ -20,6 +21,7 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+  app.get("/api/accounts", handleAccounts);
 
   // Mount GMB routes
   app.use("/api", gmbRouter);
