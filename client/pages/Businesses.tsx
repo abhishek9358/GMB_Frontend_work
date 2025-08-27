@@ -297,7 +297,10 @@ export default function Businesses() {
 
                     {/* Action Button */}
                     <div className="flex-shrink-0 ml-4">
-                      <button className="bg-gray-50 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium">
+                      <button
+                        onClick={() => navigate(`/businesses/${encodeURIComponent(business.id)}/manage`)}
+                        className="bg-gray-50 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
+                      >
                         Manage
                       </button>
                     </div>
