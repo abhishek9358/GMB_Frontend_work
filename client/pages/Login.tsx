@@ -52,30 +52,22 @@ export default function Login() {
       setLoading(true);
       setError(null);
 
-      // Since your backend is on port 3000, try to get auth URL from there
-      // Or directly redirect if the endpoint handles redirect automatically
-      try {
-        const response = await fetch("http://localhost:3000/auth/google");
+      // Call the auth endpoint to get the Google OAuth URL
+      const response = await fetch("/auth/google");
 
-        if (response.ok) {
-          const contentType = response.headers.get("content-type");
-
-          if (contentType && contentType.includes("application/json")) {
-            // If it returns JSON with authUrl
-            const data = await response.json();
-            if (data.authUrl) {
-              window.location.href = data.authUrl;
-              return;
-            }
-          }
-        }
-      } catch (fetchError) {
-        console.log("Fetch error, trying direct redirect:", fetchError);
+      if (!response.ok) {
+        throw new Error("Failed to initiate authentication");
       }
 
-      // If fetch fails or doesn't return JSON, try direct redirect
-      // This is common for OAuth flows where the endpoint directly redirects
-      window.location.href = "http://localhost:3000/auth/google";
+      const data = await response.json();
+
+      if (data.authUrl) {
+        // Redirect to the auth URL (for testing, this will be the callback)
+        window.location.href = data.authUrl;
+      } else {
+        throw new Error("No authentication URL received");
+      }
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
       setLoading(false);
