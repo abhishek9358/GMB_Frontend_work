@@ -35,8 +35,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
 
-      // Check if user is authenticated by trying to fetch accounts
-      const response = await fetch("/api/accounts");
+      // Check if user is authenticated by trying to fetch accounts from your backend
+      const response = await fetch("http://localhost:3000/api/accounts");
 
       if (response.ok) {
         setIsAuthenticated(true);
