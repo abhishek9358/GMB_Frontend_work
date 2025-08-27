@@ -28,5 +28,13 @@ export function createServer() {
   app.get("/api/demo", handleDemo);
   // Note: /api/accounts is proxied to the GMB backend on port 3001
 
+  // GMB Business Profile Management routes
+  app.get("/api/business/:locationName/details", getBusinessDetails);
+  app.put("/api/business/:locationName/update", updateBusinessProfile);
+  app.patch("/api/business/:locationName/patch", patchBusinessProfile);
+  app.get("/api/business/:locationName/reviews", getBusinessReviewsRoute);
+  app.get("/api/business/:locationName/photos", getBusinessPhotosRoute);
+  app.get("/api/business/:locationName/posts", getBusinessPostsRoute);
+
   return app;
 }
