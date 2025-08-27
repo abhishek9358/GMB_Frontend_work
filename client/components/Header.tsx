@@ -54,6 +54,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
         const parsedBusinesses = JSON.parse(savedBusinesses);
         parsedBusinesses.forEach((savedBusiness: Business) => {
           if (!allBusinesses.find((b) => b.id === savedBusiness.id)) {
+            //@ts-ignore
             allBusinesses.push(savedBusiness);
           }
         });

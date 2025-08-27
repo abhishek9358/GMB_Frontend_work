@@ -343,7 +343,7 @@ export default function BusinessProfileManagement() {
             variant="ghost"
             size="sm"
             onClick={() => navigate("/businesses")}
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 bg-gbp-blue-500 hover:bg-gbp-blue-600 text-white hover:text-white"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Businesses</span>
@@ -379,16 +379,19 @@ export default function BusinessProfileManagement() {
             size="sm"
             onClick={handleRefresh}
             disabled={loading}
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 bg-gbp-blue-500 hover:bg-gbp-blue-600 border-gbp-blue-500 text-white hover:text-white disabled:bg-gbp-blue-300 disabled:border-gbp-blue-300"
           >
-            <RefreshCw className="w-4 h-4" />
+            {loading ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
             <span>Refresh</span>
           </Button>
 
           <Button
             onClick={handleSave}
-            disabled={saving || !isDirty}
-            className="flex items-center space-x-2 bg-gbp-blue-500 hover:bg-gbp-blue-600 text-white"
+            className="flex items-center space-x-2 bg-gbp-blue-500 hover:bg-gbp-blue-600 border-gbp-blue-500 text-white hover:text-white"
           >
             {saving ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -415,87 +418,95 @@ export default function BusinessProfileManagement() {
       {/* Main Content */}
       <div className="bg-white rounded-lg border border-gray-200">
         <Tabs defaultValue="business-info" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 rounded-t-lg">
+          <TabsList className="grid w-full grid-cols-5 rounded-t-lg bg-[#eff6ff] border-b border-gbp-blue-200">
             <TabsTrigger
               value="business-info"
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 text-black data-[state=active]:bg-gbp-blue-500 data-[state=active]:text-white hover:bg-gbp-blue-100"
             >
               <Building2 className="w-4 h-4" />
               <span>Business Info</span>
             </TabsTrigger>
             <TabsTrigger
               value="contact"
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 text-black data-[state=active]:bg-gbp-blue-500 data-[state=active]:text-white hover:bg-gbp-blue-100"
             >
               <Phone className="w-4 h-4" />
               <span>Contact</span>
             </TabsTrigger>
             <TabsTrigger
               value="location"
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 text-black data-[state=active]:bg-gbp-blue-500 data-[state=active]:text-white hover:bg-gbp-blue-100"
             >
               <MapPin className="w-4 h-4" />
               <span>Location</span>
             </TabsTrigger>
-            <TabsTrigger value="hours" className="flex items-center space-x-2">
+            <TabsTrigger
+              value="hours"
+              className="flex items-center space-x-2 text-black data-[state=active]:bg-gbp-blue-500 data-[state=active]:text-white hover:bg-gbp-blue-100"
+            >
               <Clock className="w-4 h-4" />
               <span>Hours</span>
             </TabsTrigger>
-            <TabsTrigger value="more" className="flex items-center space-x-2">
+            <TabsTrigger
+              value="more"
+              className="flex items-center space-x-2 text-black data-[state=active]:bg-gbp-blue-500 data-[state=active]:text-white hover:bg-gbp-blue-100"
+            >
               <Settings className="w-4 h-4" />
               <span>More</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Business Information Tab */}
-          <TabsContent value="business-info" className="p-6">
-            <Card>
+          <TabsContent value="business-info" className="">
+            <Card className="bg-[#eff6ff] border-gbp-blue-200">
               <CardHeader>
-                <CardTitle>Business Information</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-black">Business Information</CardTitle>
+                <CardDescription className="text-gray-600">
                   Basic information about your business
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="business-name">Business Name</Label>
+                    <Label htmlFor="business-name" className="text-black font-medium">Business Name</Label>
                     <Input
                       id="business-name"
-                      value={profile.name}
+                      value={profile?.name || ""}
                       onChange={(e) => handleChange("", "name", e.target.value)}
                       placeholder="Enter business name"
+                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="business-title">Business Title</Label>
+                    <Label htmlFor="business-title" className="text-black font-medium">Business Title</Label>
                     <Input
                       id="business-title"
-                      value={profile.title}
-                      onChange={(e) =>
-                        handleChange("", "title", e.target.value)
-                      }
+                      value={profile?.title || ""}
+                      onChange={(e) => handleChange("", "title", e.target.value)}
                       placeholder="Enter business title"
+                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="category">Business Category</Label>
+                    <Label htmlFor="category" className="text-black font-medium">Business Category</Label>
                     <Select
-                      value={profile.category}
-                      onValueChange={(value) =>
-                        handleChange("", "category", value)
-                      }
+                      value={profile?.category || ""}
+                      onValueChange={(value) => handleChange("", "category", value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {businessCategories.map((category) => (
-                          <SelectItem key={category} value={category}>
+                      <SelectContent className="border-gbp-blue-200 bg-white max-h-[200px] overflow-y-auto">
+                        {businessCategories?.map((category) => (
+                          <SelectItem
+                            key={category}
+                            value={category}
+                            className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
+                          >
                             {category}
                           </SelectItem>
                         ))}
@@ -504,28 +515,26 @@ export default function BusinessProfileManagement() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="opening-date">Opening Date</Label>
+                    <Label htmlFor="opening-date" className="text-black font-medium">Opening Date</Label>
                     <Input
                       id="opening-date"
                       type="date"
-                      value={profile.openingDate}
-                      onChange={(e) =>
-                        handleChange("", "openingDate", e.target.value)
-                      }
+                      value={profile?.openingDate || ""}
+                      onChange={(e) => handleChange("", "openingDate", e.target.value)}
+                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description" className="text-black font-medium">Description</Label>
                   <Textarea
                     id="description"
                     rows={4}
-                    value={profile.description}
-                    onChange={(e) =>
-                      handleChange("", "description", e.target.value)
-                    }
+                    value={profile?.description || ""}
+                    onChange={(e) => handleChange("", "description", e.target.value)}
                     placeholder="Describe your business..."
+                    className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400 resize-none"
                   />
                 </div>
               </CardContent>
@@ -535,78 +544,64 @@ export default function BusinessProfileManagement() {
           {/* Contact Information Tab */}
           <TabsContent value="contact" className="p-6">
             <div className="space-y-6">
-              <Card>
+              <Card className="bg-[#eff6ff] border-gbp-blue-200">
                 <CardHeader>
-                  <CardTitle>Contact Information</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-black">Contact Information</CardTitle>
+                  <CardDescription className="text-gray-600">
                     How customers can reach your business
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="primary-phone">
+                      <Label htmlFor="primary-phone" className="text-black font-medium">
                         Primary Phone Number
                       </Label>
                       <Input
                         id="primary-phone"
                         type="tel"
-                        value={profile.phoneNumbers.primary}
-                        onChange={(e) =>
-                          handleNestedChange(
-                            "phoneNumbers",
-                            "",
-                            "primary",
-                            e.target.value,
-                          )
-                        }
+                        value={profile?.phoneNumbers?.primary || ""}
+                        onChange={(e) => handleNestedChange("phoneNumbers", "", "primary", e.target.value)}
                         placeholder="+1 (555) 123-4567"
+                        className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="secondary-phone">
+                      <Label htmlFor="secondary-phone" className="text-black font-medium">
                         Secondary Phone Number
                       </Label>
                       <Input
                         id="secondary-phone"
                         type="tel"
-                        value={profile.phoneNumbers.secondary}
-                        onChange={(e) =>
-                          handleNestedChange(
-                            "phoneNumbers",
-                            "",
-                            "secondary",
-                            e.target.value,
-                          )
-                        }
+                        value={profile?.phoneNumbers?.secondary || ""}
+                        onChange={(e) => handleNestedChange("phoneNumbers", "", "secondary", e.target.value)}
                         placeholder="+1 (555) 123-4568"
+                        className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="website">Website</Label>
+                    <Label htmlFor="website" className="text-black font-medium">Website</Label>
                     <Input
                       id="website"
                       type="url"
-                      value={profile.websiteUri}
-                      onChange={(e) =>
-                        handleChange("", "websiteUri", e.target.value)
-                      }
+                      value={profile?.websiteUri || ""}
+                      onChange={(e) => handleChange("", "websiteUri", e.target.value)}
                       placeholder="https://www.example.com"
+                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
                   </div>
 
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="chat-enabled"
-                      checked={profile.chatEnabled}
-                      onCheckedChange={(checked) =>
-                        handleChange("", "chatEnabled", checked)
-                      }
+                      checked={profile?.chatEnabled || false}
+                      onCheckedChange={(checked) => handleChange("", "chatEnabled", checked)}
+                      className="data-[state=checked]:bg-gbp-blue-500"
                     />
-                    <Label htmlFor="chat-enabled">Enable Chat</Label>
+                    <Label htmlFor="chat-enabled" className="text-black font-medium">Enable Chat</Label>
                   </div>
                 </CardContent>
               </Card>
@@ -616,112 +611,91 @@ export default function BusinessProfileManagement() {
           {/* Location Tab */}
           <TabsContent value="location" className="p-6">
             <div className="space-y-6">
-              <Card>
+              <Card className="bg-[#eff6ff] border-gbp-blue-200">
                 <CardHeader>
-                  <CardTitle>Business Location</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-black">Business Location</CardTitle>
+                  <CardDescription className="text-gray-600">
                     Physical address and service areas
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="address-line">Address Line</Label>
+                    <Label htmlFor="address-line" className="text-black font-medium">Address Line</Label>
                     <Input
                       id="address-line"
-                      value={profile.storefrontAddress.addressLines[0] || ""}
+                      value={profile?.storefrontAddress?.addressLines?.[0] || ""}
                       onChange={(e) => {
-                        const newAddressLines = [
-                          ...profile.storefrontAddress.addressLines,
-                        ];
+                        const newAddressLines = [...(profile?.storefrontAddress?.addressLines || [])];
                         newAddressLines[0] = e.target.value;
-                        handleNestedChange(
-                          "storefrontAddress",
-                          "",
-                          "addressLines",
-                          newAddressLines,
-                        );
+                        handleNestedChange("storefrontAddress", "", "addressLines", newAddressLines);
                       }}
                       placeholder="123 Main Street"
+                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input
+                      <Label htmlFor="city" className="text-black font-medium">City</Label>
+                      <Input 
+                      
                         id="city"
-                        value={profile.storefrontAddress.locality}
-                        onChange={(e) =>
-                          handleNestedChange(
-                            "storefrontAddress",
-                            "",
-                            "locality",
-                            e.target.value,
-                          )
-                        }
+                        value={profile?.storefrontAddress?.locality || ""}
+                        onChange={(e) => handleNestedChange("storefrontAddress", "", "locality", e.target.value)}
                         placeholder="New York"
+                        className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="state">State/Province</Label>
+                      <Label htmlFor="state" className="text-black font-medium">State/Province</Label>
                       <Input
                         id="state"
-                        value={profile.storefrontAddress.administrativeArea}
-                        onChange={(e) =>
-                          handleNestedChange(
-                            "storefrontAddress",
-                            "",
-                            "administrativeArea",
-                            e.target.value,
-                          )
-                        }
+                        value={profile?.storefrontAddress?.administrativeArea || ""}
+                        onChange={(e) => handleNestedChange("storefrontAddress", "", "administrativeArea", e.target.value)}
                         placeholder="NY"
+                        className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="postal-code">Postal Code</Label>
-                      <Input
+                      <Label htmlFor="postal-code" className="text-black font-medium">Postal Code</Label>
+                      <Input 
                         id="postal-code"
-                        value={profile.storefrontAddress.postalCode}
-                        onChange={(e) =>
-                          handleNestedChange(
-                            "storefrontAddress",
-                            "",
-                            "postalCode",
-                            e.target.value,
-                          )
-                        }
+                        value={profile?.storefrontAddress?.postalCode || ""}
+                        onChange={(e) => handleNestedChange("storefrontAddress", "", "postalCode", e.target.value)}
                         placeholder="10001"
+                        className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="service-area">Service Area</Label>
+                    <Label htmlFor="service-area" className="text-black font-medium">Service Area</Label>
                     <Select
-                      value={profile.serviceArea.businessType}
-                      onValueChange={(value) =>
-                        handleNestedChange(
-                          "serviceArea",
-                          "",
-                          "businessType",
-                          value,
-                        )
-                      }
+                      value={profile?.serviceArea?.businessType || ""}
+                      onValueChange={(value) => handleNestedChange("serviceArea", "", "businessType", value)}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
+                      <SelectTrigger className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black">
+                        <SelectValue placeholder="Select service area" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CUSTOMER_LOCATION_ONLY">
+                      <SelectContent className="border-gbp-blue-200 bg-white">
+                        <SelectItem
+                          value="CUSTOMER_LOCATION_ONLY"
+                          className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
+                        >
                           Customer Location Only
                         </SelectItem>
-                        <SelectItem value="CUSTOMER_AND_BUSINESS_LOCATION">
+                        <SelectItem
+                          value="CUSTOMER_AND_BUSINESS_LOCATION"
+                          className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
+                        >
                           Customer & Business Location
                         </SelectItem>
-                        <SelectItem value="BUSINESS_LOCATION_ONLY">
+                        <SelectItem
+                          value="BUSINESS_LOCATION_ONLY"
+                          className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
+                        >
                           Business Location Only
                         </SelectItem>
                       </SelectContent>
@@ -734,37 +708,34 @@ export default function BusinessProfileManagement() {
 
           {/* Hours Tab */}
           <TabsContent value="hours" className="p-6">
-            <Card>
+            <Card className="bg-[#eff6ff] border-gbp-blue-200">
               <CardHeader>
-                <CardTitle>Opening Hours</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-black">Opening Hours</CardTitle>
+                <CardDescription className="text-gray-600">
                   Set your regular business hours
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  {profile.regularHours.periods.map((period, index) => (
+                  {profile?.regularHours?.periods?.map((period, index) => (
                     <div
                       key={index}
-                      className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg"
+                      className="flex items-center space-x-4 p-4 border border-gbp-blue-200 rounded-lg bg-white"
                     >
                       <Select
-                        value={period.openDay}
-                        onValueChange={(value) =>
-                          handleArrayChange(
-                            "regularHours.periods",
-                            index,
-                            "openDay",
-                            value,
-                          )
-                        }
+                        value={period?.openDay || ""}
+                        onValueChange={(value) => handleArrayChange("regularHours.periods", index, "openDay", value)}
                       >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
+                        <SelectTrigger className="w-32 border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black">
+                          <SelectValue placeholder="Day" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {daysOfWeek.map((day) => (
-                            <SelectItem key={day.value} value={day.value}>
+                        <SelectContent className="border-gbp-blue-200 bg-white">
+                          {daysOfWeek?.map((day) => (
+                            <SelectItem
+                              key={day.value}
+                              value={day.value}
+                              className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
+                            >
                               {day.label}
                             </SelectItem>
                           ))}
@@ -773,39 +744,25 @@ export default function BusinessProfileManagement() {
 
                       <Input
                         type="time"
-                        value={period.openTime}
-                        onChange={(e) =>
-                          handleArrayChange(
-                            "regularHours.periods",
-                            index,
-                            "openTime",
-                            e.target.value,
-                          )
-                        }
-                        className="w-32"
+                        value={period?.openTime || ""}
+                        onChange={(e) => handleArrayChange("regularHours.periods", index, "openTime", e.target.value)}
+                        className="w-32 border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
                       />
 
-                      <span className="text-gray-500">to</span>
+                      <span className="text-black font-medium">to</span>
 
                       <Input
                         type="time"
-                        value={period.closeTime}
-                        onChange={(e) =>
-                          handleArrayChange(
-                            "regularHours.periods",
-                            index,
-                            "closeTime",
-                            e.target.value,
-                          )
-                        }
-                        className="w-32"
+                        value={period?.closeTime || ""}
+                        onChange={(e) => handleArrayChange("regularHours.periods", index, "closeTime", e.target.value)}
+                        className="w-32 border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
                       />
 
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => removeHoursPeriod(index)}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50 bg-white"
                       >
                         Remove
                       </Button>
@@ -815,7 +772,7 @@ export default function BusinessProfileManagement() {
                   <Button
                     variant="outline"
                     onClick={addHoursPeriod}
-                    className="w-full border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300"
+                    className="w-full border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300 bg-white"
                   >
                     Add Hours Period
                   </Button>
@@ -828,68 +785,58 @@ export default function BusinessProfileManagement() {
           <TabsContent value="more" className="p-6">
             <div className="space-y-6">
               {/* Accessibility */}
-              <Card>
+              <Card className="bg-[#eff6ff] border-gbp-blue-200">
                 <CardHeader>
-                  <CardTitle>Accessibility</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-black">Accessibility</CardTitle>
+                  <CardDescription className="text-gray-600">
                     Accessibility features available at your business
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(profile.accessibility).map(
-                      ([key, value]) => (
-                        <div key={key} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`accessibility-${key}`}
-                            checked={value}
-                            onCheckedChange={(checked) =>
-                              handleNestedChange(
-                                "accessibility",
-                                "",
-                                key,
-                                checked,
-                              )
-                            }
-                          />
-                          <Label
-                            htmlFor={`accessibility-${key}`}
-                            className="text-sm"
-                          >
-                            {key
-                              .replace(/([A-Z])/g, " $1")
-                              .replace(/^./, (str) => str.toUpperCase())}
-                          </Label>
-                        </div>
-                      ),
-                    )}
+                    {Object.entries(profile?.accessibility || {}).map(([key, value]) => (
+                      <div key={key} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`accessibility-${key}`}
+                          checked={Boolean(value)}
+                          onCheckedChange={(checked) => handleNestedChange("accessibility", "", key, Boolean(checked))}
+                          className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
+                        />
+                        <Label
+                          htmlFor={`accessibility-${key}`}
+                          className="text-sm text-black cursor-pointer select-none"
+                        >
+                          {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Amenities */}
-              <Card>
+              <Card className="bg-[#eff6ff] border-gbp-blue-200">
                 <CardHeader>
-                  <CardTitle>Amenities</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-black">Amenities</CardTitle>
+                  <CardDescription className="text-gray-600">
                     Services and amenities offered at your business
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {Object.entries(profile.amenities).map(([key, value]) => (
+                    {Object.entries(profile?.amenities || {}).map(([key, value]) => (
                       <div key={key} className="flex items-center space-x-2">
                         <Checkbox
                           id={`amenities-${key}`}
-                          checked={value}
-                          onCheckedChange={(checked) =>
-                            handleNestedChange("amenities", "", key, checked)
-                          }
+                          checked={Boolean(value)}
+                          onCheckedChange={(checked) => handleNestedChange("amenities", "", key, Boolean(checked))}
+                          className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
                         />
-                        <Label htmlFor={`amenities-${key}`} className="text-sm">
-                          {key
-                            .replace(/([A-Z])/g, " $1")
-                            .replace(/^./, (str) => str.toUpperCase())}
+                        <Label
+                          htmlFor={`amenities-${key}`}
+                          className="text-sm text-black cursor-pointer select-none"
+                        >
+                          {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
                         </Label>
                       </div>
                     ))}
@@ -898,28 +845,28 @@ export default function BusinessProfileManagement() {
               </Card>
 
               {/* Crowd */}
-              <Card>
+              <Card className="bg-[#eff6ff] border-gbp-blue-200">
                 <CardHeader>
-                  <CardTitle>Crowd</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-black">Crowd</CardTitle>
+                  <CardDescription className="text-gray-600">
                     Types of customers your business welcomes
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {Object.entries(profile.crowd).map(([key, value]) => (
+                    {Object.entries(profile?.crowd || {}).map(([key, value]) => (
                       <div key={key} className="flex items-center space-x-2">
                         <Checkbox
                           id={`crowd-${key}`}
-                          checked={value}
-                          onCheckedChange={(checked) =>
-                            handleNestedChange("crowd", "", key, checked)
-                          }
+                          checked={Boolean(value)}
+                          onCheckedChange={(checked) => handleNestedChange("crowd", "", key, Boolean(checked))}
+                          className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
                         />
-                        <Label htmlFor={`crowd-${key}`} className="text-sm">
-                          {key
-                            .replace(/([A-Z])/g, " $1")
-                            .replace(/^./, (str) => str.toUpperCase())}
+                        <Label
+                          htmlFor={`crowd-${key}`}
+                          className="text-sm text-black cursor-pointer select-none"
+                        >
+                          {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
                         </Label>
                       </div>
                     ))}
@@ -928,28 +875,28 @@ export default function BusinessProfileManagement() {
               </Card>
 
               {/* Parking */}
-              <Card>
+              <Card className="bg-[#eff6ff] border-gbp-blue-200">
                 <CardHeader>
-                  <CardTitle>Parking</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-black">Parking</CardTitle>
+                  <CardDescription className="text-gray-600">
                     Parking options available at your business
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {Object.entries(profile.parking).map(([key, value]) => (
+                    {Object.entries(profile?.parking || {}).map(([key, value]) => (
                       <div key={key} className="flex items-center space-x-2">
                         <Checkbox
                           id={`parking-${key}`}
-                          checked={value}
-                          onCheckedChange={(checked) =>
-                            handleNestedChange("parking", "", key, checked)
-                          }
+                          checked={Boolean(value)}
+                          onCheckedChange={(checked) => handleNestedChange("parking", "", key, Boolean(checked))}
+                          className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
                         />
-                        <Label htmlFor={`parking-${key}`} className="text-sm">
-                          {key
-                            .replace(/([A-Z])/g, " $1")
-                            .replace(/^./, (str) => str.toUpperCase())}
+                        <Label
+                          htmlFor={`parking-${key}`}
+                          className="text-sm text-black cursor-pointer select-none"
+                        >
+                          {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
                         </Label>
                       </div>
                     ))}
@@ -958,28 +905,28 @@ export default function BusinessProfileManagement() {
               </Card>
 
               {/* Pets */}
-              <Card>
+              <Card className="bg-[#eff6ff] border-gbp-blue-200">
                 <CardHeader>
-                  <CardTitle>Pets</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-black">Pets</CardTitle>
+                  <CardDescription className="text-gray-600">
                     Pet policies at your business
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(profile.pets).map(([key, value]) => (
+                    {Object.entries(profile?.pets || {}).map(([key, value]) => (
                       <div key={key} className="flex items-center space-x-2">
                         <Checkbox
                           id={`pets-${key}`}
-                          checked={value}
-                          onCheckedChange={(checked) =>
-                            handleNestedChange("pets", "", key, checked)
-                          }
+                          checked={Boolean(value)}
+                          onCheckedChange={(checked) => handleNestedChange("pets", "", key, Boolean(checked))}
+                          className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
                         />
-                        <Label htmlFor={`pets-${key}`} className="text-sm">
-                          {key
-                            .replace(/([A-Z])/g, " $1")
-                            .replace(/^./, (str) => str.toUpperCase())}
+                        <Label
+                          htmlFor={`pets-${key}`}
+                          className="text-sm text-black cursor-pointer select-none"
+                        >
+                          {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
                         </Label>
                       </div>
                     ))}
@@ -988,10 +935,10 @@ export default function BusinessProfileManagement() {
               </Card>
 
               {/* Service Options */}
-              <Card>
+              <Card className="bg-[#eff6ff] border-gbp-blue-200">
                 <CardHeader>
-                  <CardTitle>Service Options</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-black">Service Options</CardTitle>
+                  <CardDescription className="text-gray-600">
                     Additional service options and languages
                   </CardDescription>
                 </CardHeader>
@@ -1001,17 +948,11 @@ export default function BusinessProfileManagement() {
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="online-estimates"
-                          checked={profile.serviceOptions.onlineEstimates}
-                          onCheckedChange={(checked) =>
-                            handleNestedChange(
-                              "serviceOptions",
-                              "",
-                              "onlineEstimates",
-                              checked,
-                            )
-                          }
+                          checked={Boolean(profile?.serviceOptions?.onlineEstimates)}
+                          onCheckedChange={(checked) => handleNestedChange("serviceOptions", "", "onlineEstimates", Boolean(checked))}
+                          className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
                         />
-                        <Label htmlFor="online-estimates" className="text-sm">
+                        <Label htmlFor="online-estimates" className="text-sm text-black cursor-pointer select-none">
                           Online Estimates
                         </Label>
                       </div>
@@ -1019,36 +960,24 @@ export default function BusinessProfileManagement() {
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="onsite-services"
-                          checked={profile.serviceOptions.onSiteServices}
-                          onCheckedChange={(checked) =>
-                            handleNestedChange(
-                              "serviceOptions",
-                              "",
-                              "onSiteServices",
-                              checked,
-                            )
-                          }
+                          checked={Boolean(profile?.serviceOptions?.onSiteServices)}
+                          onCheckedChange={(checked) => handleNestedChange("serviceOptions", "", "onSiteServices", Boolean(checked))}
+                          className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
                         />
-                        <Label htmlFor="onsite-services" className="text-sm">
+                        <Label htmlFor="onsite-services" className="text-sm text-black cursor-pointer select-none">
                           On-site Services
                         </Label>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="languages">Languages Spoken</Label>
+                      <Label htmlFor="languages" className="text-black font-medium">Languages Spoken</Label>
                       <Input
                         id="languages"
-                        value={profile.serviceOptions.languageSpoken.join(", ")}
-                        onChange={(e) =>
-                          handleNestedChange(
-                            "serviceOptions",
-                            "",
-                            "languageSpoken",
-                            e.target.value.split(", ").filter(Boolean),
-                          )
-                        }
+                        value={profile?.serviceOptions?.languageSpoken?.join(", ") || ""}
+                        onChange={(e) => handleNestedChange("serviceOptions", "", "languageSpoken", e.target.value.split(", ").filter(Boolean))}
                         placeholder="English, Spanish, French"
+                        className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                       />
                     </div>
                   </div>
