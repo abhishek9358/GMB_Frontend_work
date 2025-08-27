@@ -76,7 +76,6 @@ export default function Login() {
       // If fetch fails or doesn't return JSON, try direct redirect
       // This is common for OAuth flows where the endpoint directly redirects
       window.location.href = "http://localhost:3000/auth/google";
-
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
       setLoading(false);
