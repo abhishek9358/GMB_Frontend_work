@@ -18,7 +18,7 @@ export default function BusinessOnboarding() {
         setLoading(true);
 
         // Fetch live business locations from GMB API
-        const response = await fetch("/account/locations");
+        const response = await fetch("/api/account/locations");
 
         if (response.status === 401) {
           throw new Error(
