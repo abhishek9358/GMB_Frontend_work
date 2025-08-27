@@ -20,7 +20,6 @@ interface Business {
 }
 
 export default function Header({ title, subtitle }: HeaderProps) {
-  const { logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showBusinessSelector, setShowBusinessSelector] = useState(false);
@@ -259,12 +258,6 @@ export default function Header({ title, subtitle }: HeaderProps) {
                   >
                     Language: English
                   </a>
-                  <button
-                    onClick={logout}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    Logout
-                  </button>
                 </div>
               </div>
             )}
