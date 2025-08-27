@@ -1,5 +1,65 @@
 // GMB Profile API Client Functions
 
+// Detailed attribute interfaces
+export interface BusinessAttribute {
+  attributeId: string;
+  displayName: string;
+  values: string[];
+  groupDisplayName?: string;
+}
+
+export interface OpeningHours {
+  periods: Array<{
+    openDay: string;
+    openTime: string;
+    closeDay: string;
+    closeTime: string;
+  }>;
+}
+
+export interface SpecialHours {
+  specialHourPeriods: Array<{
+    startDate: string;
+    endDate: string;
+    isClosed: boolean;
+    openTime?: string;
+    closeTime?: string;
+  }>;
+}
+
+export interface ContactInfo {
+  phoneNumbers: Array<{
+    label: string;
+    phoneNumber: string;
+  }>;
+  websiteUri?: string;
+  chatEnabled?: boolean;
+  chatUrl?: string;
+}
+
+export interface LocationInfo {
+  storefrontAddress: {
+    regionCode: string;
+    languageCode: string;
+    postalCode: string;
+    administrativeArea: string;
+    locality: string;
+    addressLines: string[];
+  };
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  serviceArea?: {
+    businessType: string;
+    places?: Array<{
+      name: string;
+      placeId: string;
+    }>;
+    regionCode?: string;
+  };
+}
+
 export interface BusinessProfile {
   basicInfo: {
     name: string;
@@ -7,48 +67,41 @@ export interface BusinessProfile {
     categories: Array<{
       displayName: string;
       categoryId: string;
+      primary?: boolean;
     }>;
     description?: string;
-    phoneNumbers: Array<{
-      label: string;
-      phoneNumber: string;
-    }>;
-    websiteUri?: string;
-    storefrontAddress: {
-      regionCode: string;
-      languageCode: string;
-      postalCode: string;
-      administrativeArea: string;
-      locality: string;
-      addressLines: string[];
-    };
-    serviceArea?: any;
+    openingDate?: string;
   };
+
+  contact: ContactInfo;
+
+  location: LocationInfo;
+
   hours: {
-    regularHours?: {
+    regularHours?: OpeningHours;
+    specialHours?: SpecialHours[];
+    moreHours?: Array<{
+      hoursTypeId: string;
+      displayName: string;
       periods: Array<{
         openDay: string;
         openTime: string;
         closeDay: string;
         closeTime: string;
       }>;
-    };
-    specialHours?: any[];
-    moreHours?: any[];
+    }>;
   };
-  location: {
-    address: any;
-    coordinates?: {
-      latitude: number;
-      longitude: number;
-    };
+
+  attributes: {
+    accessibility: BusinessAttribute[];
+    amenities: BusinessAttribute[];
+    crowd: BusinessAttribute[];
+    parking: BusinessAttribute[];
+    pets: BusinessAttribute[];
+    serviceOptions: BusinessAttribute[];
+    fromTheBusiness: BusinessAttribute[];
   };
-  businessAttributes: {
-    accessibility?: any[];
-    amenities?: any[];
-    parking?: any[];
-    serviceOptions?: any[];
-  };
+
   reviews: {
     summary: {
       averageRating: number;
@@ -56,17 +109,52 @@ export interface BusinessProfile {
     } | null;
     reviews: any[];
   };
+
   media: {
-    photos: any[];
-    coverPhoto?: any;
-    logo?: any;
+    photos: Array<{
+      name: string;
+      googleUrl: string;
+      thumbnailUrl: string;
+      description?: string;
+      category: string;
+    }>;
+    coverPhoto?: {
+      name: string;
+      googleUrl: string;
+      thumbnailUrl: string;
+    };
+    logo?: {
+      name: string;
+      googleUrl: string;
+      thumbnailUrl: string;
+    };
   };
-  posts: any[];
+
+  posts: Array<{
+    name: string;
+    postType: string;
+    summary: string;
+    callToAction?: {
+      actionType: string;
+      url: string;
+    };
+    media?: any[];
+    createTime: string;
+    updateTime: string;
+  }>;
+
   performance: any;
+
   metadata: {
-    openInfo?: any;
+    openInfo?: {
+      status: string;
+      canReopen?: boolean;
+      openingDate?: string;
+    };
     verificationState?: string;
     lastUpdated: string;
+    isPublished?: boolean;
+    storeCode?: string;
   };
 }
 
