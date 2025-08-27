@@ -67,7 +67,6 @@ export default function Login() {
       } else {
         throw new Error("No authentication URL received");
       }
-
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
       setLoading(false);
