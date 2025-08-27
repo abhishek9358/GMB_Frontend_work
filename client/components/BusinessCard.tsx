@@ -1,11 +1,14 @@
 import { Location } from "@shared/api";
 import { MapPin, ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface BusinessCardProps {
   location: Location;
 }
 
 export default function BusinessCard({ location }: BusinessCardProps) {
+  const navigate = useNavigate();
+
   const getStatusColor = (status: string[]) => {
     if (status.includes("VERIFIED")) return "bg-green-100 text-green-800";
     if (status.includes("SUSPENDED")) return "bg-red-100 text-red-800";
@@ -89,7 +92,10 @@ export default function BusinessCard({ location }: BusinessCardProps) {
 
             {/* Actions */}
             <div className="flex flex-col space-y-2 ml-4">
-              <button className="bg-gbp-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gbp-blue-600 transition-colors">
+              <button
+                onClick={() => navigate(`/businesses/${encodeURIComponent(location._id)}/manage`)}
+                className="bg-gbp-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gbp-blue-600 transition-colors"
+              >
                 Manage
               </button>
               <button className="border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center space-x-1">
