@@ -23,6 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import gmbProfileService, { BusinessProfile as ServiceBusinessProfile } from "@/services/gmbProfileService";
 
 interface BusinessProfile {
   name: string;
