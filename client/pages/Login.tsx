@@ -11,14 +11,14 @@ export default function Login() {
 
   // Check for success/error params from OAuth callback
   useEffect(() => {
-    const successParam = searchParams.get('success');
-    const errorParam = searchParams.get('error');
-    
-    if (successParam === 'true') {
+    const successParam = searchParams.get("success");
+    const errorParam = searchParams.get("error");
+
+    if (successParam === "true") {
       setSuccess(true);
       // Redirect to businesses page after a short delay
       setTimeout(() => {
-        navigate('/businesses');
+        navigate("/businesses");
       }, 2000);
     } else if (errorParam) {
       setError(getErrorMessage(errorParam));
@@ -27,20 +27,23 @@ export default function Login() {
 
   const getErrorMessage = (errorParam: string) => {
     // If the error is already a formatted message, use it directly
-    if (errorParam.includes('Google authentication failed') || errorParam.includes('credentials')) {
+    if (
+      errorParam.includes("Google authentication failed") ||
+      errorParam.includes("credentials")
+    ) {
       return errorParam;
     }
 
     // Otherwise, map error codes to messages
     switch (errorParam) {
-      case 'auth_failed':
-        return 'Google authentication failed. Please check your Google OAuth credentials in the backend.';
-      case 'access_denied':
-        return 'Access was denied. Please grant the necessary permissions.';
-      case 'invalid_request':
-        return 'Invalid request. Please try again.';
+      case "auth_failed":
+        return "Google authentication failed. Please check your Google OAuth credentials in the backend.";
+      case "access_denied":
+        return "Access was denied. Please grant the necessary permissions.";
+      case "invalid_request":
+        return "Invalid request. Please try again.";
       default:
-        return errorParam || 'An unexpected error occurred. Please try again.';
+        return errorParam || "An unexpected error occurred. Please try again.";
     }
   };
 
@@ -48,25 +51,24 @@ export default function Login() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Call your backend to get the Google OAuth URL
-      const response = await fetch('/auth/google');
-      
+      const response = await fetch("/auth/google");
+
       if (!response.ok) {
-        throw new Error('Failed to initiate authentication');
+        throw new Error("Failed to initiate authentication");
       }
-      
+
       const data = await response.json();
-      
+
       if (data.authUrl) {
         // Redirect to Google OAuth
         window.location.href = data.authUrl;
       } else {
-        throw new Error('No authentication URL received');
+        throw new Error("No authentication URL received");
       }
-      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Authentication failed');
+      setError(err instanceof Error ? err.message : "Authentication failed");
       setLoading(false);
     }
   };
@@ -116,9 +118,7 @@ export default function Login() {
                 <h3 className="text-sm font-medium text-red-800">
                   Authentication Error
                 </h3>
-                <div className="mt-2 text-sm text-red-700">
-                  {error}
-                </div>
+                <div className="mt-2 text-sm text-red-700">{error}</div>
               </div>
             </div>
           </div>
@@ -160,7 +160,8 @@ export default function Login() {
 
         <div className="text-center">
           <p className="text-xs text-gray-500">
-            By continuing, you agree to let this application access your Google Business Profile data
+            By continuing, you agree to let this application access your Google
+            Business Profile data
           </p>
         </div>
 

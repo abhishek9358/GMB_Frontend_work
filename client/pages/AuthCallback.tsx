@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -10,30 +10,32 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      const success = searchParams.get('success');
-      const error = searchParams.get('error');
+      const success = searchParams.get("success");
+      const error = searchParams.get("error");
 
-      console.log('Auth callback received:', { success, error });
+      console.log("Auth callback received:", { success, error });
 
-      if (success === 'true') {
+      if (success === "true") {
         // Authentication was successful, check auth status and redirect
-        console.log('Authentication successful, checking status...');
+        console.log("Authentication successful, checking status...");
         await checkAuthStatus();
-        navigate('/businesses');
+        navigate("/businesses");
       } else if (error) {
         // Authentication failed, redirect to login with error
-        console.log('Authentication failed:', error);
-        let errorMessage = 'Authentication failed';
+        console.log("Authentication failed:", error);
+        let errorMessage = "Authentication failed";
 
         switch (error) {
-          case 'auth_failed':
-            errorMessage = 'Google authentication failed. Please check your Google OAuth credentials.';
+          case "auth_failed":
+            errorMessage =
+              "Google authentication failed. Please check your Google OAuth credentials.";
             break;
-          case 'access_denied':
-            errorMessage = 'Access was denied. Please grant the necessary permissions.';
+          case "access_denied":
+            errorMessage =
+              "Access was denied. Please grant the necessary permissions.";
             break;
-          case 'invalid_request':
-            errorMessage = 'Invalid authentication request.';
+          case "invalid_request":
+            errorMessage = "Invalid authentication request.";
             break;
           default:
             errorMessage = `Authentication error: ${error}`;
@@ -42,8 +44,8 @@ export default function AuthCallback() {
         navigate(`/login?error=${encodeURIComponent(errorMessage)}`);
       } else {
         // No clear indication, redirect to login
-        console.log('No auth parameters found, redirecting to login');
-        navigate('/login');
+        console.log("No auth parameters found, redirecting to login");
+        navigate("/login");
       }
     };
 
