@@ -141,19 +141,14 @@ export default function BusinessProfileManagement() {
       
       setLoading(true);
       try {
-        // TODO: Replace with actual API call
-        const response = await fetch(`/api/business/${locationName}/details`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-          },
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setProfile(data);
+        const result = await gmbProfileService.getBusinessProfile(locationName);
+
+        if (result.success && result.data) {
+          const transformedProfile = gmbProfileService.transformApiDataToProfile(result.data);
+          setProfile(transformedProfile);
         } else {
-          // Fallback: Load from localStorage or show empty form
-          console.log('Failed to load from API, using empty form');
+          console.error('Failed to load profile:', result.error);
+          // Keep the empty form for manual entry
         }
       } catch (error) {
         console.error('Error loading profile:', error);
