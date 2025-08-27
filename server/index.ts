@@ -4,6 +4,7 @@ import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { gmbRouter } from "./routes/gmb";
 import { gmbLiveRouter } from "./routes/gmbLive";
+import { authRouter } from "./routes/auth";
 
 export function createServer() {
   const app = express();
@@ -20,6 +21,9 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+
+  // Mount auth routes
+  app.use("/api/auth", authRouter);
 
   // Mount GMB routes
   app.use("/api", gmbRouter);
