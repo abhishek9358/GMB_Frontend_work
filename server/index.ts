@@ -18,7 +18,6 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
-  // Note: /api/accounts is proxied to the GMB backend on port 3001
 
   return app;
 }
