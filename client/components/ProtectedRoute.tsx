@@ -1,5 +1,6 @@
-import { useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -7,17 +8,13 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      // Store current location for redirect after login
-      localStorage.setItem(
-        "auth_redirect",
-        window.location.pathname + window.location.search,
-      );
-      window.location.href = "/login";
+      navigate('/login');
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   // Show loading spinner while checking authentication
   if (isLoading) {
