@@ -20,7 +20,7 @@ import {
   CheckCircle,
   Building2,
   MessageSquare,
-  Sync,
+  RefreshCw,
   ExternalLink
 } from 'lucide-react';
 import { BusinessProfile } from '../services/gmbApi';
