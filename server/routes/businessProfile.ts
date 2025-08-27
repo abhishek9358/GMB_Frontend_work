@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
-
-// GMB Business Profile API Implementation
-const { google } = require('googleapis');
+import { google } from "googleapis";
 
 // Initialize Google Business Profile API
 const mybusinessbusinessinformation = google.mybusinessbusinessinformation('v1');
