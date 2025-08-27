@@ -12,23 +12,7 @@ export default defineConfig(({ mode }) => ({
       allow: ["./client", "./shared"],
       deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "server/**"],
     },
-    proxy: {
-      // Proxy auth routes to the GMB backend on port 3001
-      '/auth': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-      // Proxy all API routes to the GMB backend on port 3001
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-      // Proxy health check to backend
-      '/health': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-    },
+    // No proxy needed since Express is integrated via expressPlugin
   },
   build: {
     outDir: "dist/spa",
