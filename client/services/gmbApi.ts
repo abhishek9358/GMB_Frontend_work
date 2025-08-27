@@ -202,32 +202,37 @@ export interface BulkResponse {
 class GMBApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = '/api') {
+  constructor(baseUrl: string = "/api") {
     this.baseUrl = baseUrl;
   }
 
   // Get headers with authorization from localStorage
   private getHeaders(): HeadersInit {
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
 
     // Get access token from localStorage
-    const accessToken = localStorage.getItem('access_token');
+    const accessToken = localStorage.getItem("access_token");
     if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
+      headers["Authorization"] = `Bearer ${accessToken}`;
     }
 
     return headers;
   }
 
   // Get detailed business profile information
-  async getBusinessDetails(locationName: string): Promise<ApiResponse<BusinessProfile>> {
+  async getBusinessDetails(
+    locationName: string,
+  ): Promise<ApiResponse<BusinessProfile>> {
     try {
-      const response = await fetch(`${this.baseUrl}/business/${encodeURIComponent(locationName)}/details`, {
-        method: 'GET',
-        headers: this.getHeaders(),
-      });
+      const response = await fetch(
+        `${this.baseUrl}/business/${encodeURIComponent(locationName)}/details`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -235,10 +240,13 @@ class GMBApiClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching business details:', error);
+      console.error("Error fetching business details:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch business details',
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch business details",
       };
     }
   }
@@ -247,19 +255,19 @@ class GMBApiClient {
   async getBusinessPerformance(
     locationName: string,
     startDate?: string,
-    endDate?: string
+    endDate?: string,
   ): Promise<ApiResponse<PerformanceData>> {
     try {
       const params = new URLSearchParams();
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
 
       const url = `${this.baseUrl}/business/${encodeURIComponent(locationName)}/performance${
-        params.toString() ? `?${params.toString()}` : ''
+        params.toString() ? `?${params.toString()}` : ""
       }`;
 
       const response = await fetch(url, {
-        method: 'GET',
+        method: "GET",
         headers: this.getHeaders(),
       });
 
@@ -269,10 +277,13 @@ class GMBApiClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching business performance:', error);
+      console.error("Error fetching business performance:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch business performance',
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch business performance",
       };
     }
   }
@@ -281,7 +292,7 @@ class GMBApiClient {
   async getBulkBusinessDetails(locationNames: string[]): Promise<BulkResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/business/bulk-details`, {
-        method: 'POST',
+        method: "POST",
         headers: this.getHeaders(),
         body: JSON.stringify({ locationNames }),
       });
@@ -292,7 +303,7 @@ class GMBApiClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Error in bulk fetch:', error);
+      console.error("Error in bulk fetch:", error);
       return {
         success: false,
         data: [],
@@ -302,10 +313,12 @@ class GMBApiClient {
   }
 
   // Create a new business profile
-  async createBusinessProfile(profileData: Partial<BusinessProfile>): Promise<ApiResponse<BusinessProfile>> {
+  async createBusinessProfile(
+    profileData: Partial<BusinessProfile>,
+  ): Promise<ApiResponse<BusinessProfile>> {
     try {
       const response = await fetch(`${this.baseUrl}/business/create`, {
-        method: 'POST',
+        method: "POST",
         headers: this.getHeaders(),
         body: JSON.stringify(profileData),
       });
@@ -316,10 +329,13 @@ class GMBApiClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Error creating business profile:', error);
+      console.error("Error creating business profile:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to create business profile',
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to create business profile",
       };
     }
   }
@@ -327,14 +343,17 @@ class GMBApiClient {
   // Update business profile
   async updateBusinessProfile(
     locationName: string,
-    profileData: Partial<BusinessProfile>
+    profileData: Partial<BusinessProfile>,
   ): Promise<ApiResponse<BusinessProfile>> {
     try {
-      const response = await fetch(`${this.baseUrl}/business/${encodeURIComponent(locationName)}`, {
-        method: 'PUT',
-        headers: this.getHeaders(),
-        body: JSON.stringify(profileData),
-      });
+      const response = await fetch(
+        `${this.baseUrl}/business/${encodeURIComponent(locationName)}`,
+        {
+          method: "PUT",
+          headers: this.getHeaders(),
+          body: JSON.stringify(profileData),
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -342,21 +361,29 @@ class GMBApiClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Error updating business profile:', error);
+      console.error("Error updating business profile:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to update business profile',
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update business profile",
       };
     }
   }
 
   // Delete business profile
-  async deleteBusinessProfile(locationName: string): Promise<ApiResponse<void>> {
+  async deleteBusinessProfile(
+    locationName: string,
+  ): Promise<ApiResponse<void>> {
     try {
-      const response = await fetch(`${this.baseUrl}/business/${encodeURIComponent(locationName)}`, {
-        method: 'DELETE',
-        headers: this.getHeaders(),
-      });
+      const response = await fetch(
+        `${this.baseUrl}/business/${encodeURIComponent(locationName)}`,
+        {
+          method: "DELETE",
+          headers: this.getHeaders(),
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -364,21 +391,29 @@ class GMBApiClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Error deleting business profile:', error);
+      console.error("Error deleting business profile:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to delete business profile',
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to delete business profile",
       };
     }
   }
 
   // Auto-fill profile data from live GMB API
-  async autoFillProfileData(locationName: string): Promise<ApiResponse<BusinessProfile>> {
+  async autoFillProfileData(
+    locationName: string,
+  ): Promise<ApiResponse<BusinessProfile>> {
     try {
-      const response = await fetch(`${this.baseUrl}/business/${encodeURIComponent(locationName)}/auto-fill`, {
-        method: 'GET',
-        headers: this.getHeaders(),
-      });
+      const response = await fetch(
+        `${this.baseUrl}/business/${encodeURIComponent(locationName)}/auto-fill`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -386,22 +421,31 @@ class GMBApiClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Error auto-filling profile data:', error);
+      console.error("Error auto-filling profile data:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to auto-fill profile data',
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to auto-fill profile data",
       };
     }
   }
 
   // Push updates to live GMB profile
-  async pushToLiveProfile(locationName: string, profileData: Partial<BusinessProfile>): Promise<ApiResponse<void>> {
+  async pushToLiveProfile(
+    locationName: string,
+    profileData: Partial<BusinessProfile>,
+  ): Promise<ApiResponse<void>> {
     try {
-      const response = await fetch(`${this.baseUrl}/business/${encodeURIComponent(locationName)}/push-live`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(profileData),
-      });
+      const response = await fetch(
+        `${this.baseUrl}/business/${encodeURIComponent(locationName)}/push-live`,
+        {
+          method: "POST",
+          headers: this.getHeaders(),
+          body: JSON.stringify(profileData),
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -409,21 +453,29 @@ class GMBApiClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Error pushing to live profile:', error);
+      console.error("Error pushing to live profile:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to push updates to live profile',
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to push updates to live profile",
       };
     }
   }
 
   // Sync profile with live GMB data
-  async syncWithLiveProfile(locationName: string): Promise<ApiResponse<BusinessProfile>> {
+  async syncWithLiveProfile(
+    locationName: string,
+  ): Promise<ApiResponse<BusinessProfile>> {
     try {
-      const response = await fetch(`${this.baseUrl}/business/${encodeURIComponent(locationName)}/sync`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-      });
+      const response = await fetch(
+        `${this.baseUrl}/business/${encodeURIComponent(locationName)}/sync`,
+        {
+          method: "POST",
+          headers: this.getHeaders(),
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -431,21 +483,31 @@ class GMBApiClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Error syncing with live profile:', error);
+      console.error("Error syncing with live profile:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to sync with live profile',
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to sync with live profile",
       };
     }
   }
 
   // Get account information and available locations
-  async getAccountLocations(accountId?: string): Promise<ApiResponse<{ locations: Array<{ name: string; title: string; }> }>> {
+  async getAccountLocations(
+    accountId?: string,
+  ): Promise<
+    ApiResponse<{ locations: Array<{ name: string; title: string }> }>
+  > {
     try {
-      const response = await fetch(`${this.baseUrl}/account/locations${accountId ? `?accountId=${accountId}` : ''}`, {
-        method: 'GET',
-        headers: this.getHeaders(),
-      });
+      const response = await fetch(
+        `${this.baseUrl}/account/locations${accountId ? `?accountId=${accountId}` : ""}`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -453,10 +515,13 @@ class GMBApiClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching account locations:', error);
+      console.error("Error fetching account locations:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch account locations',
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch account locations",
       };
     }
   }
@@ -466,7 +531,7 @@ class GMBApiClient {
     try {
       // First try to get from the API
       const response = await fetch(`${this.baseUrl}/business/profiles`, {
-        method: 'GET',
+        method: "GET",
         headers: this.getHeaders(),
       });
 
@@ -478,7 +543,9 @@ class GMBApiClient {
       }
 
       // Fallback to localStorage if API is not available
-      const localBusinesses = JSON.parse(localStorage.getItem('userBusinesses') || '[]');
+      const localBusinesses = JSON.parse(
+        localStorage.getItem("userBusinesses") || "[]",
+      );
 
       if (localBusinesses.length === 0) {
         return {
@@ -488,77 +555,84 @@ class GMBApiClient {
       }
 
       // Convert localStorage data to BusinessProfile format
-      const profiles: BusinessProfile[] = localBusinesses.map((business: any) => ({
-        basicInfo: {
-          name: business.location?.name || business.id,
-          title: business.name,
-          categories: business.location?.categories || [],
-          description: business.location?.profile?.description,
-          openingDate: business.location?.openingDate,
-        },
-        contact: {
-          phoneNumbers: business.location?.phoneNumbers || [],
-          websiteUri: business.location?.websiteUri,
-          chatEnabled: false,
-        },
-        location: {
-          storefrontAddress: business.location?.storefrontAddress || {
-            regionCode: 'IN',
-            languageCode: 'en',
-            postalCode: '',
-            administrativeArea: '',
-            locality: '',
-            addressLines: [business.address || ''],
+      const profiles: BusinessProfile[] = localBusinesses.map(
+        (business: any) => ({
+          basicInfo: {
+            name: business.location?.name || business.id,
+            title: business.name,
+            categories: business.location?.categories || [],
+            description: business.location?.profile?.description,
+            openingDate: business.location?.openingDate,
           },
-          coordinates: business.location?.latlng,
-          serviceArea: business.location?.serviceArea,
-        },
-        hours: {
-          regularHours: business.location?.regularHours,
-          specialHours: business.location?.specialHours || [],
-          moreHours: business.location?.moreHours || [],
-        },
-        attributes: {
-          accessibility: business.location?.attributes?.accessibility || [],
-          amenities: business.location?.attributes?.amenities || [],
-          crowd: business.location?.attributes?.crowd || [],
-          parking: business.location?.attributes?.parking || [],
-          pets: business.location?.attributes?.pets || [],
-          serviceOptions: business.location?.attributes?.serviceOptions || [],
-          fromTheBusiness: business.location?.attributes?.fromTheBusiness || [],
-        },
-        reviews: {
-          summary: {
-            averageRating: business.rating || 0,
-            totalReviewCount: business.reviewCount || 0,
+          contact: {
+            phoneNumbers: business.location?.phoneNumbers || [],
+            websiteUri: business.location?.websiteUri,
+            chatEnabled: false,
           },
-          reviews: [],
-        },
-        media: {
-          photos: business.location?.media?.photos || [],
-          coverPhoto: business.location?.profile?.coverPhoto,
-          logo: business.location?.profile?.logo,
-        },
-        posts: business.location?.posts || [],
-        performance: null,
-        metadata: {
-          openInfo: business.location?.openInfo,
-          verificationState: business.location?.metadata?.verificationState || 'UNVERIFIED',
-          lastUpdated: new Date().toISOString(),
-          isPublished: business.location?.metadata?.isPublished,
-          storeCode: business.location?.metadata?.storeCode,
-        },
-      }));
+          location: {
+            storefrontAddress: business.location?.storefrontAddress || {
+              regionCode: "IN",
+              languageCode: "en",
+              postalCode: "",
+              administrativeArea: "",
+              locality: "",
+              addressLines: [business.address || ""],
+            },
+            coordinates: business.location?.latlng,
+            serviceArea: business.location?.serviceArea,
+          },
+          hours: {
+            regularHours: business.location?.regularHours,
+            specialHours: business.location?.specialHours || [],
+            moreHours: business.location?.moreHours || [],
+          },
+          attributes: {
+            accessibility: business.location?.attributes?.accessibility || [],
+            amenities: business.location?.attributes?.amenities || [],
+            crowd: business.location?.attributes?.crowd || [],
+            parking: business.location?.attributes?.parking || [],
+            pets: business.location?.attributes?.pets || [],
+            serviceOptions: business.location?.attributes?.serviceOptions || [],
+            fromTheBusiness:
+              business.location?.attributes?.fromTheBusiness || [],
+          },
+          reviews: {
+            summary: {
+              averageRating: business.rating || 0,
+              totalReviewCount: business.reviewCount || 0,
+            },
+            reviews: [],
+          },
+          media: {
+            photos: business.location?.media?.photos || [],
+            coverPhoto: business.location?.profile?.coverPhoto,
+            logo: business.location?.profile?.logo,
+          },
+          posts: business.location?.posts || [],
+          performance: null,
+          metadata: {
+            openInfo: business.location?.openInfo,
+            verificationState:
+              business.location?.metadata?.verificationState || "UNVERIFIED",
+            lastUpdated: new Date().toISOString(),
+            isPublished: business.location?.metadata?.isPublished,
+            storeCode: business.location?.metadata?.storeCode,
+          },
+        }),
+      );
 
       return {
         success: true,
         data: profiles,
       };
     } catch (error) {
-      console.error('Error fetching business profiles:', error);
+      console.error("Error fetching business profiles:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch business profiles',
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch business profiles",
       };
     }
   }

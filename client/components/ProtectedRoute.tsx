@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,8 +11,11 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       // Store current location for redirect after login
-      localStorage.setItem('auth_redirect', window.location.pathname + window.location.search);
-      window.location.href = '/login';
+      localStorage.setItem(
+        "auth_redirect",
+        window.location.pathname + window.location.search,
+      );
+      window.location.href = "/login";
     }
   }, [isAuthenticated, isLoading]);
 

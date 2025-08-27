@@ -1,7 +1,13 @@
-import { useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function Login() {
   const { isAuthenticated, login, isLoading } = useAuth();
@@ -9,8 +15,8 @@ export default function Login() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      const redirectTo = localStorage.getItem('auth_redirect') || '/';
-      localStorage.removeItem('auth_redirect');
+      const redirectTo = localStorage.getItem("auth_redirect") || "/";
+      localStorage.removeItem("auth_redirect");
       window.location.href = redirectTo;
     }
   }, [isAuthenticated]);
@@ -79,11 +85,11 @@ export default function Login() {
         </Card>
 
         <div className="text-center text-sm text-gray-600">
-          By signing in, you agree to our{' '}
+          By signing in, you agree to our{" "}
           <a href="#" className="text-gbp-blue-600 hover:text-gbp-blue-500">
             Terms of Service
-          </a>{' '}
-          and{' '}
+          </a>{" "}
+          and{" "}
           <a href="#" className="text-gbp-blue-600 hover:text-gbp-blue-500">
             Privacy Policy
           </a>

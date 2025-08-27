@@ -224,12 +224,14 @@ export default function Header({ title, subtitle }: HeaderProps) {
                 {user?.picture ? (
                   <img
                     src={user.picture}
-                    alt={user.name || 'User'}
+                    alt={user.name || "User"}
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <span className="text-gray-600 text-sm font-medium">
-                    {user?.name ? user.name.substring(0, 2).toUpperCase() : 'AB'}
+                    {user?.name
+                      ? user.name.substring(0, 2).toUpperCase()
+                      : "AB"}
                   </span>
                 )}
               </div>
@@ -241,8 +243,12 @@ export default function Header({ title, subtitle }: HeaderProps) {
               <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                 {/* User info section */}
                 <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
-                  <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {user?.name || "User"}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {user?.email}
+                  </p>
                 </div>
 
                 <a

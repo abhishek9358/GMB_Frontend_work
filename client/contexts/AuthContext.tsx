@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 interface User {
   id: string;
@@ -31,33 +31,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const checkAuthStatus = async () => {
     try {
       setIsLoading(true);
-      
+
       // Check for stored access token
-      const accessToken = localStorage.getItem('access_token');
-      const userData = localStorage.getItem('user_data');
-      
+      const accessToken = localStorage.getItem("access_token");
+      const userData = localStorage.getItem("user_data");
+
       if (accessToken && userData) {
         // Verify token is still valid by making a test API call
-        const response = await fetch('/api/auth/verify', {
+        const response = await fetch("/api/auth/verify", {
           headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
+            Authorization: `Bearer ${accessToken}`,
+          },
         });
-        
+
         if (response.ok) {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
         } else {
           // Token invalid, clear storage
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('user_data');
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("user_data");
           setUser(null);
         }
       } else {
         setUser(null);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error("Auth check failed:", error);
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -67,23 +67,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = (redirectTo?: string) => {
     // Store redirect URL for after login
     if (redirectTo) {
-      localStorage.setItem('auth_redirect', redirectTo);
+      localStorage.setItem("auth_redirect", redirectTo);
     }
-    
+
     // Redirect to Google OAuth
-    window.location.href = '/api/auth/google';
+    window.location.href = "/api/auth/google";
   };
 
   const logout = () => {
     // Clear local storage
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('auth_redirect');
-    
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user_data");
+    localStorage.removeItem("auth_redirect");
+
     setUser(null);
-    
+
     // Redirect to login page
-    window.location.href = '/login';
+    window.location.href = "/login";
   };
 
   useEffect(() => {
@@ -96,20 +96,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated,
     login,
     logout,
-    checkAuthStatus
+    checkAuthStatus,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
