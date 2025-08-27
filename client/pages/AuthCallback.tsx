@@ -32,13 +32,16 @@ export default function AuthCallback() {
         }
 
         // Exchange code for tokens using your existing backend
-        const response = await fetch("http://localhost:3000/api/auth/callback", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const response = await fetch(
+          "http://localhost:3000/api/auth/callback",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ code, state }),
           },
-          body: JSON.stringify({ code, state }),
-        });
+        );
 
         if (!response.ok) {
           const errorData = await response.json();
