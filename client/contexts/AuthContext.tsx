@@ -37,8 +37,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const userData = localStorage.getItem("user_data");
 
       if (accessToken && userData) {
-        // Verify token is still valid by making a test API call
-        const response = await fetch("/api/auth/verify", {
+        // Verify token is still valid by making a test API call to your existing backend
+        const response = await fetch("http://localhost:3000/api/auth/verify", {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
@@ -70,8 +70,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.setItem("auth_redirect", redirectTo);
     }
 
-    // Redirect to Google OAuth
-    window.location.href = "/api/auth/google";
+    // Redirect to Google OAuth on your existing backend
+    window.location.href = "http://localhost:3000/api/auth/google";
   };
 
   const logout = () => {
