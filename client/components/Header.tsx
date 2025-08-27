@@ -21,7 +21,7 @@ interface Business {
 }
 
 export default function Header({ title, subtitle }: HeaderProps) {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showBusinessSelector, setShowBusinessSelector] = useState(false);
