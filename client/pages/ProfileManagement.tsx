@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  Star, 
-  MapPin, 
-  Phone, 
-  Globe, 
+import {
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  Star,
+  MapPin,
+  Phone,
+  Globe,
   Clock,
   MoreVertical,
   Filter,
@@ -16,7 +16,9 @@ import {
   Upload,
   Loader2,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Building2,
+  MessageSquare
 } from 'lucide-react';
 import { gmbApi, BusinessProfile } from '../services/gmbApi';
 
@@ -646,17 +648,109 @@ export default function ProfileManagement() {
               </div>
             </div>
             <div className="p-6">
-              {/* Profile details content would go here */}
               <div className="space-y-6">
+                {/* Basic Information */}
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Basic Information</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <pre className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {JSON.stringify(viewingProfile.basicInfo, null, 2)}
-                    </pre>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Business Name</label>
+                        <p className="text-gray-900">{viewingProfile.basicInfo.title}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Category</label>
+                        <p className="text-gray-900">
+                          {viewingProfile.basicInfo.categories[0]?.displayName || 'Not specified'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Phone</label>
+                        <p className="text-gray-900">
+                          {viewingProfile.basicInfo.phoneNumbers[0]?.phoneNumber || 'Not specified'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Website</label>
+                        <p className="text-gray-900">
+                          {viewingProfile.basicInfo.websiteUri || 'Not specified'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Verification Status</label>
+                        <p className="text-gray-900">
+                          {viewingProfile.metadata.verificationState || 'Unknown'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Last Updated</label>
+                        <p className="text-gray-900">
+                          {new Date(viewingProfile.metadata.lastUpdated).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
                   </div>
+                  {viewingProfile.basicInfo.description && (
+                    <div className="mt-4">
+                      <label className="text-sm font-medium text-gray-500">Description</label>
+                      <p className="text-gray-900 mt-1">{viewingProfile.basicInfo.description}</p>
+                    </div>
+                  )}
                 </div>
-                {/* Add more sections as needed */}
+
+                {/* Address */}
+                {viewingProfile.basicInfo.storefrontAddress && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Address</h3>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-gray-900">
+                        {viewingProfile.basicInfo.storefrontAddress.addressLines?.join(', ')}<br />
+                        {viewingProfile.basicInfo.storefrontAddress.locality}, {' '}
+                        {viewingProfile.basicInfo.storefrontAddress.administrativeArea} {' '}
+                        {viewingProfile.basicInfo.storefrontAddress.postalCode}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Reviews Summary */}
+                {viewingProfile.reviews.summary && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Reviews Summary</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <Star className="w-5 h-5 text-yellow-400 fill-current" />
+                          <span className="text-xl font-bold text-gray-900">
+                            {viewingProfile.reviews.summary.averageRating.toFixed(1)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">Average Rating</p>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <MessageSquare className="w-5 h-5 text-gbp-blue-500" />
+                          <span className="text-xl font-bold text-gray-900">
+                            {viewingProfile.reviews.summary.totalReviewCount}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">Total Reviews</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Business Hours */}
+                {viewingProfile.hours.regularHours && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Business Hours</h3>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-gray-600 text-sm">Regular hours information available</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
