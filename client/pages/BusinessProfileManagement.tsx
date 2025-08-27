@@ -182,6 +182,7 @@ export default function BusinessProfileManagement() {
     setProfile((prev) => ({
       ...prev,
       [section]: {
+        //@ts-ignore
         ...prev[section as keyof BusinessProfile],
         [field]: value,
       },
@@ -199,6 +200,7 @@ export default function BusinessProfileManagement() {
     setProfile((prev) => ({
       ...prev,
       [section]: {
+        //@ts-ignore
         ...prev[section as keyof BusinessProfile],
         [subsection]: {
           ...(prev[section as keyof BusinessProfile] as any)[subsection],
