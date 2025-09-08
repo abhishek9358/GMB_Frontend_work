@@ -13,6 +13,12 @@ import Reviews from "./pages/Reviews";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import { lazy, Suspense } from "react";
+
+const GSCOverview = lazy(() => import("./pages/analytics/SearchConsoleOverview"));
+const GSCPerformance = lazy(() => import("./pages/analytics/SearchConsolePerformance"));
+const GSCIndexing = lazy(() => import("./pages/analytics/SearchConsoleIndexing"));
+
 
 function App() {
   return (
@@ -42,6 +48,23 @@ function App() {
             <Route path="automation" element={<Automation />} />
             <Route path="reviews" element={<Reviews />} />
             <Route path="reports" element={<Reports />} />
+            {/* Analytics - Google Search Console */}
+            <Route path="analytics/search-console/overview" element={
+              <Suspense fallback={<div className="p-6">Loading...</div>}>
+                <GSCOverview />
+              </Suspense>
+            } />
+            <Route path="analytics/search-console/performance" element={
+              <Suspense fallback={<div className="p-6">Loading...</div>}>
+                <GSCPerformance />
+              </Suspense>
+            } />
+            <Route path="analytics/search-console/indexing" element={
+              <Suspense fallback={<div className="p-6">Loading...</div>}>
+                <GSCIndexing />
+              </Suspense>
+            } />
+
             <Route
               path="customers"
               element={

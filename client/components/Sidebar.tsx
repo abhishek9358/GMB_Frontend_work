@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
+
 import {
   Home,
   Building2,
@@ -9,6 +10,8 @@ import {
   Settings,
   Users,
   FileText,
+  TrendingUp,
+  Database,
 } from "lucide-react";
 
 const navigationItems = [
@@ -16,7 +19,10 @@ const navigationItems = [
   { to: "/businesses", label: "Businesses", icon: Building2 },
   { to: "/automation", label: "Automation", icon: Zap },
   { to: "/reviews", label: "Reviews", icon: MessageSquare },
-  { to: "/reports", label: "Reports", icon: BarChart3 },
+  { to: "/reports", label: "Reports", icon: FileText },
+  { to: "/analytics/search-console/overview", label: "GSC Overview", icon: BarChart3 },
+  { to: "/analytics/search-console/performance", label: "GSC Performance", icon: TrendingUp },
+  { to: "/analytics/search-console/indexing", label: "GSC Indexing", icon: Database },
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
