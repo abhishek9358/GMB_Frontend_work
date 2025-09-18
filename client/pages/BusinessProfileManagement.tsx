@@ -20,7 +20,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { SERVER } from "@/constants";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { RootState } from "@/redux/store";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useFormik } from "formik";
 import {
@@ -37,10 +38,11 @@ import {
   Settings,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import * as Yup from "yup";
 
-// Define TypeScript interfaces for the API response and form data
+// Define TypeScript interfaces (unchanged)
 interface BusinessProfile {
   name: string;
   title: string;
@@ -161,7 +163,7 @@ interface ApiResponse {
   };
 }
 
-export interface ILocation {
+interface ILocation {
   _id: string;
   name: string;
   __v: number;
@@ -272,14 +274,14 @@ export interface ILocation {
   };
 }
 
-// Validation schema using Yup
+// Validation schema using Yup (unchanged)
 const validationSchema = Yup.object({
   name: Yup.string().required("Business name is required"),
   title: Yup.string().required("Business title is required"),
   category: Yup.string().required("Business category is required"),
   storefrontAddress: Yup.object({
     addressLines: Yup.array().of(
-      Yup.string().required("Address line is required")
+      Yup.string().required("Address line is required"),
     ),
     locality: Yup.string().required("City is required"),
     administrativeArea: Yup.string().required("State/Province is required"),
@@ -287,7 +289,7 @@ const validationSchema = Yup.object({
   }),
 });
 
-// Days of the week and business categories
+// Days of the week and business categories (unchanged)
 const daysOfWeek = [
   { value: "MONDAY", label: "Monday" },
   { value: "TUESDAY", label: "Tuesday" },
@@ -312,37 +314,98 @@ const businessCategories = [
   "Other",
 ];
 
+// Utility function to get changed fields and their paths
+const getChangedFields = (
+  initialValues: any,
+  currentValues: any,
+  prefix: string = "",
+): { changed: any; paths: string[] } => {
+  const changed: any = {};
+  const paths: string[] = [];
+
+  function build(initial: any, current: any, currentPrefix: string): any {
+    if (current === undefined) {
+      return undefined;
+    }
+
+    if (initial === current) {
+      return undefined;
+    }
+
+    if (typeof current !== "object" || current === null) {
+      paths.push(currentPrefix);
+      return current;
+    }
+
+    if (Array.isArray(current)) {
+      const initialArr = Array.isArray(initial) ? initial : [];
+      if (JSON.stringify(initialArr) !== JSON.stringify(current)) {
+        paths.push(currentPrefix);
+        return current;
+      }
+      return undefined;
+    }
+
+    // object
+    const subChanged: any = {};
+    let hasChange = false;
+    Object.keys(current).forEach((key) => {
+      const subInitial = initial ? initial[key] : undefined;
+      const subCurrent = current[key];
+      const newPrefix = currentPrefix ? `${currentPrefix}.${key}` : key;
+      const sub = build(subInitial, subCurrent, newPrefix);
+      if (sub !== undefined) {
+        subChanged[key] = sub;
+        hasChange = true;
+      }
+    });
+
+    if (hasChange) {
+      return subChanged;
+    }
+    return undefined;
+  }
+
+  const nested = build(initialValues, currentValues, prefix);
+  return { changed: nested || {}, paths };
+};
+
 // API service to fetch and update business profile
 const apiService = {
   getBusinessProfile: async (locationId: string, accountId: string) => {
     console.log(
-      `Fetching business profile for locationId: ${locationId}, accountId: ${accountId}`
+      `Fetching business profile for locationId: ${locationId}, accountId: ${accountId}`,
     );
     const response = await axios.get<ApiResponse>(
       `${SERVER}/api/v1/locations/${locationId}?account_id=${accountId}`,
-      { withCredentials: true }
+      { withCredentials: true },
     );
     console.log("API Response:", response.data);
     return response.data;
   },
-  updateBusinessProfile: async (
+  patchBusinessProfile: async (
+    accountId: string,
     locationId: string,
-    profile: BusinessProfile
+    payload: { location: Partial<BusinessProfile>; updateMask: string },
   ) => {
-    console.log("Updating business profile with payload:", profile);
-    const response = await axios.put(
-      `${SERVER}/api/v1/locations/${locationId}`,
-      profile,
+    console.log(
+      `Patching business profile for accountId: ${accountId}, locationId: ${locationId} with payload:`,
+      payload,
+    );
+    const response = await axios.patch(
+      `${SERVER}/api/v1/accounts/${accountId}/locations/${locationId}`,
+
+      payload,
       {
         withCredentials: true,
-      }
+      },
     );
-    console.log("Update API Response:", response.data);
+    console.log("Patch API Response:", response.data);
     return response.data;
   },
 };
 
-// Transform ILocation data to match the form's BusinessProfile structure
+// Transform ILocation data to match the form's BusinessProfile structure (unchanged)
 const transformApiDataToProfile = (data: ILocation | null): BusinessProfile => {
   return {
     name: data?.name || "",
@@ -435,17 +498,12 @@ export default function BusinessProfileManagement() {
     accountId: string;
   }>();
   const [isLoading, setIsLoading] = useState(false);
-
-  console.log(location, "Location State");
-  
-
+  const { user } = useSelector((state: RootState) => state.user);
   const params = useParams();
-
   const navigate = useNavigate();
-  console.log(params, "Params");
-
   const queryClient = useQueryClient();
 
+  // Fetch location details
   async function fetchLocationDetails({ id }: { id: string }) {
     setIsLoading(true);
     try {
@@ -454,7 +512,6 @@ export default function BusinessProfileManagement() {
       });
       console.log("LocationDetails", res.data);
       if (res.data?.location) {
-
         setLocation(res.data.location);
         setIsLoading(false);
       }
@@ -463,125 +520,67 @@ export default function BusinessProfileManagement() {
       setIsLoading(false);
     }
   }
+
   useEffect(() => {
     if (params?.locationId) {
       fetchLocationDetails({ id: params?.locationId });
     }
   }, [params?.locationId]);
 
-  useEffect(() => {
-    if(location){
-      formik.setValues(transformApiDataToProfile(location));
-    }
-  }, [location])
+  const initialValues: BusinessProfile = transformApiDataToProfile(null);
 
-
-  // Default initial values for Formik to avoid undefined issues
-  const initialValues: BusinessProfile = {
-    name: "",
-    title: "",
-    category: "",
-    description: "",
-    openingDate: "",
-    phoneNumbers: {
-      primary: "",
-      secondary: "",
-    },
-    chatEnabled: false,
-    websiteUri: "",
-    storefrontAddress: {
-      addressLines: [""],
-      locality: "",
-      administrativeArea: "",
-      postalCode: "",
-      regionCode: "US",
-    },
-    serviceArea: {
-      businessType: "CUSTOMER_LOCATION_ONLY",
-      regionCode: "US",
-      places: [],
-    },
-    regularHours: {
-      periods: [],
-    },
-    specialHours: [],
-    moreHours: [],
-    accessibility: {
-      wheelchairAccessible: false,
-      wheelchairAccessibleParking: false,
-      wheelchairAccessibleRestroom: false,
-      wheelchairAccessibleSeating: false,
-    },
-    amenities: {
-      wifi: false,
-      parking: false,
-      delivery: false,
-      takeout: false,
-      dineIn: false,
-      curbsidePickup: false,
-      outdoorSeating: false,
-      liveMusic: false,
-      acceptsCreditCards: false,
-      acceptsCash: false,
-      acceptsNfc: false,
-    },
-    crowd: {
-      family: false,
-      groups: false,
-      lgbtqFriendly: false,
-      safespace: false,
-      touristFriendly: false,
-    },
-    parking: {
-      freeParking: false,
-      paidParking: false,
-      streetParking: false,
-      valetParking: false,
-      garageParking: false,
-    },
-    pets: {
-      petsAllowed: false,
-      dogFriendly: false,
-    },
-    serviceOptions: {
-      onlineEstimates: false,
-      onSiteServices: false,
-      languageSpoken: [],
-    },
-  };
-
-
-  // Formik setup
   const formik = useFormik<BusinessProfile>({
-    initialValues: initialValues,
+    initialValues,
     validationSchema,
     enableReinitialize: true,
-    onSubmit: async (values) => {
-      if (!locationName || !accountId) {
-        console.error("Missing locationName or accountId");
-        formik.setStatus("error");
+    onSubmit: async (values, { setStatus }) => {
+      // Get changed fields and their paths
+      const { changed, paths } = getChangedFields(formik.initialValues, values);
+      console.log("Changed data:", changed);
+      console.log("Changed paths:", paths);
+
+      if (Object.keys(changed).length === 0) {
+        console.log("No changes detected");
         return;
       }
+
+      // Prepare payload with location and updateMask
+      const payload = {
+        location: changed,
+        updateMask: paths.join(","),
+      };
+
+      console.log("Submitting form with payload:", payload);
+
       updateProfileMutation.mutate({
-        locationId: locationName,
-        profile: values,
+        accountId: user?.accountId || "",
+        locationId: params?.locationId || "",
+        payload,
       });
     },
   });
 
-    console.log("formik values", formik.values)
+  console.log("Formik errors:", formik.errors);
 
-  // Mutation for updating profile
+  useEffect(() => {
+    if (location) {
+      formik.setValues(transformApiDataToProfile(location));
+    }
+  }, [location]);
+
+  // Mutation for updating profile with PATCH
   const updateProfileMutation = useMutation({
     mutationFn: ({
+      accountId,
       locationId,
-      profile,
+      payload,
     }: {
+      accountId: string;
       locationId: string;
-      profile: BusinessProfile;
-    }) => apiService.updateBusinessProfile(locationId, profile),
+      payload: { location: Partial<BusinessProfile>; updateMask: string };
+    }) => apiService.patchBusinessProfile(accountId, locationId, payload),
     onSuccess: (response) => {
-      console.log("Profile update successful:", response);
+      console.log("Profile patch successful:", response);
       queryClient.invalidateQueries({
         queryKey: ["businessProfile", locationName, accountId],
       });
@@ -589,7 +588,7 @@ export default function BusinessProfileManagement() {
       setTimeout(() => formik.setStatus("idle"), 3000);
     },
     onError: (err) => {
-      console.error("Error updating profile:", err);
+      console.error("Error patching profile:", err);
       formik.setStatus("error");
     },
   });
@@ -611,7 +610,7 @@ export default function BusinessProfileManagement() {
   const removeHoursPeriod = (index: number) => {
     formik.setFieldValue(
       "regularHours.periods",
-      formik.values.regularHours.periods.filter((_, i) => i !== index)
+      formik.values.regularHours.periods.filter((_, i) => i !== index),
     );
   };
 
@@ -647,20 +646,6 @@ export default function BusinessProfileManagement() {
       </div>
     );
   }
-
-  // if (error) {
-  //   return (
-  //     <div className="p-6 bg-gray-50 min-h-full">
-  //       <div className="flex items-center justify-center py-12 text-red-600">
-  //         <AlertCircle className="w-6 h-6 mr-2" />
-  //         <span>
-  //           Error loading business profile:{" "}
-  //           {(error as any).message || "Unknown error"}
-  //         </span>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="p-6 bg-gray-50 min-h-full">
@@ -1006,7 +991,7 @@ export default function BusinessProfileManagement() {
                   <Input
                     id="storefrontAddress.addressLines[0]"
                     {...formik.getFieldProps(
-                      "storefrontAddress.addressLines"
+                      "storefrontAddress.addressLines[0]",
                     )}
                     placeholder="123 Main Street"
                     className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
@@ -1051,7 +1036,7 @@ export default function BusinessProfileManagement() {
                     <Input
                       id="storefrontAddress.administrativeArea"
                       {...formik.getFieldProps(
-                        "storefrontAddress.administrativeArea"
+                        "storefrontAddress.administrativeArea",
                       )}
                       placeholder="NY"
                       className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
@@ -1149,7 +1134,7 @@ export default function BusinessProfileManagement() {
                         onValueChange={(value) =>
                           formik.setFieldValue(
                             `regularHours.periods[${index}].openDay`,
-                            value
+                            value,
                           )
                         }
                       >
@@ -1172,7 +1157,7 @@ export default function BusinessProfileManagement() {
                       <Input
                         type="time"
                         {...formik.getFieldProps(
-                          `regularHours.periods[${index}].openTime`
+                          `regularHours.periods[${index}].openTime`,
                         )}
                         className="w-32 border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
                       />
@@ -1182,7 +1167,7 @@ export default function BusinessProfileManagement() {
                       <Input
                         type="time"
                         {...formik.getFieldProps(
-                          `regularHours.periods[${index}].closeTime`
+                          `regularHours.periods[${index}].closeTime`,
                         )}
                         className="w-32 border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
                       />
@@ -1236,7 +1221,7 @@ export default function BusinessProfileManagement() {
                             onCheckedChange={(checked) =>
                               formik.setFieldValue(
                                 `accessibility.${key}`,
-                                checked
+                                checked,
                               )
                             }
                             className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
@@ -1250,7 +1235,7 @@ export default function BusinessProfileManagement() {
                               .replace(/^./, (str) => str.toUpperCase())}
                           </Label>
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 </CardContent>
@@ -1426,7 +1411,7 @@ export default function BusinessProfileManagement() {
                           onCheckedChange={(checked) =>
                             formik.setFieldValue(
                               "serviceOptions.onlineEstimates",
-                              checked
+                              checked,
                             )
                           }
                           className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
@@ -1446,7 +1431,7 @@ export default function BusinessProfileManagement() {
                           onCheckedChange={(checked) =>
                             formik.setFieldValue(
                               "serviceOptions.onSiteServices",
-                              checked
+                              checked,
                             )
                           }
                           className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
@@ -1470,12 +1455,12 @@ export default function BusinessProfileManagement() {
                       <Input
                         id="serviceOptions.languageSpoken"
                         value={formik.values.serviceOptions.languageSpoken.join(
-                          ", "
+                          ", ",
                         )}
                         onChange={(e) =>
                           formik.setFieldValue(
                             "serviceOptions.languageSpoken",
-                            e.target.value.split(", ").filter(Boolean)
+                            e.target.value.split(", ").filter(Boolean),
                           )
                         }
                         placeholder="English, Spanish, French"
