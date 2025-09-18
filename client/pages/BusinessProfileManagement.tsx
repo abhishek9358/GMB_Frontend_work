@@ -1,30 +1,4 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import {
-  ArrowLeft,
-  Save,
-  RefreshCw,
-  Building2,
-  Phone,
-  MapPin,
-  Clock,
-  Settings,
-  AlertCircle,
-  CheckCircle,
-  Loader2,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
@@ -32,16 +6,288 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import gmbProfileService, {
-  BusinessProfile as ServiceBusinessProfile,
-} from "@/services/gmbProfileService";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { SERVER } from "@/constants";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { useFormik } from "formik";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Building2,
+  CheckCircle,
+  Clock,
+  Loader2,
+  MapPin,
+  Phone,
+  RefreshCw,
+  Save,
+  Settings,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import * as Yup from "yup";
 
-// Use imported BusinessProfile type from service
-type BusinessProfile = ServiceBusinessProfile;
+// Define TypeScript interfaces for the API response and form data
+interface BusinessProfile {
+  name: string;
+  title: string;
+  category: string;
+  description: string;
+  openingDate: string;
+  phoneNumbers: {
+    primary: string;
+    secondary: string;
+  };
+  chatEnabled: boolean;
+  websiteUri: string;
+  storefrontAddress: {
+    addressLines: string[];
+    locality: string;
+    administrativeArea: string;
+    postalCode: string;
+    regionCode: string;
+  };
+  serviceArea: {
+    businessType: string;
+    regionCode: string;
+    places: string[];
+  };
+  regularHours: {
+    periods: Array<{
+      openDay: string;
+      openTime: string;
+      closeDay: string;
+      closeTime: string;
+    }>;
+  };
+  specialHours: any[];
+  moreHours: any[];
+  accessibility: {
+    wheelchairAccessible: boolean;
+    wheelchairAccessibleParking: boolean;
+    wheelchairAccessibleRestroom: boolean;
+    wheelchairAccessibleSeating: boolean;
+  };
+  amenities: {
+    wifi: boolean;
+    parking: boolean;
+    delivery: boolean;
+    takeout: boolean;
+    dineIn: boolean;
+    curbsidePickup: boolean;
+    outdoorSeating: boolean;
+    liveMusic: boolean;
+    acceptsCreditCards: boolean;
+    acceptsCash: boolean;
+    acceptsNfc: boolean;
+  };
+  crowd: {
+    family: boolean;
+    groups: boolean;
+    lgbtqFriendly: boolean;
+    safespace: boolean;
+    touristFriendly: boolean;
+  };
+  parking: {
+    freeParking: boolean;
+    paidParking: boolean;
+    streetParking: boolean;
+    valetParking: boolean;
+    garageParking: boolean;
+  };
+  pets: {
+    petsAllowed: boolean;
+    dogFriendly: boolean;
+  };
+  serviceOptions: {
+    onlineEstimates: boolean;
+    onSiteServices: boolean;
+    languageSpoken: string[];
+  };
+}
 
+interface ApiResponse {
+  location: {
+    _id: string;
+    name: string;
+    account: string;
+    title: string;
+    category?: string;
+    description?: string;
+    phoneNumbers?: {
+      primary: string;
+      secondary?: string;
+    };
+    websiteUri?: string;
+    storefrontAddress: {
+      regionCode: string;
+      languageCode: string;
+      postalCode: string;
+      administrativeArea: string;
+      locality: string;
+      addressLines: string[];
+    };
+    rawGoogleData: {
+      regularHours: Array<{
+        openDay: string;
+        openTime: { hours: number; minutes?: number };
+        closeDay: string;
+        closeTime: { hours: number; minutes?: number };
+      }>;
+      specialHours: any;
+      moreHours: any[];
+      profile: any;
+      serviceArea: any;
+    };
+    stats: {
+      hasWebsite: boolean;
+      hasPhoneNumber: boolean;
+      hasRegularHours: boolean;
+      isVerified?: boolean;
+    };
+  };
+}
+
+export interface ILocation {
+  _id: string;
+  name: string;
+  __v: number;
+  info: {
+    accountHandoverEmail: boolean;
+    businessCategory: string | null;
+    businessCategoryId: string | null;
+    businessLocation: string;
+    cities: string[];
+    seoKeywords: string[];
+    reviewIdea: string;
+    copyGBPImagesLastRun: string;
+    profileCompleteness: number;
+    serviceItemsCount: number;
+    attributesCount: number;
+    daysOpenPerWeek: number;
+    isAlwaysOpen: boolean;
+  };
+  latlng: {
+    latitude: number;
+    longitude: number;
+  };
+  metadata: {
+    canModifyServiceList: boolean;
+    mapsUri: string;
+    newReviewUri: string;
+    placeId: string;
+    hasGoogleUpdated: boolean;
+    canDelete: boolean;
+    hasVoiceOfMerchant: boolean;
+    photoCount: number;
+  };
+  placeInfo: {
+    placeIds: string[];
+  };
+  responseLanguage: string;
+  storefrontAddress: {
+    regionCode: string;
+    languageCode: string;
+    postalCode: string;
+    administrativeArea: string;
+    locality: string;
+    addressLines: string[];
+  };
+  title: string;
+  slug: string;
+  stats: {
+    averageRating: number;
+    reviewCount: number;
+    photoCount: number;
+    automationScore: number;
+    optimisationScore: number;
+    engagementScore: number;
+    profileCompletenessScore: number;
+    serviceItemsCount: number;
+    attributesCount: number;
+    daysOpenPerWeek: number;
+    hasWebsite: boolean;
+    hasPhoneNumber: boolean;
+    lastUpdated: string;
+    dataFetchedAt: string;
+    insights: Record<string, any>;
+    completenessFactors: {
+      has_website: boolean;
+      has_phone: boolean;
+      has_regular_hours: boolean;
+      has_address: boolean;
+      has_categories: boolean;
+      has_services: boolean;
+    };
+    businessStatus: string;
+    canReopen: boolean;
+    isVerified: boolean;
+    hasRegularHours: boolean;
+    hasSpecialHours: boolean;
+    hasMoreHours: boolean;
+  };
+  accessLevels: {
+    accessLevel: string;
+    isOverdue: boolean;
+  }[];
+  isSubscribed: boolean;
+  rawGoogleData: {
+    serviceItems: any[];
+    labels: any[];
+    regularHours: {
+      openDay: string;
+      openTime: {
+        hours: number;
+      };
+      closeDay: string;
+      closeTime: {
+        hours: number;
+      };
+    }[];
+    specialHours: Record<string, any>;
+    moreHours: any[];
+    openInfo: {
+      status: string;
+      canReopen: boolean;
+    };
+    categories: Record<string, any>;
+    profile: Record<string, any>;
+    relationshipData: Record<string, any>;
+    serviceArea: Record<string, any>;
+    adWordsLocationExtensions: Record<string, any>;
+    storeCode: string;
+  };
+}
+
+// Validation schema using Yup
+const validationSchema = Yup.object({
+  name: Yup.string().required("Business name is required"),
+  title: Yup.string().required("Business title is required"),
+  category: Yup.string().required("Business category is required"),
+  storefrontAddress: Yup.object({
+    addressLines: Yup.array().of(
+      Yup.string().required("Address line is required")
+    ),
+    locality: Yup.string().required("City is required"),
+    administrativeArea: Yup.string().required("State/Province is required"),
+    postalCode: Yup.string().required("Postal code is required"),
+  }),
+});
+
+// Days of the week and business categories
 const daysOfWeek = [
   { value: "MONDAY", label: "Monday" },
   { value: "TUESDAY", label: "Tuesday" },
@@ -66,13 +312,172 @@ const businessCategories = [
   "Other",
 ];
 
-export default function BusinessProfileManagement() {
-  const { locationName } = useParams<{ locationName: string }>();
-  const navigate = useNavigate();
+// API service to fetch and update business profile
+const apiService = {
+  getBusinessProfile: async (locationId: string, accountId: string) => {
+    console.log(
+      `Fetching business profile for locationId: ${locationId}, accountId: ${accountId}`
+    );
+    const response = await axios.get<ApiResponse>(
+      `${SERVER}/api/v1/locations/${locationId}?account_id=${accountId}`,
+      { withCredentials: true }
+    );
+    console.log("API Response:", response.data);
+    return response.data;
+  },
+  updateBusinessProfile: async (
+    locationId: string,
+    profile: BusinessProfile
+  ) => {
+    console.log("Updating business profile with payload:", profile);
+    const response = await axios.put(
+      `${SERVER}/api/v1/locations/${locationId}`,
+      profile,
+      {
+        withCredentials: true,
+      }
+    );
+    console.log("Update API Response:", response.data);
+    return response.data;
+  },
+};
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState<BusinessProfile>({
+// Transform ILocation data to match the form's BusinessProfile structure
+const transformApiDataToProfile = (data: ILocation | null): BusinessProfile => {
+  return {
+    name: data?.name || "",
+    title: data?.title || "",
+    category: data?.info.businessCategory || "",
+    description: "",
+    openingDate: "",
+    phoneNumbers: {
+      primary: "",
+      secondary: "",
+    },
+    chatEnabled: false,
+    websiteUri: data?.stats.hasWebsite ? "https://example.com" : "",
+    storefrontAddress: {
+      addressLines: data?.storefrontAddress?.addressLines || [""],
+      locality: data?.storefrontAddress?.locality || "",
+      administrativeArea: data?.storefrontAddress?.administrativeArea || "",
+      postalCode: data?.storefrontAddress?.postalCode || "",
+      regionCode: data?.storefrontAddress?.regionCode || "IN",
+    },
+    serviceArea: {
+      businessType: "BUSINESS_LOCATION_ONLY",
+      regionCode: data?.storefrontAddress?.regionCode || "IN",
+      places: [],
+    },
+    regularHours: {
+      periods:
+        data?.rawGoogleData?.regularHours?.map((period) => ({
+          openDay: period.openDay || "MONDAY",
+          openTime: period.openTime
+            ? `${String(period.openTime.hours).padStart(2, "0")}:00`
+            : "09:00",
+          closeDay: period.closeDay || "MONDAY",
+          closeTime: period.closeTime
+            ? `${String(period.closeTime.hours).padStart(2, "0")}:00`
+            : "17:00",
+        })) || [],
+    },
+    specialHours: data?.rawGoogleData?.specialHours || [],
+    moreHours: data?.rawGoogleData?.moreHours || [],
+    accessibility: {
+      wheelchairAccessible: false,
+      wheelchairAccessibleParking: false,
+      wheelchairAccessibleRestroom: false,
+      wheelchairAccessibleSeating: false,
+    },
+    amenities: {
+      wifi: false,
+      parking: false,
+      delivery: false,
+      takeout: false,
+      dineIn: false,
+      curbsidePickup: false,
+      outdoorSeating: false,
+      liveMusic: false,
+      acceptsCreditCards: false,
+      acceptsCash: false,
+      acceptsNfc: false,
+    },
+    crowd: {
+      family: false,
+      groups: false,
+      lgbtqFriendly: false,
+      safespace: false,
+      touristFriendly: false,
+    },
+    parking: {
+      freeParking: false,
+      paidParking: false,
+      streetParking: false,
+      valetParking: false,
+      garageParking: false,
+    },
+    pets: {
+      petsAllowed: false,
+      dogFriendly: false,
+    },
+    serviceOptions: {
+      onlineEstimates: false,
+      onSiteServices: false,
+      languageSpoken: data?.responseLanguage ? [data.responseLanguage] : [],
+    },
+  };
+};
+
+export default function BusinessProfileManagement() {
+  const [location, setLocation] = useState<ILocation | null>(null);
+  const { locationName, accountId } = useParams<{
+    locationName: string;
+    accountId: string;
+  }>();
+  const [isLoading, setIsLoading] = useState(false);
+
+  console.log(location, "Location State");
+  
+
+  const params = useParams();
+
+  const navigate = useNavigate();
+  console.log(params, "Params");
+
+  const queryClient = useQueryClient();
+
+  async function fetchLocationDetails({ id }: { id: string }) {
+    setIsLoading(true);
+    try {
+      const res = await axios.get(`${SERVER}/api/v1/locations/${id}`, {
+        withCredentials: true,
+      });
+      console.log("LocationDetails", res.data);
+      if (res.data?.location) {
+
+        setLocation(res.data.location);
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error("Failed to fetch location details", error);
+      setIsLoading(false);
+    }
+  }
+  useEffect(() => {
+    if (params?.locationId) {
+      fetchLocationDetails({ id: params?.locationId });
+    }
+  }, [params?.locationId]);
+
+  useEffect(() => {
+    if(location){
+      formik.setValues(transformApiDataToProfile(location));
+    }
+  }, [location])
+
+
+  // Default initial values for Formik to avoid undefined issues
+  const initialValues: BusinessProfile = {
     name: "",
     title: "",
     category: "",
@@ -143,185 +548,94 @@ export default function BusinessProfileManagement() {
       onSiteServices: false,
       languageSpoken: [],
     },
-  });
-
-  const [isDirty, setIsDirty] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">(
-    "idle",
-  );
-
-  // Load business profile data
-  useEffect(() => {
-    const loadProfile = async () => {
-      if (!locationName) return;
-
-      setLoading(true);
-      try {
-        const result = await gmbProfileService.getBusinessProfile(locationName);
-
-        if (result.success && result.data) {
-          const transformedProfile =
-            gmbProfileService.transformApiDataToProfile(result.data);
-          setProfile(transformedProfile);
-        } else {
-          console.error("Failed to load profile:", result.error);
-          // Keep the empty form for manual entry
-        }
-      } catch (error) {
-        console.error("Error loading profile:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProfile();
-  }, [locationName]);
-
-  // Handle form changes
-  const handleChange = (section: string, field: string, value: any) => {
-    setProfile((prev) => ({
-      ...prev,
-      [section]: {
-        //@ts-ignore
-        ...prev[section as keyof BusinessProfile],
-        [field]: value,
-      },
-    }));
-    setIsDirty(true);
-    setSaveStatus("idle");
   };
 
-  const handleNestedChange = (
-    section: string,
-    subsection: string,
-    field: string,
-    value: any,
-  ) => {
-    setProfile((prev) => ({
-      ...prev,
-      [section]: {
-        //@ts-ignore
-        ...prev[section as keyof BusinessProfile],
-        [subsection]: {
-          ...(prev[section as keyof BusinessProfile] as any)[subsection],
-          [field]: value,
-        },
-      },
-    }));
-    setIsDirty(true);
-    setSaveStatus("idle");
-  };
 
-  const handleArrayChange = (
-    section: string,
-    index: number,
-    field: string,
-    value: any,
-  ) => {
-    setProfile((prev) => {
-      const sectionData = prev[section as keyof BusinessProfile] as any;
-      const newArray = [...sectionData];
-      newArray[index] = { ...newArray[index], [field]: value };
-      return {
-        ...prev,
-        [section]: newArray,
-      };
-    });
-    setIsDirty(true);
-    setSaveStatus("idle");
-  };
-
-  // Save profile
-  const handleSave = async () => {
-    if (!locationName) return;
-
-    setSaving(true);
-    setSaveStatus("idle");
-
-    try {
-      // Validate profile data before saving
-      const validation = gmbProfileService.validateProfile(profile);
-      if (!validation.isValid) {
-        console.error("Validation errors:", validation.errors);
-        setSaveStatus("error");
+  // Formik setup
+  const formik = useFormik<BusinessProfile>({
+    initialValues: initialValues,
+    validationSchema,
+    enableReinitialize: true,
+    onSubmit: async (values) => {
+      if (!locationName || !accountId) {
+        console.error("Missing locationName or accountId");
+        formik.setStatus("error");
         return;
       }
+      updateProfileMutation.mutate({
+        locationId: locationName,
+        profile: values,
+      });
+    },
+  });
 
-      const result = await gmbProfileService.updateBusinessProfile(
-        locationName,
-        profile,
-      );
+    console.log("formik values", formik.values)
 
-      if (result.success) {
-        setSaveStatus("success");
-        setIsDirty(false);
-        setTimeout(() => setSaveStatus("idle"), 3000);
-      } else {
-        console.error("Failed to save profile:", result.error);
-        setSaveStatus("error");
-      }
-    } catch (error) {
-      console.error("Error saving profile:", error);
-      setSaveStatus("error");
-    } finally {
-      setSaving(false);
-    }
-  };
+  // Mutation for updating profile
+  const updateProfileMutation = useMutation({
+    mutationFn: ({
+      locationId,
+      profile,
+    }: {
+      locationId: string;
+      profile: BusinessProfile;
+    }) => apiService.updateBusinessProfile(locationId, profile),
+    onSuccess: (response) => {
+      console.log("Profile update successful:", response);
+      queryClient.invalidateQueries({
+        queryKey: ["businessProfile", locationName, accountId],
+      });
+      formik.setStatus("success");
+      setTimeout(() => formik.setStatus("idle"), 3000);
+    },
+    onError: (err) => {
+      console.error("Error updating profile:", err);
+      formik.setStatus("error");
+    },
+  });
 
-  // Refresh data
-  const handleRefresh = async () => {
-    if (!locationName) return;
-
-    setLoading(true);
-    try {
-      const result = await gmbProfileService.getBusinessProfile(locationName);
-
-      if (result.success && result.data) {
-        const transformedProfile = gmbProfileService.transformApiDataToProfile(
-          result.data,
-        );
-        setProfile(transformedProfile);
-        setIsDirty(false);
-        setSaveStatus("idle");
-      } else {
-        console.error("Failed to refresh profile:", result.error);
-      }
-    } catch (error) {
-      console.error("Error refreshing profile:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Add hours period
   const addHoursPeriod = () => {
-    setProfile((prev) => ({
-      ...prev,
-      regularHours: {
-        periods: [
-          ...prev.regularHours.periods,
-          {
-            openDay: "MONDAY",
-            openTime: "09:00",
-            closeDay: "MONDAY",
-            closeTime: "17:00",
-          },
-        ],
+    formik.setFieldValue("regularHours.periods", [
+      ...formik.values.regularHours.periods,
+      {
+        openDay: "MONDAY",
+        openTime: "09:00",
+        closeDay: "MONDAY",
+        closeTime: "17:00",
       },
-    }));
-    setIsDirty(true);
+    ]);
   };
 
+  // Remove hours period
   const removeHoursPeriod = (index: number) => {
-    setProfile((prev) => ({
-      ...prev,
-      regularHours: {
-        periods: prev.regularHours.periods.filter((_, i) => i !== index),
-      },
-    }));
-    setIsDirty(true);
+    formik.setFieldValue(
+      "regularHours.periods",
+      formik.values.regularHours.periods.filter((_, i) => i !== index)
+    );
   };
 
-  if (loading) {
+  // Handle refresh
+  const handleRefresh = () => {
+    console.log("Refreshing business profile...");
+    queryClient.invalidateQueries({
+      queryKey: ["businessProfile", locationName, accountId],
+    });
+  };
+
+  // Handle invalid parameters
+  if (!params?.locationId) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-full">
+        <div className="flex items-center justify-center py-12 text-red-600">
+          <AlertCircle className="w-6 h-6 mr-2" />
+          <span>Invalid location or account ID</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
     return (
       <div className="p-6 bg-gray-50 min-h-full">
         <div className="flex items-center justify-center py-12">
@@ -333,6 +647,20 @@ export default function BusinessProfileManagement() {
       </div>
     );
   }
+
+  // if (error) {
+  //   return (
+  //     <div className="p-6 bg-gray-50 min-h-full">
+  //       <div className="flex items-center justify-center py-12 text-red-600">
+  //         <AlertCircle className="w-6 h-6 mr-2" />
+  //         <span>
+  //           Error loading business profile:{" "}
+  //           {(error as any).message || "Unknown error"}
+  //         </span>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="p-6 bg-gray-50 min-h-full">
@@ -353,20 +681,20 @@ export default function BusinessProfileManagement() {
               Manage Business Profile
             </h1>
             <p className="text-gray-600 mt-1">
-              {profile.name || "Business Profile Management"}
+              {formik.values.name || "Business Profile Management"}
             </p>
           </div>
         </div>
 
         <div className="flex items-center space-x-3">
           {/* Save Status */}
-          {saveStatus === "success" && (
+          {formik.status === "success" && (
             <div className="flex items-center space-x-2 text-green-600">
               <CheckCircle className="w-4 h-4" />
               <span className="text-sm">Saved</span>
             </div>
           )}
-          {saveStatus === "error" && (
+          {formik.status === "error" && (
             <div className="flex items-center space-x-2 text-red-600">
               <AlertCircle className="w-4 h-4" />
               <span className="text-sm">Save failed</span>
@@ -378,10 +706,10 @@ export default function BusinessProfileManagement() {
             variant="outline"
             size="sm"
             onClick={handleRefresh}
-            disabled={loading}
+            disabled={isLoading}
             className="flex items-center space-x-2 bg-gbp-blue-500 hover:bg-gbp-blue-600 border-gbp-blue-500 text-white hover:text-white disabled:bg-gbp-blue-300 disabled:border-gbp-blue-300"
           >
-            {loading ? (
+            {isLoading ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
               <RefreshCw className="w-4 h-4" />
@@ -390,10 +718,11 @@ export default function BusinessProfileManagement() {
           </Button>
 
           <Button
-            onClick={handleSave}
+            onClick={formik.handleSubmit}
+            disabled={updateProfileMutation.isPending || !formik.dirty}
             className="flex items-center space-x-2 bg-gbp-blue-500 hover:bg-gbp-blue-600 border-gbp-blue-500 text-white hover:text-white"
           >
-            {saving ? (
+            {updateProfileMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Save className="w-4 h-4" />
@@ -404,7 +733,7 @@ export default function BusinessProfileManagement() {
       </div>
 
       {/* Dirty State Indicator */}
-      {isDirty && (
+      {formik.dirty && (
         <div className="mb-4 p-3 bg-gbp-blue-50 border border-gbp-blue-200 rounded-lg">
           <div className="flex items-center space-x-2">
             <AlertCircle className="w-4 h-4 text-gbp-blue-600" />
@@ -460,7 +789,9 @@ export default function BusinessProfileManagement() {
           <TabsContent value="business-info" className="">
             <Card className="bg-[#eff6ff] border-gbp-blue-200">
               <CardHeader>
-                <CardTitle className="text-black">Business Information</CardTitle>
+                <CardTitle className="text-black">
+                  Business Information
+                </CardTitle>
                 <CardDescription className="text-gray-600">
                   Basic information about your business
                 </CardDescription>
@@ -468,40 +799,59 @@ export default function BusinessProfileManagement() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="business-name" className="text-black font-medium">Business Name</Label>
+                    <Label htmlFor="name" className="text-black font-medium">
+                      Business Name
+                    </Label>
                     <Input
-                      id="business-name"
-                      value={profile?.name || ""}
-                      onChange={(e) => handleChange("", "name", e.target.value)}
+                      id="name"
+                      {...formik.getFieldProps("name")}
                       placeholder="Enter business name"
                       className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
+                    {formik.touched.name && formik.errors.name && (
+                      <span className="text-red-600 text-sm">
+                        {formik.errors.name}
+                      </span>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="business-title" className="text-black font-medium">Business Title</Label>
+                    <Label htmlFor="title" className="text-black font-medium">
+                      Business Title
+                    </Label>
                     <Input
-                      id="business-title"
-                      value={profile?.title || ""}
-                      onChange={(e) => handleChange("", "title", e.target.value)}
+                      id="title"
+                      {...formik.getFieldProps("title")}
                       placeholder="Enter business title"
                       className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
+                    {formik.touched.title && formik.errors.title && (
+                      <span className="text-red-600 text-sm">
+                        {formik.errors.title}
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="category" className="text-black font-medium">Business Category</Label>
+                    <Label
+                      htmlFor="category"
+                      className="text-black font-medium"
+                    >
+                      Business Category
+                    </Label>
                     <Select
-                      value={profile?.category || ""}
-                      onValueChange={(value) => handleChange("", "category", value)}
+                      value={formik.values.category}
+                      onValueChange={(value) =>
+                        formik.setFieldValue("category", value)
+                      }
                     >
                       <SelectTrigger className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent className="border-gbp-blue-200 bg-white max-h-[200px] overflow-y-auto">
-                        {businessCategories?.map((category) => (
+                        {businessCategories.map((category) => (
                           <SelectItem
                             key={category}
                             value={category}
@@ -512,27 +862,40 @@ export default function BusinessProfileManagement() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {formik.touched.category && formik.errors.category && (
+                      <span className="text-red-600 text-sm">
+                        {formik.errors.category}
+                      </span>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="opening-date" className="text-black font-medium">Opening Date</Label>
+                    <Label
+                      htmlFor="openingDate"
+                      className="text-black font-medium"
+                    >
+                      Opening Date
+                    </Label>
                     <Input
-                      id="opening-date"
+                      id="openingDate"
                       type="date"
-                      value={profile?.openingDate || ""}
-                      onChange={(e) => handleChange("", "openingDate", e.target.value)}
+                      {...formik.getFieldProps("openingDate")}
                       className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description" className="text-black font-medium">Description</Label>
+                  <Label
+                    htmlFor="description"
+                    className="text-black font-medium"
+                  >
+                    Description
+                  </Label>
                   <Textarea
                     id="description"
                     rows={4}
-                    value={profile?.description || ""}
-                    onChange={(e) => handleChange("", "description", e.target.value)}
+                    {...formik.getFieldProps("description")}
                     placeholder="Describe your business..."
                     className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400 resize-none"
                   />
@@ -543,167 +906,226 @@ export default function BusinessProfileManagement() {
 
           {/* Contact Information Tab */}
           <TabsContent value="contact" className="p-6">
-            <div className="space-y-6">
-              <Card className="bg-[#eff6ff] border-gbp-blue-200">
-                <CardHeader>
-                  <CardTitle className="text-black">Contact Information</CardTitle>
-                  <CardDescription className="text-gray-600">
-                    How customers can reach your business
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="primary-phone" className="text-black font-medium">
-                        Primary Phone Number
-                      </Label>
-                      <Input
-                        id="primary-phone"
-                        type="tel"
-                        value={profile?.phoneNumbers?.primary || ""}
-                        onChange={(e) => handleNestedChange("phoneNumbers", "", "primary", e.target.value)}
-                        placeholder="+1 (555) 123-4567"
-                        className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="secondary-phone" className="text-black font-medium">
-                        Secondary Phone Number
-                      </Label>
-                      <Input
-                        id="secondary-phone"
-                        type="tel"
-                        value={profile?.phoneNumbers?.secondary || ""}
-                        onChange={(e) => handleNestedChange("phoneNumbers", "", "secondary", e.target.value)}
-                        placeholder="+1 (555) 123-4568"
-                        className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
-                      />
-                    </div>
-                  </div>
-
+            <Card className="bg-[#eff6ff] border-gbp-blue-200">
+              <CardHeader>
+                <CardTitle className="text-black">
+                  Contact Information
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  How customers can reach your business
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="website" className="text-black font-medium">Website</Label>
+                    <Label
+                      htmlFor="phoneNumbers.primary"
+                      className="text-black font-medium"
+                    >
+                      Primary Phone Number
+                    </Label>
                     <Input
-                      id="website"
-                      type="url"
-                      value={profile?.websiteUri || ""}
-                      onChange={(e) => handleChange("", "websiteUri", e.target.value)}
-                      placeholder="https://www.example.com"
+                      id="phoneNumbers.primary"
+                      type="tel"
+                      {...formik.getFieldProps("phoneNumbers.primary")}
+                      placeholder="+1 (555) 123-4567"
                       className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="chat-enabled"
-                      checked={profile?.chatEnabled || false}
-                      onCheckedChange={(checked) => handleChange("", "chatEnabled", checked)}
-                      className="data-[state=checked]:bg-gbp-blue-500"
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="phoneNumbers.secondary"
+                      className="text-black font-medium"
+                    >
+                      Secondary Phone Number
+                    </Label>
+                    <Input
+                      id="phoneNumbers.secondary"
+                      type="tel"
+                      {...formik.getFieldProps("phoneNumbers.secondary")}
+                      placeholder="+1 (555) 123-4568"
+                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
-                    <Label htmlFor="chat-enabled" className="text-black font-medium">Enable Chat</Label>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="websiteUri"
+                    className="text-black font-medium"
+                  >
+                    Website
+                  </Label>
+                  <Input
+                    id="websiteUri"
+                    type="url"
+                    {...formik.getFieldProps("websiteUri")}
+                    placeholder="https://www.example.com"
+                    className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="chatEnabled"
+                    checked={formik.values.chatEnabled}
+                    onCheckedChange={(checked) =>
+                      formik.setFieldValue("chatEnabled", checked)
+                    }
+                    className="data-[state=checked]:bg-gbp-blue-500"
+                  />
+                  <Label
+                    htmlFor="chatEnabled"
+                    className="text-black font-medium"
+                  >
+                    Enable Chat
+                  </Label>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Location Tab */}
           <TabsContent value="location" className="p-6">
-            <div className="space-y-6">
-              <Card className="bg-[#eff6ff] border-gbp-blue-200">
-                <CardHeader>
-                  <CardTitle className="text-black">Business Location</CardTitle>
-                  <CardDescription className="text-gray-600">
-                    Physical address and service areas
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
+            <Card className="bg-[#eff6ff] border-gbp-blue-200">
+              <CardHeader>
+                <CardTitle className="text-black">Business Location</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Physical address and service areas
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="storefrontAddress.addressLines[0]"
+                    className="text-black font-medium"
+                  >
+                    Address Line
+                  </Label>
+                  <Input
+                    id="storefrontAddress.addressLines[0]"
+                    {...formik.getFieldProps(
+                      "storefrontAddress.addressLines"
+                    )}
+                    placeholder="123 Main Street"
+                    className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
+                  />
+                  {formik.touched.storefrontAddress?.addressLines?.[0] &&
+                    formik.errors.storefrontAddress?.addressLines?.[0] && (
+                      <span className="text-red-600 text-sm">
+                        {formik.errors.storefrontAddress.addressLines[0]}
+                      </span>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="address-line" className="text-black font-medium">Address Line</Label>
+                    <Label
+                      htmlFor="storefrontAddress.locality"
+                      className="text-black font-medium"
+                    >
+                      City
+                    </Label>
                     <Input
-                      id="address-line"
-                      value={profile?.storefrontAddress?.addressLines?.[0] || ""}
-                      onChange={(e) => {
-                        const newAddressLines = [...(profile?.storefrontAddress?.addressLines || [])];
-                        newAddressLines[0] = e.target.value;
-                        handleNestedChange("storefrontAddress", "", "addressLines", newAddressLines);
-                      }}
-                      placeholder="123 Main Street"
+                      id="storefrontAddress.locality"
+                      {...formik.getFieldProps("storefrontAddress.locality")}
+                      placeholder="New York"
                       className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="city" className="text-black font-medium">City</Label>
-                      <Input 
-                      
-                        id="city"
-                        value={profile?.storefrontAddress?.locality || ""}
-                        onChange={(e) => handleNestedChange("storefrontAddress", "", "locality", e.target.value)}
-                        placeholder="New York"
-                        className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="state" className="text-black font-medium">State/Province</Label>
-                      <Input
-                        id="state"
-                        value={profile?.storefrontAddress?.administrativeArea || ""}
-                        onChange={(e) => handleNestedChange("storefrontAddress", "", "administrativeArea", e.target.value)}
-                        placeholder="NY"
-                        className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="postal-code" className="text-black font-medium">Postal Code</Label>
-                      <Input 
-                        id="postal-code"
-                        value={profile?.storefrontAddress?.postalCode || ""}
-                        onChange={(e) => handleNestedChange("storefrontAddress", "", "postalCode", e.target.value)}
-                        placeholder="10001"
-                        className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
-                      />
-                    </div>
+                    {formik.touched.storefrontAddress?.locality &&
+                      formik.errors.storefrontAddress?.locality && (
+                        <span className="text-red-600 text-sm">
+                          {formik.errors.storefrontAddress.locality}
+                        </span>
+                      )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="service-area" className="text-black font-medium">Service Area</Label>
-                    <Select
-                      value={profile?.serviceArea?.businessType || ""}
-                      onValueChange={(value) => handleNestedChange("serviceArea", "", "businessType", value)}
+                    <Label
+                      htmlFor="storefrontAddress.administrativeArea"
+                      className="text-black font-medium"
                     >
-                      <SelectTrigger className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black">
-                        <SelectValue placeholder="Select service area" />
-                      </SelectTrigger>
-                      <SelectContent className="border-gbp-blue-200 bg-white">
-                        <SelectItem
-                          value="CUSTOMER_LOCATION_ONLY"
-                          className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
-                        >
-                          Customer Location Only
-                        </SelectItem>
-                        <SelectItem
-                          value="CUSTOMER_AND_BUSINESS_LOCATION"
-                          className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
-                        >
-                          Customer & Business Location
-                        </SelectItem>
-                        <SelectItem
-                          value="BUSINESS_LOCATION_ONLY"
-                          className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
-                        >
-                          Business Location Only
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                      State/Province
+                    </Label>
+                    <Input
+                      id="storefrontAddress.administrativeArea"
+                      {...formik.getFieldProps(
+                        "storefrontAddress.administrativeArea"
+                      )}
+                      placeholder="NY"
+                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
+                    />
+                    {formik.touched.storefrontAddress?.administrativeArea &&
+                      formik.errors.storefrontAddress?.administrativeArea && (
+                        <span className="text-red-600 text-sm">
+                          {formik.errors.storefrontAddress.administrativeArea}
+                        </span>
+                      )}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="storefrontAddress.postalCode"
+                      className="text-black font-medium"
+                    >
+                      Postal Code
+                    </Label>
+                    <Input
+                      id="storefrontAddress.postalCode"
+                      {...formik.getFieldProps("storefrontAddress.postalCode")}
+                      placeholder="10001"
+                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
+                    />
+                    {formik.touched.storefrontAddress?.postalCode &&
+                      formik.errors.storefrontAddress?.postalCode && (
+                        <span className="text-red-600 text-sm">
+                          {formik.errors.storefrontAddress.postalCode}
+                        </span>
+                      )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="serviceArea.businessType"
+                    className="text-black font-medium"
+                  >
+                    Service Area
+                  </Label>
+                  <Select
+                    value={formik.values.serviceArea.businessType}
+                    onValueChange={(value) =>
+                      formik.setFieldValue("serviceArea.businessType", value)
+                    }
+                  >
+                    <SelectTrigger className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black">
+                      <SelectValue placeholder="Select service area" />
+                    </SelectTrigger>
+                    <SelectContent className="border-gbp-blue-200 bg-white">
+                      <SelectItem
+                        value="CUSTOMER_LOCATION_ONLY"
+                        className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
+                      >
+                        Customer Location Only
+                      </SelectItem>
+                      <SelectItem
+                        value="CUSTOMER_AND_BUSINESS_LOCATION"
+                        className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
+                      >
+                        Customer & Business Location
+                      </SelectItem>
+                      <SelectItem
+                        value="BUSINESS_LOCATION_ONLY"
+                        className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
+                      >
+                        Business Location Only
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Hours Tab */}
@@ -717,20 +1139,25 @@ export default function BusinessProfileManagement() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  {profile?.regularHours?.periods?.map((period, index) => (
+                  {formik.values.regularHours.periods.map((period, index) => (
                     <div
                       key={index}
                       className="flex items-center space-x-4 p-4 border border-gbp-blue-200 rounded-lg bg-white"
                     >
                       <Select
-                        value={period?.openDay || ""}
-                        onValueChange={(value) => handleArrayChange("regularHours.periods", index, "openDay", value)}
+                        value={period.openDay}
+                        onValueChange={(value) =>
+                          formik.setFieldValue(
+                            `regularHours.periods[${index}].openDay`,
+                            value
+                          )
+                        }
                       >
                         <SelectTrigger className="w-32 border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black">
                           <SelectValue placeholder="Day" />
                         </SelectTrigger>
                         <SelectContent className="border-gbp-blue-200 bg-white">
-                          {daysOfWeek?.map((day) => (
+                          {daysOfWeek.map((day) => (
                             <SelectItem
                               key={day.value}
                               value={day.value}
@@ -744,8 +1171,9 @@ export default function BusinessProfileManagement() {
 
                       <Input
                         type="time"
-                        value={period?.openTime || ""}
-                        onChange={(e) => handleArrayChange("regularHours.periods", index, "openTime", e.target.value)}
+                        {...formik.getFieldProps(
+                          `regularHours.periods[${index}].openTime`
+                        )}
                         className="w-32 border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
                       />
 
@@ -753,8 +1181,9 @@ export default function BusinessProfileManagement() {
 
                       <Input
                         type="time"
-                        value={period?.closeTime || ""}
-                        onChange={(e) => handleArrayChange("regularHours.periods", index, "closeTime", e.target.value)}
+                        {...formik.getFieldProps(
+                          `regularHours.periods[${index}].closeTime`
+                        )}
                         className="w-32 border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
                       />
 
@@ -794,22 +1223,35 @@ export default function BusinessProfileManagement() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(profile?.accessibility || {}).map(([key, value]) => (
-                      <div key={key} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`accessibility-${key}`}
-                          checked={Boolean(value)}
-                          onCheckedChange={(checked) => handleNestedChange("accessibility", "", key, Boolean(checked))}
-                          className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
-                        />
-                        <Label
-                          htmlFor={`accessibility-${key}`}
-                          className="text-sm text-black cursor-pointer select-none"
-                        >
-                          {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
-                        </Label>
-                      </div>
-                    ))}
+                    {Object.entries(formik.values.accessibility).map(
+                      ([key]) => (
+                        <div key={key} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`accessibility-${key}`}
+                            checked={
+                              formik.values.accessibility[
+                                key as keyof BusinessProfile["accessibility"]
+                              ]
+                            }
+                            onCheckedChange={(checked) =>
+                              formik.setFieldValue(
+                                `accessibility.${key}`,
+                                checked
+                              )
+                            }
+                            className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
+                          />
+                          <Label
+                            htmlFor={`accessibility-${key}`}
+                            className="text-sm text-black cursor-pointer select-none"
+                          >
+                            {key
+                              .replace(/([A-Z])/g, " $1")
+                              .replace(/^./, (str) => str.toUpperCase())}
+                          </Label>
+                        </div>
+                      )
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -824,19 +1266,27 @@ export default function BusinessProfileManagement() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {Object.entries(profile?.amenities || {}).map(([key, value]) => (
+                    {Object.entries(formik.values.amenities).map(([key]) => (
                       <div key={key} className="flex items-center space-x-2">
                         <Checkbox
                           id={`amenities-${key}`}
-                          checked={Boolean(value)}
-                          onCheckedChange={(checked) => handleNestedChange("amenities", "", key, Boolean(checked))}
+                          checked={
+                            formik.values.amenities[
+                              key as keyof BusinessProfile["amenities"]
+                            ]
+                          }
+                          onCheckedChange={(checked) =>
+                            formik.setFieldValue(`amenities.${key}`, checked)
+                          }
                           className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
                         />
                         <Label
                           htmlFor={`amenities-${key}`}
                           className="text-sm text-black cursor-pointer select-none"
                         >
-                          {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+                          {key
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/^./, (str) => str.toUpperCase())}
                         </Label>
                       </div>
                     ))}
@@ -854,19 +1304,27 @@ export default function BusinessProfileManagement() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {Object.entries(profile?.crowd || {}).map(([key, value]) => (
+                    {Object.entries(formik.values.crowd).map(([key]) => (
                       <div key={key} className="flex items-center space-x-2">
                         <Checkbox
                           id={`crowd-${key}`}
-                          checked={Boolean(value)}
-                          onCheckedChange={(checked) => handleNestedChange("crowd", "", key, Boolean(checked))}
+                          checked={
+                            formik.values.crowd[
+                              key as keyof BusinessProfile["crowd"]
+                            ]
+                          }
+                          onCheckedChange={(checked) =>
+                            formik.setFieldValue(`crowd.${key}`, checked)
+                          }
                           className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
                         />
                         <Label
                           htmlFor={`crowd-${key}`}
                           className="text-sm text-black cursor-pointer select-none"
                         >
-                          {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+                          {key
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/^./, (str) => str.toUpperCase())}
                         </Label>
                       </div>
                     ))}
@@ -884,19 +1342,27 @@ export default function BusinessProfileManagement() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {Object.entries(profile?.parking || {}).map(([key, value]) => (
+                    {Object.entries(formik.values.parking).map(([key]) => (
                       <div key={key} className="flex items-center space-x-2">
                         <Checkbox
                           id={`parking-${key}`}
-                          checked={Boolean(value)}
-                          onCheckedChange={(checked) => handleNestedChange("parking", "", key, Boolean(checked))}
+                          checked={
+                            formik.values.parking[
+                              key as keyof BusinessProfile["parking"]
+                            ]
+                          }
+                          onCheckedChange={(checked) =>
+                            formik.setFieldValue(`parking.${key}`, checked)
+                          }
                           className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
                         />
                         <Label
                           htmlFor={`parking-${key}`}
                           className="text-sm text-black cursor-pointer select-none"
                         >
-                          {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+                          {key
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/^./, (str) => str.toUpperCase())}
                         </Label>
                       </div>
                     ))}
@@ -914,19 +1380,27 @@ export default function BusinessProfileManagement() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(profile?.pets || {}).map(([key, value]) => (
+                    {Object.entries(formik.values.pets).map(([key]) => (
                       <div key={key} className="flex items-center space-x-2">
                         <Checkbox
                           id={`pets-${key}`}
-                          checked={Boolean(value)}
-                          onCheckedChange={(checked) => handleNestedChange("pets", "", key, Boolean(checked))}
+                          checked={
+                            formik.values.pets[
+                              key as keyof BusinessProfile["pets"]
+                            ]
+                          }
+                          onCheckedChange={(checked) =>
+                            formik.setFieldValue(`pets.${key}`, checked)
+                          }
                           className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
                         />
                         <Label
                           htmlFor={`pets-${key}`}
                           className="text-sm text-black cursor-pointer select-none"
                         >
-                          {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+                          {key
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/^./, (str) => str.toUpperCase())}
                         </Label>
                       </div>
                     ))}
@@ -947,35 +1421,63 @@ export default function BusinessProfileManagement() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex items-center space-x-2">
                         <Checkbox
-                          id="online-estimates"
-                          checked={Boolean(profile?.serviceOptions?.onlineEstimates)}
-                          onCheckedChange={(checked) => handleNestedChange("serviceOptions", "", "onlineEstimates", Boolean(checked))}
+                          id="serviceOptions.onlineEstimates"
+                          checked={formik.values.serviceOptions.onlineEstimates}
+                          onCheckedChange={(checked) =>
+                            formik.setFieldValue(
+                              "serviceOptions.onlineEstimates",
+                              checked
+                            )
+                          }
                           className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
                         />
-                        <Label htmlFor="online-estimates" className="text-sm text-black cursor-pointer select-none">
+                        <Label
+                          htmlFor="serviceOptions.onlineEstimates"
+                          className="text-sm text-black cursor-pointer select-none"
+                        >
                           Online Estimates
                         </Label>
                       </div>
 
                       <div className="flex items-center space-x-2">
                         <Checkbox
-                          id="onsite-services"
-                          checked={Boolean(profile?.serviceOptions?.onSiteServices)}
-                          onCheckedChange={(checked) => handleNestedChange("serviceOptions", "", "onSiteServices", Boolean(checked))}
+                          id="serviceOptions.onSiteServices"
+                          checked={formik.values.serviceOptions.onSiteServices}
+                          onCheckedChange={(checked) =>
+                            formik.setFieldValue(
+                              "serviceOptions.onSiteServices",
+                              checked
+                            )
+                          }
                           className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
                         />
-                        <Label htmlFor="onsite-services" className="text-sm text-black cursor-pointer select-none">
+                        <Label
+                          htmlFor="serviceOptions.onSiteServices"
+                          className="text-sm text-black cursor-pointer select-none"
+                        >
                           On-site Services
                         </Label>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="languages" className="text-black font-medium">Languages Spoken</Label>
+                      <Label
+                        htmlFor="serviceOptions.languageSpoken"
+                        className="text-black font-medium"
+                      >
+                        Languages Spoken
+                      </Label>
                       <Input
-                        id="languages"
-                        value={profile?.serviceOptions?.languageSpoken?.join(", ") || ""}
-                        onChange={(e) => handleNestedChange("serviceOptions", "", "languageSpoken", e.target.value.split(", ").filter(Boolean))}
+                        id="serviceOptions.languageSpoken"
+                        value={formik.values.serviceOptions.languageSpoken.join(
+                          ", "
+                        )}
+                        onChange={(e) =>
+                          formik.setFieldValue(
+                            "serviceOptions.languageSpoken",
+                            e.target.value.split(", ").filter(Boolean)
+                          )
+                        }
                         placeholder="English, Spanish, French"
                         className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                       />

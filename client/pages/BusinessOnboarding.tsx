@@ -16,7 +16,7 @@ export default function BusinessOnboarding() {
     const fetchBusinesses = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/accounts');
+        const response = await fetch(`${SERVER}/api/v1/accounts`);
 
         if (response.status === 401) {
           throw new Error('Authentication required');

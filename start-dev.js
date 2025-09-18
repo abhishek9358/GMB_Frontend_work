@@ -190,7 +190,7 @@ console.log('✅ All validations passed!\n');
 // Load backend environment variables to get the correct port
 const backendEnv = envValidation.backendEnv;
 const BACKEND_PORT = parseInt(backendEnv.PORT) || 3001;
-const FRONTEND_PORT = 8080;
+const FRONTEND_PORT = 5173;
 
 console.log('🚀 Starting GMB Management Development Environment...\n');
 

@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
+import React, { createContext, useContext, useState, useEffect } from "react";
+import type { ReactNode } from "react";
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -12,7 +12,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -28,20 +28,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const checkAuthStatus = async () => {
     try {
       setIsLoading(true);
-      
+
       // Check if user is authenticated by trying to fetch accounts
-      const response = await fetch('/api/accounts');
-      
+      const response = await fetch("/api/v1/accounts", {credentials: "include"});
+
       if (response.ok) {
         setIsAuthenticated(true);
       } else if (response.status === 401) {
         setIsAuthenticated(false);
       } else {
         // Other errors might be temporary, keep current state
-        console.warn('Auth check failed with status:', response.status);
+        console.warn("Auth check failed with status:", response.status);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error("Auth check failed:", error);
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsAuthenticated(false);
     // In a real app, you might want to call a logout endpoint
     // For now, just clear the authentication state
-    window.location.href = '/login';
+    window.location.href = "/login";
   };
 
   useEffect(() => {
@@ -63,12 +63,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated,
     isLoading,
     checkAuthStatus,
-    logout
+    logout,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -25,7 +25,7 @@ async function testPortChecker() {
   console.log('Test 3: Checking multiple ports...');
   const multipleResults = await checkMultiplePorts([
     { port: 3000, service: 'Backend' },
-    { port: 8080, service: 'Frontend' },
+    { port: 5173, service: 'Frontend' },
     { port: 9999, service: 'Test Service' }
   ]);
   

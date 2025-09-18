@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Plus, Globe, Loader2 } from "lucide-react";
+import axios from "axios";
+import { SERVER } from "@/constants";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/redux/store";
 
 interface UserBusiness {
   id: string;
@@ -32,41 +36,68 @@ export default function Businesses() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
 
+  const { user } = useSelector((state: RootState) => state.user);
+
+  async function fetchMyBusinesses() {
+    try {
+      setLoading(true);
+      const res = await axios.get(`${SERVER}/api/v1/account/mybusinesses`, {
+        withCredentials: true,
+      });
+      console.log("My Businesses Response", res.data);
+      // Extract and transform the businesses data
+      if (res.data.success && res.data.businesses) {
+        const transformedBusinesses: UserBusiness[] = res.data.businesses.map(
+          (business: any) => ({
+            id: business.id,
+            name: business.title,
+            rating: 0, // Not provided in API response, set default
+            reviewCount: 0, // Not provided in API response, set default
+            address: formatAddress(business.address),
+            category: business.category || "Uncategorized",
+            phone: business.phone,
+            website: business.websiteUri,
+            location: {
+              locationId: business.locationId,
+              placeId: business.metadata?.placeId,
+              mapsUri: business.metadata?.mapsUri,
+              newReviewUri: business.metadata?.newReviewUri,
+              address: business.address,
+              metadata: business.metadata,
+            },
+          })
+        );
+
+        setBusinesses(transformedBusinesses);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.log("Error:", error);
+      setLoading(false);
+    }
+  }
+
+  // Helper function to format address
+  function formatAddress(addressObj: any): string {
+    if (!addressObj) return "";
+
+    const addressParts = [
+      ...(addressObj.addressLines || []),
+      addressObj.locality,
+      addressObj.administrativeArea,
+      addressObj.postalCode,
+    ].filter(Boolean); // Remove empty/null values
+
+    return addressParts.join(", ");
+  }
+
   // Load businesses from localStorage
   useEffect(() => {
-    const loadBusinesses = () => {
-      try {
-        setLoading(true);
-        const savedBusinesses = localStorage.getItem("userBusinesses");
-        if (savedBusinesses) {
-          const parsedBusinesses = JSON.parse(savedBusinesses);
-          setBusinesses(parsedBusinesses);
-        } else {
-          setBusinesses([]);
-        }
-      } catch (error) {
-        console.error("Error loading businesses from localStorage:", error);
-        setBusinesses([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadBusinesses();
-
-    // Listen for storage changes (when businesses are added from other tabs/components)
-    const handleStorageChange = () => {
-      loadBusinesses();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("focus", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("focus", handleStorageChange);
-    };
-  }, []);
+    if (user) {
+      fetchMyBusinesses();
+    }
+  }, [user]);
 
   // Filter businesses based on selected filter and search term
   const filteredBusinesses = businesses.filter((business) => {
@@ -86,7 +117,7 @@ export default function Businesses() {
     if (selectedFilter === "verified") {
       return (
         business.location?.status?.some((status: string) =>
-          status.includes("VERIFIED"),
+          status.includes("VERIFIED")
         ) || false
       );
     }
@@ -94,23 +125,26 @@ export default function Businesses() {
     return true; // For other filters, show all for now
   });
 
+  console.log(filteredBusinesses, "Filtered Businesses");
+  
+
   // Calculate status breakdown from current businesses
-  const statusBreakdown: StatusBreakdown = {
-    verified: businesses.filter((b) =>
-      b.location?.status?.some((s: string) => s.includes("VERIFIED")),
-    ).length,
-    unverified: businesses.filter((b) =>
-      b.location?.status?.some((s: string) => s.includes("UNVERIFIED")),
-    ).length,
-    suspended: businesses.filter((b) =>
-      b.location?.status?.some((s: string) => s.includes("SUSPENDED")),
-    ).length,
-    disabled: 0,
-    incomplete: 0,
-    duplicate: 0,
-    googleUpdates: 0,
-    missingStoreCodes: 0,
-  };
+  // const statusBreakdown: StatusBreakdown = {
+  //   verified: businesses.filter((b) =>
+  //     b.location?.status?.some((s: string) => s.includes("VERIFIED")),
+  //   ).length,
+  //   unverified: businesses.filter((b) =>
+  //     b.location?.status?.some((s: string) => s.includes("UNVERIFIED")),
+  //   ).length,
+  //   suspended: businesses.filter((b) =>
+  //     b.location?.status?.some((s: string) => s.includes("SUSPENDED")),
+  //   ).length,
+  //   disabled: 0,
+  //   incomplete: 0,
+  //   duplicate: 0,
+  //   googleUpdates: 0,
+  //   missingStoreCodes: 0,
+  // };
 
   if (loading) {
     return (
@@ -177,7 +211,8 @@ export default function Businesses() {
                 <div className="flex items-center justify-between">
                   <span>Verified</span>
                   <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">
-                    {statusBreakdown.verified}
+                    {/* {statusBreakdown.verified} */}
+                    verified
                   </span>
                 </div>
               </button>
@@ -193,7 +228,8 @@ export default function Businesses() {
                 <div className="flex items-center justify-between">
                   <span>Unverified</span>
                   <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full">
-                    {statusBreakdown.unverified}
+                    {/* {statusBreakdown.unverified} */}
+                    unverified
                   </span>
                 </div>
               </button>
@@ -241,8 +277,8 @@ export default function Businesses() {
                   {businesses.length === 0
                     ? "Get started by adding your first business"
                     : searchTerm || selectedFilter !== "all"
-                      ? "Try adjusting your search criteria or filters"
-                      : "No businesses match your criteria"}
+                    ? "Try adjusting your search criteria or filters"
+                    : "No businesses match your criteria"}
                 </p>
                 <button
                   onClick={() => navigate("/businesses/add")}
@@ -275,13 +311,13 @@ export default function Businesses() {
                             <h3 className="text-lg font-semibold text-gray-900 truncate">
                               {business.name}
                             </h3>
-                            {business.location?.status?.some((s: string) =>
-                              s.includes("VERIFIED"),
-                            ) && (
-                              <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
-                                Verified
-                              </span>
-                            )}
+                            {/* {business.location?.status?.some((s: string) =>
+                              s.includes("VERIFIED")
+                            ) && ( */}
+                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                              Verified
+                            </span>
+                            {/* )}  */}
                           </div>
 
                           <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
@@ -323,8 +359,12 @@ export default function Businesses() {
                     <div className="flex-shrink-0 ml-4">
                       <button
                         onClick={() =>
+                          // console.log("Manage",business?.location?.locationId?.split("/")?.[1])
+                          
                           navigate(
-                            `/businesses/${encodeURIComponent(business.id)}/manage`,
+                            `/businesses/${encodeURIComponent(
+                              business?.location?.locationId?.split("/")?.[1] || ""
+                            )}/manage`
                           )
                         }
                         className="bg-gray-50 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
