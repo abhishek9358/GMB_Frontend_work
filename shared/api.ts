@@ -38,6 +38,37 @@ export interface Location {
   slug: string;
 }
 
+export interface Location2 {
+  name: string;
+  locationId: string;
+  title: string;
+  status: string;
+  profileStrength: number;
+  verificationStatus: string;
+  lastStatusCheck: string; // ISO date string
+  isActive: boolean;
+  needsAttention: string[];
+}
+
+export interface Account {
+  accountName: string;
+  accountDisplayName: string;
+  accountNumber: string | null;
+  type: string;
+  role: string | null;
+  permissions: string[];
+  locations: Location2[];
+}
+
+export interface AccountsResponse {
+  success: boolean;
+  totalAccounts: number;
+  totalLocations: number;
+  accounts: Account[];
+  timestamp: string; // ISO date string
+  note: string;
+}
+
 export interface StatusBreakdown {
   verified: number;
   unverified: number;
