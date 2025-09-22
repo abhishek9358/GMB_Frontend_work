@@ -51,8 +51,8 @@ export default function Businesses() {
           (business: any) => ({
             id: business.id,
             name: business.title,
-            rating: 0, // Not provided in API response, set default
-            reviewCount: 0, // Not provided in API response, set default
+            rating: business?.rating || 0, // Not provided in API response, set default
+            reviewCount: business?.reviewCount || 0, // Not provided in API response, set default
             address: formatAddress(business.address),
             category: business.category?.primaryCategory?.displayName || "Uncategorized",
             phone: business.phone,
