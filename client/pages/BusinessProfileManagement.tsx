@@ -508,7 +508,7 @@ export default function BusinessProfileManagement() {
   async function fetchLocationDetails({ id }: { id: string }) {
     setIsLoading(true);
     try {
-      const res = await axios.get(`${SERVER}/api/v1/locations/${id}`, {
+      const res = await axios.get(`${SERVER}/api/v1/locations/${id}?account_id=${user?.accountId}`, {
         withCredentials: true,
       });
       console.log("LocationDetails", res.data);
@@ -523,10 +523,10 @@ export default function BusinessProfileManagement() {
   }
 
   useEffect(() => {
-    if (params?.locationId) {
+    if (params?.locationId && user) {
       fetchLocationDetails({ id: params?.locationId });
     }
-  }, [params?.locationId]);
+  }, [params?.locationId, user]);
 
   const initialValues: BusinessProfile = transformApiDataToProfile(null);
 

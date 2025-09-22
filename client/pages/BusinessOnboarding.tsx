@@ -1,41 +1,41 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Star, ArrowLeft, Loader2, Globe } from "lucide-react";
-import { AccountsResponse } from "@shared/api";
+import { AccountsResponse, Location2 } from "@shared/api";
 import axios from "axios";
 import { SERVER } from "@/constants";
 
 // Updated BusinessLocation interface
-interface BusinessLocation {
-  locationId: string; // Explicitly include locationId for API payload
-  name: string;
-  title: string;
-  status: string; // e.g., "OPEN", "CLOSED"
-  verificationStatus: string; // e.g., "VERIFIED", "UNVERIFIED"
-  storefrontAddress: {
-    regionCode: string;
-    languageCode: string;
-    postalCode: string;
-    administrativeArea: string;
-    locality: string;
-    addressLines: string[];
-  };
-  phone?: string;
-  websiteUri?: string;
-  metadata: {
-    canModifyServiceList: boolean;
-    mapsUri: string;
-    newReviewUri: string;
-    placeId: string;
-    hasGoogleUpdated: boolean;
-    canDelete: boolean;
-    hasVoiceOfMerchant: boolean;
-    photoCount: number;
-  };
-  placeInfo?: {
-    placeIds: string[];
-  }; // Optional, in case placeIds is needed as fallback
-}
+// interface BusinessLocation {
+//   locationId: string; // Explicitly include locationId for API payload
+//   name: string;
+//   title: string;
+//   status: string; // e.g., "OPEN", "CLOSED"
+//   verificationStatus: string; // e.g., "VERIFIED", "UNVERIFIED"
+//   storefrontAddress: {
+//     regionCode: string;
+//     languageCode: string;
+//     postalCode: string;
+//     administrativeArea: string;
+//     locality: string;
+//     addressLines: string[];
+//   };
+//   phone?: string;
+//   websiteUri?: string;
+//   metadata: {
+//     canModifyServiceList: boolean;
+//     mapsUri: string;
+//     newReviewUri: string;
+//     placeId: string;
+//     hasGoogleUpdated: boolean;
+//     canDelete: boolean;
+//     hasVoiceOfMerchant: boolean;
+//     photoCount: number;
+//   };
+//   placeInfo?: {
+//     placeIds: string[];
+//   }; // Optional, in case placeIds is needed as fallback
+// }
 
 export default function BusinessOnboarding() {
   const navigate = useNavigate();
@@ -80,13 +80,15 @@ export default function BusinessOnboarding() {
     fetchBusinesses();
   }, []);
 
+  console.log("All business data", data)
+
   // Safely flatten all locations from all accounts
   const allLocations =
     data?.accounts?.flatMap((account) => account.locations) || [];
 
   // Filter locations based on search term
   //@ts-ignore
-  const filteredLocations = allLocations.filter((location: BusinessLocation) => {
+  const filteredLocations = allLocations.filter((location: Location2) => {
     const term = searchTerm.toLowerCase();
     const matchesSearch =
       location.title.toLowerCase().includes(term) ||
@@ -103,21 +105,24 @@ export default function BusinessOnboarding() {
     );
   };
 
-  const handleAddBusinessesApi = async (locations: BusinessLocation[]) => {
+  console.log("Selected businesses", selectedBusinesses)
+
+  const handleAddBusinessesApi = async (locations: Location2[]) => {
     try {
       const payload = locations.map((location) => {
         const locationId =
-          location.locationId || location.placeInfo?.placeIds[0];
+          location.locationId;
         if (!locationId) {
           throw new Error(`Missing locationId for location: ${location.title}`);
         }
         return {
           locationId,
+          placeId: location.placeId,
           title: location.title,
-          address: location.storefrontAddress,
-          phone: location.phone,
-          websiteUri: location.websiteUri,
-          metadata: location.metadata,
+          address: {},
+          phone: "",
+          websiteUri: "",
+          metadata: {},
         };
       });
 
@@ -157,6 +162,8 @@ export default function BusinessOnboarding() {
     }
   };
 
+
+  console.log("Locations All:", allLocations)
  
   
   
@@ -178,6 +185,9 @@ export default function BusinessOnboarding() {
           address: `Status: ${location.status}`,
           location,
         }));
+
+
+      
 
       // Call API to add businesses
       await handleAddBusinessesApi(

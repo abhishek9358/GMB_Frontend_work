@@ -54,7 +54,7 @@ export default function Businesses() {
             rating: 0, // Not provided in API response, set default
             reviewCount: 0, // Not provided in API response, set default
             address: formatAddress(business.address),
-            category: business.category || "Uncategorized",
+            category: business.category?.primaryCategory?.displayName || "Uncategorized",
             phone: business.phone,
             website: business.websiteUri,
             location: {
