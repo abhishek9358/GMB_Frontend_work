@@ -444,6 +444,7 @@ const transformApiDataToProfile = (data: ILocation | null): BusinessProfile => {
             : "17:00",
         })) || [],
     },
+    //@ts-ignore
     specialHours: data?.rawGoogleData?.specialHours || [],
     moreHours: data?.rawGoogleData?.moreHours || [],
     accessibility: {
@@ -614,6 +615,92 @@ export default function BusinessProfileManagement() {
     );
   };
 
+  // Add these state variables at the top of your component (after other useState declarations)
+  const [aiSuggestionsLoading, setAiSuggestionsLoading] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [aiSuggestionsError, setAiSuggestionsError] = useState(null);
+
+  // Add these functions after your other function declarations
+  // Function to generate AI suggestions
+  const handleGenerateAISuggestions = async () => {
+    setAiSuggestionsLoading(true);
+    setAiSuggestionsError(null);
+
+    try {
+      // Get locationId and accountId from the component's state/params
+      const locationId = params?.locationId;
+      const accountId = user?.accountId;
+
+      if (!locationId || !accountId) {
+        setAiSuggestionsError('Missing location ID or account ID. Please try refreshing the page.');
+        return;
+      }
+
+      const response = await axios.post(
+        `${SERVER}/api/v1/locations/${locationId}/description-suggestions?account_id=${accountId}&tone_preference=all`,
+        {}, // Empty body since it's a POST request
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      if (response.data.success && response.data.data && response.data.data.suggestions) {
+        setAiSuggestions({
+          professional: response.data.data.suggestions.professional,
+          modern: response.data.data.suggestions.modern,
+          friendly: response.data.data.suggestions.friendly
+        });
+      } else {
+        console.error('AI suggestions not found in response:', response.data);
+        setAiSuggestionsError('Failed to generate AI suggestions. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error generating AI suggestions:', error);
+      if (error.response) {
+        // Server responded with error status
+        const errorMessage = error.response.data?.detail?.error ||
+          error.response.data?.message ||
+          `Server error: ${error.response.status}`;
+        setAiSuggestionsError(errorMessage);
+      } else if (error.request) {
+        // Network error
+        setAiSuggestionsError('Network error. Please check your connection and try again.');
+      } else {
+        // Other error
+        setAiSuggestionsError('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      setAiSuggestionsLoading(false);
+    }
+  };
+
+  // Function to approve a specific description
+  const handleApproveDescription = (type) => {
+    const selectedDescription = aiSuggestions[type];
+    formik.setFieldValue('description', selectedDescription);
+
+    // Mark this suggestion as selected instead of hiding all suggestions
+    setAiSuggestions(prev => ({
+      ...prev,
+      selectedType: type
+    }));
+  };
+
+  // Function to generate new suggestions
+  const handleGenerateNewSuggestions = () => {
+    setAiSuggestionsError(null); // Clear any existing errors
+    handleGenerateAISuggestions();
+  };
+
+  // Function to discard all suggestions
+  const handleDiscardSuggestions = () => {
+    setAiSuggestions(null);
+    setAiSuggestionsError(null);
+  };
+
   // Handle refresh
   const handleRefresh = () => {
     console.log("Refreshing business profile...");
@@ -703,6 +790,7 @@ export default function BusinessProfileManagement() {
           </Button>
 
           <Button
+            //@ts-ignore
             onClick={formik.handleSubmit}
             disabled={updateProfileMutation.isPending || !formik.dirty}
             className="flex items-center space-x-2 bg-gbp-blue-500 hover:bg-gbp-blue-600 border-gbp-blue-500 text-white hover:text-white"
@@ -771,7 +859,7 @@ export default function BusinessProfileManagement() {
           </TabsList>
 
           {/* Business Information Tab */}
-          <TabsContent value="business-info" className="">
+          {/* <TabsContent value="business-info" className="">
             <Card className="bg-[#eff6ff] border-gbp-blue-200">
               <CardHeader>
                 <CardTitle className="text-black">
@@ -887,7 +975,264 @@ export default function BusinessProfileManagement() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent> */}
+
+          <TabsContent value="business-info" className="">
+            <Card className="bg-[#eff6ff] border-gbp-blue-200">
+              <CardHeader>
+                <CardTitle className="text-black">
+                  Business Information
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  Basic information about your business
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-black font-medium">
+                      Business Name
+                    </Label>
+                    <Input
+                      id="name"
+                      {...formik.getFieldProps("name")}
+                      placeholder="Enter business name"
+                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
+                    />
+                    {formik.touched.name && formik.errors.name && (
+                      <span className="text-red-600 text-sm">
+                        {formik.errors.name}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="title" className="text-black font-medium">
+                      Business Title
+                    </Label>
+                    <Input
+                      id="title"
+                      {...formik.getFieldProps("title")}
+                      placeholder="Enter business title"
+                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
+                    />
+                    {formik.touched.title && formik.errors.title && (
+                      <span className="text-red-600 text-sm">
+                        {formik.errors.title}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="category"
+                      className="text-black font-medium"
+                    >
+                      Business Category
+                    </Label>
+                    <Select
+                      value={formik.values.category}
+                      onValueChange={(value) =>
+                        formik.setFieldValue("category", value)
+                      }
+                    >
+                      <SelectTrigger className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent className="border-gbp-blue-200 bg-white max-h-[200px] overflow-y-auto">
+                        {businessCategories.map((category) => (
+                          <SelectItem
+                            key={category}
+                            value={category}
+                            className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
+                          >
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {formik.touched.category && formik.errors.category && (
+                      <span className="text-red-600 text-sm">
+                        {formik.errors.category}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="openingDate"
+                      className="text-black font-medium"
+                    >
+                      Opening Date
+                    </Label>
+                    <Input
+                      id="openingDate"
+                      type="date"
+                      {...formik.getFieldProps("openingDate")}
+                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="description"
+                    className="text-black font-medium"
+                  >
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    rows={4}
+                    {...formik.getFieldProps("description")}
+                    placeholder="Describe your business..."
+                    className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400 resize-none"
+                  />
+                </div>
+
+                {/* AI Suggestions Section */}
+
+                {/* AI Suggestions Section */}
+                <div className="space-y-4">
+                  {/* AI Loading State */}
+                  {aiSuggestionsLoading && (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="flex items-center space-x-3">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gbp-blue-500"></div>
+                        <span className="text-gbp-blue-600 font-medium">
+                          Loading your AI suggestions...
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error State */}
+                  {aiSuggestionsError && !aiSuggestionsLoading && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-red-700 font-medium">Error</span>
+                      </div>
+                      <p className="text-red-600 text-sm mt-2">{aiSuggestionsError}</p>
+                      <button
+                        onClick={() => {
+                          setAiSuggestionsError(null);
+                          handleGenerateAISuggestions();
+                        }}
+                        className="mt-3 px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors text-sm font-medium"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  )}
+
+                  {/* AI Suggestions Containers */}
+                  {!aiSuggestionsLoading && aiSuggestions && (
+                    <>
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-black mb-4">
+                          AI Generated Descriptions
+                        </h3>
+
+                        {/* Professional Description */}
+                        <div className="bg-white border border-gbp-blue-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-medium text-black flex items-center">
+                              <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                              Professional Description
+                            </h4>
+                            <button
+                              onClick={() => handleApproveDescription('professional')}
+                              className="px-3 py-1 text-xs bg-gbp-blue-50 text-gbp-blue-600 rounded-md hover:bg-gbp-blue-100 transition-colors"
+                            >
+                              Use This
+                            </button>
+                          </div>
+                          <p className="text-gray-700 text-sm leading-relaxed">
+                            {aiSuggestions.professional || "Loading professional description..."}
+                          </p>
+                        </div>
+
+                        {/* Modern Description */}
+                        <div className="bg-white border border-gbp-blue-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-medium text-black flex items-center">
+                              <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                              Modern Description
+                            </h4>
+                            <button
+                              onClick={() => handleApproveDescription('modern')}
+                              className="px-3 py-1 text-xs bg-gbp-blue-50 text-gbp-blue-600 rounded-md hover:bg-gbp-blue-100 transition-colors"
+                            >
+                              Use This
+                            </button>
+                          </div>
+                          <p className="text-gray-700 text-sm leading-relaxed">
+                            {aiSuggestions.modern || "Loading modern description..."}
+                          </p>
+                        </div>
+
+                        {/* Friendly Description */}
+                        <div className="bg-white border border-gbp-blue-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-medium text-black flex items-center">
+                              <span className="inline-block w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                              Friendly Description
+                            </h4>
+                            <button
+                              onClick={() => handleApproveDescription('friendly')}
+                              className="px-3 py-1 text-xs bg-gbp-blue-50 text-gbp-blue-600 rounded-md hover:bg-gbp-blue-100 transition-colors"
+                            >
+                              Use This
+                            </button>
+                          </div>
+                          <p className="text-gray-700 text-sm leading-relaxed">
+                            {aiSuggestions.friendly || "Loading friendly description..."}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Approve/Discard Buttons */}
+                      <div className="flex justify-center space-x-4 pt-4 border-t border-gbp-blue-200">
+                        <button
+                          onClick={handleGenerateNewSuggestions}
+                          className="px-6 py-2 bg-white border border-gbp-blue-200 text-gbp-blue-600 rounded-lg hover:bg-gbp-blue-50 transition-colors font-medium"
+                        >
+                          Generate New Suggestions
+                        </button>
+                        <button
+                          onClick={handleDiscardSuggestions}
+                          className="px-6 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium"
+                        >
+                          Discard All
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Generate AI Suggestions Button (when no suggestions are loaded) */}
+                  {!aiSuggestionsLoading && !aiSuggestions && (
+                    <div className="text-center py-4">
+                      <button
+                        onClick={handleGenerateAISuggestions}
+                        className="px-6 py-3 bg-gbp-blue-500 text-white rounded-lg hover:bg-gbp-blue-600 transition-colors font-medium inline-flex items-center space-x-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>Generate AI Descriptions</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
+
 
           {/* Contact Information Tab */}
           <TabsContent value="contact" className="p-6">
@@ -1215,7 +1560,7 @@ export default function BusinessProfileManagement() {
                             id={`accessibility-${key}`}
                             checked={
                               formik.values.accessibility[
-                                key as keyof BusinessProfile["accessibility"]
+                              key as keyof BusinessProfile["accessibility"]
                               ]
                             }
                             onCheckedChange={(checked) =>
@@ -1257,7 +1602,7 @@ export default function BusinessProfileManagement() {
                           id={`amenities-${key}`}
                           checked={
                             formik.values.amenities[
-                              key as keyof BusinessProfile["amenities"]
+                            key as keyof BusinessProfile["amenities"]
                             ]
                           }
                           onCheckedChange={(checked) =>
@@ -1295,7 +1640,7 @@ export default function BusinessProfileManagement() {
                           id={`crowd-${key}`}
                           checked={
                             formik.values.crowd[
-                              key as keyof BusinessProfile["crowd"]
+                            key as keyof BusinessProfile["crowd"]
                             ]
                           }
                           onCheckedChange={(checked) =>
@@ -1333,7 +1678,7 @@ export default function BusinessProfileManagement() {
                           id={`parking-${key}`}
                           checked={
                             formik.values.parking[
-                              key as keyof BusinessProfile["parking"]
+                            key as keyof BusinessProfile["parking"]
                             ]
                           }
                           onCheckedChange={(checked) =>
@@ -1371,7 +1716,7 @@ export default function BusinessProfileManagement() {
                           id={`pets-${key}`}
                           checked={
                             formik.values.pets[
-                              key as keyof BusinessProfile["pets"]
+                            key as keyof BusinessProfile["pets"]
                             ]
                           }
                           onCheckedChange={(checked) =>
