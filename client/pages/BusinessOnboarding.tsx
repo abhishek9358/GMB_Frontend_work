@@ -156,56 +156,110 @@ export default function BusinessOnboarding() {
     }
   };
 
+  console.log({selectedBusinesses, allLocations})
+
+  // const handleAddBusinesses = async () => {
+  //   if (selectedBusinesses.length === 0 || allLocations.length === 0) return;
+
+  //   try {
+  //     // Filter selected locations
+  //     const businessesToAdd = allLocations
+  //       .filter((location) =>
+  //         selectedBusinesses.includes(location.locationId)
+  //       )
+  //       .map((location) => ({
+  //         id: location.locationId,
+  //         name: location.title,
+  //         rating: 5,
+  //         reviewCount: 0,
+  //         address: `Status: ${location.status}`,
+  //         location,
+  //       }));
+
+  //     // Call API to add businesses
+  //     await handleAddBusinessesApi(
+  //       allLocations.filter((location: BusinessLocation) =>
+  //         selectedBusinesses.includes(location.locationId)
+  //       )
+  //     );
+
+  //     // Persist in localStorage
+  //     const existingBusinesses = JSON.parse(
+  //       localStorage.getItem("userBusinesses") || "[]"
+  //     );
+  //     const updatedBusinesses = [...existingBusinesses, ...businessesToAdd];
+  //     localStorage.setItem("userBusinesses", JSON.stringify(updatedBusinesses));
+
+  //     if (businessesToAdd.length > 0) {
+  //       const selectedBusiness = localStorage.getItem("selectedBusiness");
+  //       if (!selectedBusiness) {
+  //         localStorage.setItem(
+  //           "selectedBusiness",
+  //           JSON.stringify(businessesToAdd[0])
+  //         );
+  //       }
+  //     }
+
+  //     navigate("/businesses", { replace: true });
+  //   } catch (error) {
+  //     console.error("Error adding businesses:", error);
+  //     setError(
+  //       error instanceof Error ? error.message : "Failed to add businesses"
+  //     );
+  //   }
+  // };
+
+
   const handleAddBusinesses = async () => {
-    if (selectedBusinesses.length === 0 || allLocations.length === 0) return;
+  if (selectedBusinesses.length === 0 || allLocations.length === 0) return;
 
-    try {
-      // Filter selected locations
-      const businessesToAdd = allLocations
-        .filter((location: BusinessLocation) =>
-          selectedBusinesses.includes(location.locationId)
-        )
-        .map((location) => ({
-          id: location.locationId,
-          name: location.title,
-          rating: 5,
-          reviewCount: 0,
-          address: `Status: ${location.status}`,
-          location,
-        }));
+  try {
+    // Prepare payload in correct format for API
+    const businessesToAdd:any = allLocations
+      .filter((location: any) =>
+        selectedBusinesses.includes(location.locationId)
+      )
+      .map((location:any) => ({
+        locationId: `locations/${location.locationId}`, // full format
+        title: location.title,
+        address: location.address || {}, // ensure it's passed
+        phone: location.phone || "",
+        websiteUri: location.websiteUri || "",
+        metadata: location.metadata || {}
+      }));
 
-      // Call API to add businesses
-      await handleAddBusinessesApi(
-        allLocations.filter((location: BusinessLocation) =>
-          selectedBusinesses.includes(location.locationId)
-        )
-      );
+    // Call API with correct payload
+    await handleAddBusinessesApi(businessesToAdd);
 
-      // Persist in localStorage
-      const existingBusinesses = JSON.parse(
-        localStorage.getItem("userBusinesses") || "[]"
-      );
-      const updatedBusinesses = [...existingBusinesses, ...businessesToAdd];
-      localStorage.setItem("userBusinesses", JSON.stringify(updatedBusinesses));
+    // Persist in localStorage
+    const existingBusinesses = JSON.parse(
+      localStorage.getItem("userBusinesses") || "[]"
+    );
 
-      if (businessesToAdd.length > 0) {
-        const selectedBusiness = localStorage.getItem("selectedBusiness");
-        if (!selectedBusiness) {
-          localStorage.setItem(
-            "selectedBusiness",
-            JSON.stringify(businessesToAdd[0])
-          );
-        }
+    const updatedBusinesses = [...existingBusinesses, ...businessesToAdd];
+    localStorage.setItem("userBusinesses", JSON.stringify(updatedBusinesses));
+
+    // Set default selected business if not already set
+    if (businessesToAdd.length > 0) {
+      const selectedBusiness = localStorage.getItem("selectedBusiness");
+      if (!selectedBusiness) {
+        localStorage.setItem(
+          "selectedBusiness",
+          JSON.stringify(businessesToAdd[0])
+        );
       }
-
-      navigate("/businesses", { replace: true });
-    } catch (error) {
-      console.error("Error adding businesses:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to add businesses"
-      );
     }
-  };
+
+    navigate("/businesses", { replace: true });
+  } catch (error) {
+    console.error("Error adding businesses:", error);
+    setError(
+      error instanceof Error ? error.message : "Failed to add businesses"
+    );
+  }
+};
+
+
 
   if (loading) {
     return (

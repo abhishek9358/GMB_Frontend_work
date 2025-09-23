@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { SERVER } from "@/constants";
 import { RootState } from "@/redux/store";
+import { findChangedFieldKeys } from "@/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useFormik } from "formik";
@@ -46,7 +47,7 @@ import * as Yup from "yup";
 interface BusinessProfile {
   name: string;
   title: string;
-  category: string;
+  businessCategory: string;
   description: string;
   openingDate: string;
   phoneNumbers: {
@@ -127,7 +128,7 @@ interface ApiResponse {
     name: string;
     account: string;
     title: string;
-    category?: string;
+    businessCategory?: string;
     description?: string;
     phoneNumbers?: {
       primary: string;
@@ -265,7 +266,7 @@ interface ILocation {
       status: string;
       canReopen: boolean;
     };
-    categories: Record<string, any>;
+    businessCategory: Record<string, any>;
     profile: Record<string, any>;
     relationshipData: Record<string, any>;
     serviceArea: Record<string, any>;
@@ -278,7 +279,7 @@ interface ILocation {
 const validationSchema = Yup.object({
   name: Yup.string().required("Business name is required"),
   title: Yup.string().required("Business title is required"),
-  category: Yup.string().required("Business category is required"),
+  businessCategory: Yup.string().required("Business category is required"),
   storefrontAddress: Yup.object({
     addressLines: Yup.array().of(
       Yup.string().required("Address line is required"),
@@ -301,73 +302,37 @@ const daysOfWeek = [
 ];
 
 const businessCategories = [
-  "Apartment building",
-  "Restaurant",
-  "Retail store",
-  "Service business",
-  "Medical practice",
-  "Legal services",
-  "Automotive",
-  "Beauty salon",
-  "Gym/Fitness center",
-  "Hotel/Lodging",
-  "Other",
+  {name:"Apartment building", value: "gcid:apartment_building"},
+  {name:"Restaurant", value: "gcid:restaurant"},
 ];
 
-// Utility function to get changed fields and their paths
-const getChangedFields = (
-  initialValues: any,
-  currentValues: any,
-  prefix: string = "",
-): { changed: any; paths: string[] } => {
+// Utility function to get updated values based on changed field keys
+const getChangedValues = (changedKeys: string[], values: any): any => {
   const changed: any = {};
-  const paths: string[] = [];
 
-  function build(initial: any, current: any, currentPrefix: string): any {
-    if (current === undefined) {
-      return undefined;
-    }
+  changedKeys.forEach((key) => {
+    // Convert hyphen-separated key to dot-separated path
+    const path = key.replace(/-/g, ".");
+    const keys = path.split(".");
+    let current = values;
+    let target = changed;
 
-    if (initial === current) {
-      return undefined;
-    }
-
-    if (typeof current !== "object" || current === null) {
-      paths.push(currentPrefix);
-      return current;
-    }
-
-    if (Array.isArray(current)) {
-      const initialArr = Array.isArray(initial) ? initial : [];
-      if (JSON.stringify(initialArr) !== JSON.stringify(current)) {
-        paths.push(currentPrefix);
-        return current;
+    // Traverse the path to get the value
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i];
+      if (i === keys.length - 1) {
+        // Last key, set the value
+        target[k] = current[k];
+      } else {
+        // Create nested object if it doesn't exist
+        target[k] = target[k] || (Array.isArray(current[k]) ? [] : {});
+        target = target[k];
+        current = current[k];
       }
-      return undefined;
     }
+  });
 
-    // object
-    const subChanged: any = {};
-    let hasChange = false;
-    Object.keys(current).forEach((key) => {
-      const subInitial = initial ? initial[key] : undefined;
-      const subCurrent = current[key];
-      const newPrefix = currentPrefix ? `${currentPrefix}.${key}` : key;
-      const sub = build(subInitial, subCurrent, newPrefix);
-      if (sub !== undefined) {
-        subChanged[key] = sub;
-        hasChange = true;
-      }
-    });
-
-    if (hasChange) {
-      return subChanged;
-    }
-    return undefined;
-  }
-
-  const nested = build(initialValues, currentValues, prefix);
-  return { changed: nested || {}, paths };
+  return changed;
 };
 
 // API service to fetch and update business profile
@@ -394,12 +359,10 @@ const apiService = {
     );
     const response = await axios.patch(
       `${SERVER}/api/v1/accounts/${accountId}/locations/${locationId}`,
-
       payload,
       {
-        withCredentials: true,
-      },
-    );
+        withCredentials: true },
+      );
     console.log("Patch API Response:", response.data);
     return response.data;
   },
@@ -410,7 +373,7 @@ const transformApiDataToProfile = (data: ILocation | null): BusinessProfile => {
   return {
     name: data?.name || "",
     title: data?.title || "",
-    category: data?.info.businessCategory || "",
+    businessCategory: data?.info.businessCategory || "",
     description: "",
     openingDate: "",
     phoneNumbers: {
@@ -527,38 +490,111 @@ export default function BusinessProfileManagement() {
     }
   }, [params?.locationId]);
 
+  // Initialize Formik with transformed data
   const initialValues: BusinessProfile = transformApiDataToProfile(null);
 
   const formik = useFormik<BusinessProfile>({
-    initialValues,
-    validationSchema,
-    enableReinitialize: true,
-    onSubmit: async (values, { setStatus }) => {
-      // Get changed fields and their paths
-      const { changed, paths } = getChangedFields(formik.initialValues, values);
-      console.log("Changed data:", changed);
-      console.log("Changed paths:", paths);
+  initialValues,
+  validationSchema,
+  enableReinitialize: true,
+  onSubmit: async (values, { setStatus }) => {
+    const changedKeys = findChangedFieldKeys(transformApiDataToProfile(location), values);
+    console.log("Changed keys:", changedKeys);
 
-      if (Object.keys(changed).length === 0) {
-        console.log("No changes detected");
-        return;
-      }
+    if (changedKeys.length === 0) {
+      console.log("No changes detected");
+      return;
+    }
 
-      // Prepare payload with location and updateMask
-      const payload = {
-        location: changed,
-        updateMask: paths.join(","),
+    let changedValues: any = getChangedValues(changedKeys, values);
+    let updateMaskKeys = [...changedKeys];
+
+    // 🔹 Handle businessCategory -> categories.primaryCategory transformation
+    if (changedValues.businessCategory) {
+      changedValues = {
+        ...changedValues,
+        categories: {
+          primaryCategory: {
+            name: changedValues.businessCategory, // e.g. "gcid:restaurant"
+            displayName: String(businessCategories.find((c) => c.value == changedValues.businessCategory).name)
+          },
+        },
       };
 
-      console.log("Submitting form with payload:", payload);
+      // Replace businessCategory with categories.primaryCategory in updateMask
+      updateMaskKeys = updateMaskKeys.map((key) =>
+        key === "businessCategory" ? "categories" : key
+      );
 
+      delete changedValues.businessCategory;
+    }
+
+    // 🔹 Handle additionalCategories (if you allow selecting multiple categories in UI)
+    // if (changedValues.additionalCategories) {
+    //   changedValues.categories = {
+    //     ...(changedValues.categories || {}),
+    //     additionalCategories: changedValues.additionalCategories.map((cat: string) => ({
+    //       name: cat, // e.g. "gcid:italian_restaurant"
+    //     })),
+    //   };
+
+    //   updateMaskKeys = updateMaskKeys.map((key) =>
+    //     key === "additionalCategories" ? "categories.additionalCategories" : key
+    //   );
+
+    //   delete changedValues.additionalCategories;
+    // }
+
+    if (changedValues.businessCategory || changedValues.additionalCategories) {
+    changedValues.categories = {
+      primaryCategory: { name: changedValues.businessCategory, displayName: String(businessCategories.find((c) => c.value == changedValues.businessCategory).name) },
+      additionalCategories: (changedValues.additionalCategories || []).map((cat: string) => ({
+        name: cat,
+      })),
+    };
+
+    updateMaskKeys = updateMaskKeys.filter(
+      (key) => key !== "businessCategory" && key !== "additionalCategories"
+    );
+    updateMaskKeys.push("categories");
+
+    delete changedValues.businessCategory;
+    delete changedValues.additionalCategories;
+  }
+
+
+    const updateMask = updateMaskKeys.map((key) => key.replace(/-/g, ".")).join(",");
+
+    const payload = {
+      location: changedValues,
+      updateMask,
+    };
+
+//     const payload = {
+//   "location": {
+//     "categories": {
+//       "primaryCategory": {
+//         "name": "gcid:apartment_building",
+//         "displayName": "Apartment Building"
+//       },
+//       "additionalCategories": []
+//     }
+//   },
+//   "updateMask": "categories"
+// }
+
+    console.log("Submitting form with payload:", payload);
+
+    if(user?.accountId && params?.locationId){
       updateProfileMutation.mutate({
         accountId: user?.accountId || "",
         locationId: params?.locationId || "",
         payload,
       });
-    },
-  });
+    }
+
+  },
+});
 
   console.log("Formik errors:", formik.errors);
 
@@ -821,15 +857,15 @@ export default function BusinessProfileManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label
-                      htmlFor="category"
+                      htmlFor="businessCategory"
                       className="text-black font-medium"
                     >
                       Business Category
                     </Label>
                     <Select
-                      value={formik.values.category}
+                      value={formik.values.businessCategory}
                       onValueChange={(value) =>
-                        formik.setFieldValue("category", value)
+                        formik.setFieldValue("businessCategory", value)
                       }
                     >
                       <SelectTrigger className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black">
@@ -838,18 +874,18 @@ export default function BusinessProfileManagement() {
                       <SelectContent className="border-gbp-blue-200 bg-white max-h-[200px] overflow-y-auto">
                         {businessCategories.map((category) => (
                           <SelectItem
-                            key={category}
-                            value={category}
+                            key={category.value}
+                            value={category.value}
                             className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
                           >
-                            {category}
+                            {category.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {formik.touched.category && formik.errors.category && (
+                    {formik.touched.businessCategory && formik.errors.businessCategory && (
                       <span className="text-red-600 text-sm">
-                        {formik.errors.category}
+                        {formik.errors.businessCategory}
                       </span>
                     )}
                   </div>
@@ -990,9 +1026,7 @@ export default function BusinessProfileManagement() {
                   </Label>
                   <Input
                     id="storefrontAddress.addressLines[0]"
-                    {...formik.getFieldProps(
-                      "storefrontAddress.addressLines[0]",
-                    )}
+                    {...formik.getFieldProps("storefrontAddress.addressLines[0]")}
                     placeholder="123 Main Street"
                     className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                   />
@@ -1036,7 +1070,7 @@ export default function BusinessProfileManagement() {
                     <Input
                       id="storefrontAddress.administrativeArea"
                       {...formik.getFieldProps(
-                        "storefrontAddress.administrativeArea",
+                        "storefrontAddress.administrativeArea"
                       )}
                       placeholder="NY"
                       className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
@@ -1134,7 +1168,7 @@ export default function BusinessProfileManagement() {
                         onValueChange={(value) =>
                           formik.setFieldValue(
                             `regularHours.periods[${index}].openDay`,
-                            value,
+                            value
                           )
                         }
                       >
@@ -1157,7 +1191,7 @@ export default function BusinessProfileManagement() {
                       <Input
                         type="time"
                         {...formik.getFieldProps(
-                          `regularHours.periods[${index}].openTime`,
+                          `regularHours.periods[${index}].openTime`
                         )}
                         className="w-32 border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
                       />
@@ -1167,7 +1201,7 @@ export default function BusinessProfileManagement() {
                       <Input
                         type="time"
                         {...formik.getFieldProps(
-                          `regularHours.periods[${index}].closeTime`,
+                          `regularHours.periods[${index}].closeTime`
                         )}
                         className="w-32 border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
                       />
@@ -1208,35 +1242,30 @@ export default function BusinessProfileManagement() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(formik.values.accessibility).map(
-                      ([key]) => (
-                        <div key={key} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`accessibility-${key}`}
-                            checked={
-                              formik.values.accessibility[
-                                key as keyof BusinessProfile["accessibility"]
-                              ]
-                            }
-                            onCheckedChange={(checked) =>
-                              formik.setFieldValue(
-                                `accessibility.${key}`,
-                                checked,
-                              )
-                            }
-                            className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
-                          />
-                          <Label
-                            htmlFor={`accessibility-${key}`}
-                            className="text-sm text-black cursor-pointer select-none"
-                          >
-                            {key
-                              .replace(/([A-Z])/g, " $1")
-                              .replace(/^./, (str) => str.toUpperCase())}
-                          </Label>
-                        </div>
-                      ),
-                    )}
+                    {Object.entries(formik.values.accessibility).map(([key]) => (
+                      <div key={key} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`accessibility-${key}`}
+                          checked={
+                            formik.values.accessibility[
+                              key as keyof BusinessProfile["accessibility"]
+                            ]
+                          }
+                          onCheckedChange={(checked) =>
+                            formik.setFieldValue(`accessibility.${key}`, checked)
+                          }
+                          className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
+                        />
+                        <Label
+                          htmlFor={`accessibility-${key}`}
+                          className="text-sm text-black cursor-pointer select-none"
+                        >
+                          {key
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/^./, (str) => str.toUpperCase())}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -1294,9 +1323,7 @@ export default function BusinessProfileManagement() {
                         <Checkbox
                           id={`crowd-${key}`}
                           checked={
-                            formik.values.crowd[
-                              key as keyof BusinessProfile["crowd"]
-                            ]
+                            formik.values.crowd[key as keyof BusinessProfile["crowd"]]
                           }
                           onCheckedChange={(checked) =>
                             formik.setFieldValue(`crowd.${key}`, checked)
@@ -1370,9 +1397,7 @@ export default function BusinessProfileManagement() {
                         <Checkbox
                           id={`pets-${key}`}
                           checked={
-                            formik.values.pets[
-                              key as keyof BusinessProfile["pets"]
-                            ]
+                            formik.values.pets[key as keyof BusinessProfile["pets"]]
                           }
                           onCheckedChange={(checked) =>
                             formik.setFieldValue(`pets.${key}`, checked)
@@ -1411,7 +1436,7 @@ export default function BusinessProfileManagement() {
                           onCheckedChange={(checked) =>
                             formik.setFieldValue(
                               "serviceOptions.onlineEstimates",
-                              checked,
+                              checked
                             )
                           }
                           className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
@@ -1431,7 +1456,7 @@ export default function BusinessProfileManagement() {
                           onCheckedChange={(checked) =>
                             formik.setFieldValue(
                               "serviceOptions.onSiteServices",
-                              checked,
+                              checked
                             )
                           }
                           className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
@@ -1455,12 +1480,12 @@ export default function BusinessProfileManagement() {
                       <Input
                         id="serviceOptions.languageSpoken"
                         value={formik.values.serviceOptions.languageSpoken.join(
-                          ", ",
+                          ", "
                         )}
                         onChange={(e) =>
                           formik.setFieldValue(
                             "serviceOptions.languageSpoken",
-                            e.target.value.split(", ").filter(Boolean),
+                            e.target.value.split(", ").filter(Boolean)
                           )
                         }
                         placeholder="English, Spanish, French"
