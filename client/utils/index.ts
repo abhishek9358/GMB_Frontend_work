@@ -48,3 +48,18 @@ export const findChangedFieldKeys = (
 
   return changedKeys;
 };
+
+
+// Helper function to format address
+  export function formatAddress(addressObj: any): string {
+    if (!addressObj) return "";
+
+    const addressParts = [
+      ...(addressObj.addressLines || []),
+      addressObj.locality,
+      addressObj.administrativeArea,
+      addressObj.postalCode,
+    ].filter(Boolean); // Remove empty/null values
+
+    return addressParts.join(", ");
+  }

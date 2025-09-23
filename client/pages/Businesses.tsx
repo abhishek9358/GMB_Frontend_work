@@ -5,8 +5,9 @@ import axios from "axios";
 import { SERVER } from "@/constants";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
+import { formatAddress } from "@/utils";
 
-interface UserBusiness {
+export interface UserBusiness {
   id: string;
   name: string;
   rating: number;
@@ -51,10 +52,10 @@ export default function Businesses() {
           (business: any) => ({
             id: business.id,
             name: business.title,
-            rating: 0, // Not provided in API response, set default
-            reviewCount: 0, // Not provided in API response, set default
+            rating: business?.rating || 0, // Not provided in API response, set default
+            reviewCount: business?.reviewCount || 0, // Not provided in API response, set default
             address: formatAddress(business.address),
-            category: business.category || "Uncategorized",
+            category: business.category?.primaryCategory?.displayName || "Uncategorized",
             phone: business.phone,
             website: business.websiteUri,
             location: {
@@ -78,19 +79,7 @@ export default function Businesses() {
     }
   }
 
-  // Helper function to format address
-  function formatAddress(addressObj: any): string {
-    if (!addressObj) return "";
-
-    const addressParts = [
-      ...(addressObj.addressLines || []),
-      addressObj.locality,
-      addressObj.administrativeArea,
-      addressObj.postalCode,
-    ].filter(Boolean); // Remove empty/null values
-
-    return addressParts.join(", ");
-  }
+  
 
   // Load businesses from localStorage
   useEffect(() => {

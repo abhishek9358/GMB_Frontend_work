@@ -2,6 +2,10 @@ import { Search, Bell, ChevronDown, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../contexts/AuthContext";
+import { SERVER } from "@/constants";
+import axios from "axios";
+import { formatAddress } from "@/utils";
+import { UserBusiness } from "@/pages/Businesses";
 
 interface HeaderProps {
   title?: string;
@@ -18,6 +22,7 @@ interface Business {
   website?: string;
   category: string;
   image?: string;
+  locationId?: string;
 }
 
 export default function Header({ title, subtitle }: HeaderProps) {
@@ -26,54 +31,95 @@ export default function Header({ title, subtitle }: HeaderProps) {
   const [showProfile, setShowProfile] = useState(false);
   const [showBusinessSelector, setShowBusinessSelector] = useState(false);
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(
+  const [activeSelectedBusiness, setActiveSelectedBusiness] = useState<Business | null>(
     null,
   );
 
-  // Load businesses from localStorage
-  useEffect(() => {
-    const loadBusinesses = () => {
-      const defaultBusinesses = [
-        {
-          id: "1",
-          name: "A R Techno Solutions",
-          rating: 5.0,
-          reviewCount: 5,
-          address:
-            "Shop No 1, 2nd Floor, Bidla Sons Complex, Teachers Colony, Ajmer Road, DCM-302021",
-          category: "Welding Equipment Dealers",
-          phone: "+91 98765 43210",
-          website: "https://artechnosolutions.com",
-        },
-      ];
+  async function fetchMyBusinesses() {
+    try {
+      const res = await axios.get(`${SERVER}/api/v1/account/mybusinesses`, {
+        withCredentials: true,
+      });
+      console.log("My Businesses Response", res.data);
 
-      const savedBusinesses = localStorage.getItem("userBusinesses");
+      if (res.data.success && res.data.businesses) {
+        const transformedBusinesses: UserBusiness[] = res.data.businesses.map(
+          (business: any) => ({
+            id: business.id,
+            name: business.title,
+            rating: business?.rating || 0, // default if missing
+            reviewCount: business?.reviewCount || 0, // default if missing
+            address: formatAddress(business.address),
+            category:
+              business.category?.primaryCategory?.displayName ||
+              "Uncategorized",
+            phone: business.phone || "",
+            website: business.websiteUri || "",
+            locationId: business.locationId || "",
+          }),
+        );
+
+        // Save to state + localStorage
+        setBusinesses(transformedBusinesses);
+        localStorage.setItem(
+          "userBusinesses",
+          JSON.stringify(transformedBusinesses),
+        );
+
+        return transformedBusinesses; // ✅ return businesses
+      }
+
+      return [];
+    } catch (error) {
+      console.log("Error:", error);
+      return [];
+    }
+  }
+
+  // Load businesses from API or localStorage
+  useEffect(() => {
+    const loadBusinesses = async () => {
+      const defaultBusinesses: UserBusiness[] = [];
+
+      // Try localStorage first
+      const storedSelected = localStorage.getItem("selectedBusiness");
       let allBusinesses = [...defaultBusinesses];
 
-      if (savedBusinesses) {
-        const parsedBusinesses = JSON.parse(savedBusinesses);
-        parsedBusinesses.forEach((savedBusiness: Business) => {
-          if (!allBusinesses.find((b) => b.id === savedBusiness.id)) {
-            //@ts-ignore
-            allBusinesses.push(savedBusiness);
+      if (storedSelected) {
+        try {
+          const parsed: Business = JSON.parse(storedSelected);
+          const found = allBusinesses.find((b) => b.id === parsed.id);
+          if (found) {
+            setActiveSelectedBusiness(found);
+          }
+        } catch (err) {
+          console.error("Failed to parse selectedBusiness:", err);
+        }
+      }
+
+      // Always fetch fresh from API
+      const fetchedBusinesses = await fetchMyBusinesses();
+      if (fetchedBusinesses.length > 0) {
+        // merge without duplicates
+        fetchedBusinesses.forEach((b) => {
+          if (!allBusinesses.find((x) => x.id === b.id)) {
+            allBusinesses.push(b);
           }
         });
       }
 
       setBusinesses(allBusinesses);
 
-      // Set the first business as selected by default
-      if (allBusinesses.length > 0 && !selectedBusiness) {
-        setSelectedBusiness(allBusinesses[0]);
+      // Select default business
+      if (allBusinesses.length > 0 && !activeSelectedBusiness) {
+        setActiveSelectedBusiness(allBusinesses[0]);
       }
     };
 
     loadBusinesses();
 
-    // Listen for storage changes
-    const handleStorageChange = () => {
-      loadBusinesses();
-    };
+    // Listen for storage/focus changes
+    const handleStorageChange = () => loadBusinesses();
 
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("focus", handleStorageChange);
@@ -82,13 +128,18 @@ export default function Header({ title, subtitle }: HeaderProps) {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("focus", handleStorageChange);
     };
-  }, [selectedBusiness]);
+  }, [activeSelectedBusiness]);
 
   const handleBusinessSelect = (business: Business) => {
-    setSelectedBusiness(business);
+    setActiveSelectedBusiness(business);
     setShowBusinessSelector(false);
-    // Store selected business in localStorage for persistence
+
+    // Store full business + locationId separately
     localStorage.setItem("selectedBusiness", JSON.stringify(business));
+    localStorage.setItem(
+      "selectedBusinessLocationId",
+      business.locationId || "",
+    );
   };
 
   // Close dropdowns when clicking outside
@@ -145,11 +196,11 @@ export default function Header({ title, subtitle }: HeaderProps) {
             >
               <div className="w-6 h-6 bg-gbp-blue-100 rounded flex items-center justify-center">
                 <span className="text-gbp-blue-600 text-xs font-medium">
-                  {selectedBusiness ? selectedBusiness.name.charAt(0) : "B"}
+                  {activeSelectedBusiness ? activeSelectedBusiness?.name?.charAt(0) : "B"}
                 </span>
               </div>
               <span className="text-sm font-medium text-gray-700 max-w-40 truncate">
-                {selectedBusiness ? selectedBusiness.name : "Select Business"}
+                {activeSelectedBusiness ? activeSelectedBusiness.name : "Select Business"}
               </span>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </button>
@@ -167,7 +218,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
                     key={business.id}
                     onClick={() => handleBusinessSelect(business)}
                     className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                      selectedBusiness?.id === business.id
+                      activeSelectedBusiness?.id === business.id
                         ? "bg-gbp-blue-50 border-r-2 border-gbp-blue-500"
                         : ""
                     }`}
@@ -175,7 +226,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-gbp-blue-100 rounded flex items-center justify-center">
                         <span className="text-gbp-blue-600 text-sm font-medium">
-                          {business.name.charAt(0)}
+                          {business?.name?.charAt(0)}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -186,7 +237,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
                           {business.category}
                         </p>
                       </div>
-                      {selectedBusiness?.id === business.id && (
+                      {activeSelectedBusiness?.id === business.id && (
                         <div className="w-2 h-2 bg-gbp-blue-500 rounded-full"></div>
                       )}
                     </div>

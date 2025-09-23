@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
-import {
-  CheckCircle,
-  ArrowUp,
-  ArrowDown,
-  Play,
-  Users,
-  FileText,
-  TrendingUp,
-} from "lucide-react";
+import { CheckCircle, ArrowUp, ArrowDown, Play, FileText } from "lucide-react";
+import axios from "axios"; // Import Axios
 import { useBusinesses } from "../hooks/useBusinesses";
+import { SERVER } from "@/constants";
+import { RootState } from "@/redux/store";
+import { useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
+import { id } from "date-fns/locale";
 
 interface MetricCardProps {
   title: string;
@@ -101,6 +99,61 @@ export default function Dashboard() {
     "Send you a report bi-weekly",
     "Alert you when you're needed",
   ]);
+  const [locationData, setLocationData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const { locationName, accountId } = useParams<{
+    locationName: string;
+    accountId: string;
+  }>();
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useSelector((state: RootState) => state.user);
+
+  // Fetch location data using Axios
+  useEffect(() => {
+    const fetchLocationData = async (id: string) => {
+      const accId = user?.accountId; // Fallback to param if user accountId not available
+      if (!id) {
+        setError("No location ID provided");
+        setLoading(false);
+        return;
+      }
+      if (!accId) {
+        setError("No account ID provided");
+        setLoading(false);
+        return;
+      }
+
+      console.log(id, "Fetching location data...");
+
+      try {
+        setLoading(true);
+        setError(null); // Clear previous error
+        const response = await axios.get(
+          `${SERVER}/api/v1/locations/4191602543204915524/?account_id=${accId}`,
+          { withCredentials: true }
+        );
+        setLocationData(response.data.location);
+        setLoading(false);
+      } catch (err) {
+        setError("Failed to fetch location data");
+        setLoading(false);
+      }
+    };
+
+    console.log(id, "Selected Business ID:", selectedBusiness?.id);
+    console.log(user?.accountId, "Account ID from params:");
+    
+    const locId = selectedBusiness?.id || locationName; // Fallback to param if selectedBusiness.id not available
+    fetchLocationData(locId);
+  }, [selectedBusiness?.id, user?.accountId, locationName, accountId]); // Dependencies to refetch on changes
+
+  if (loading) {
+    return <div className="p-6 text-gray-600">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-600">{error}</div>;
+  }
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-full">
@@ -114,28 +167,27 @@ export default function Dashboard() {
             <h2 className="text-2xl font-bold mb-2">We need your help!</h2>
           </div>
           <div className="w-24 h-24 opacity-20">
-            {/* Decorative illustration would go here */}
             <div className="w-full h-full bg-white bg-opacity-20 rounded-full"></div>
           </div>
         </div>
       </div>
 
       {/* Business Overview */}
-      {selectedBusiness && (
+      {locationData && (
         <div className="bg-white rounded-xl p-6 border border-gray-200 mb-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-4">
               <div className="w-16 h-16 bg-gradient-to-br from-gbp-blue-100 to-gbp-blue-200 rounded-xl flex items-center justify-center">
                 <span className="text-gbp-blue-700 font-bold text-2xl">
-                  {selectedBusiness.name.charAt(0)}
+                  {locationData.title?.charAt(0)}
                 </span>
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
-                  {selectedBusiness.name}
+                  {locationData.title}
                 </h2>
                 <p className="text-gray-600 text-sm">
-                  {selectedBusiness.category}
+                  {locationData.info.businessCategory}
                 </p>
                 <div className="flex items-center space-x-2 mt-1">
                   <div className="flex items-center">
@@ -143,7 +195,7 @@ export default function Dashboard() {
                       <span
                         key={i}
                         className={`text-sm ${
-                          i < Math.floor(selectedBusiness.rating)
+                          i < Math.floor(locationData.stats.averageRating)
                             ? "text-yellow-400"
                             : "text-gray-300"
                         }`}
@@ -153,10 +205,10 @@ export default function Dashboard() {
                     ))}
                   </div>
                   <span className="text-sm font-medium text-gray-900">
-                    {selectedBusiness.rating}
+                    {locationData.stats.averageRating}
                   </span>
                   <span className="text-sm text-gray-500">
-                    ({selectedBusiness.reviewCount} reviews)
+                    ({locationData.stats.reviewCount} reviews)
                   </span>
                 </div>
               </div>
@@ -164,9 +216,21 @@ export default function Dashboard() {
             <div className="text-right">
               <div className="text-sm text-gray-500 mb-1">Status</div>
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm font-medium text-green-700">
-                  Active
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    locationData.stats.businessStatus === "OPEN"
+                      ? "bg-green-500"
+                      : "bg-red-500"
+                  }`}
+                ></div>
+                <span
+                  className={`text-sm font-medium ${
+                    locationData.stats.businessStatus === "OPEN"
+                      ? "text-green-700"
+                      : "text-red-700"
+                  }`}
+                >
+                  {locationData.stats.businessStatus}
                 </span>
               </div>
             </div>
@@ -178,25 +242,25 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <MetricCard
           title="Optimization Score"
-          value="10.04%"
-          subtitle="↑ 15%"
+          value={`${locationData?.stats.optimisationScore}%`}
+          subtitle="Profile optimization level"
           trend="up"
-          trendValue="15%"
+          trendValue="15%" // Note: API doesn't provide trend data, keeping static for now
           color="orange"
           actionLabel="See Optimizations"
           onAction={() => console.log("View optimizations")}
         />
         <MetricCard
           title="Automation Score"
-          value="0%"
-          subtitle="0%"
+          value={`${locationData?.stats.automationScore}%`}
+          subtitle="Automation efficiency"
           color="blue"
           actionLabel="See Automations"
           onAction={() => console.log("View automations")}
         />
         <MetricCard
           title="Google Reviews"
-          value="5/5"
+          value={`${locationData?.stats.averageRating}/5`}
           subtitle="Average rating"
           color="green"
           actionLabel="See Reviews"

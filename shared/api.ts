@@ -41,6 +41,7 @@ export interface Location {
 export interface Location2 {
   name: string;
   locationId: string;
+  placeId: string;
   title: string;
   status: string;
   profileStrength: number;
