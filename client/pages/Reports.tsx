@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   TrendingUp,
   Search,
@@ -14,6 +14,7 @@ import { SERVER } from "@/constants";
 import axios from "axios";
 import { RootState } from "@/redux/store";
 import { useSelector } from "react-redux";
+import { exportToCsv, exportToExcel, prepareDataForExport } from "@/utils/exportUtils";
 
 interface PerformanceMetric {
   name: string;
@@ -75,8 +76,17 @@ export default function Reports() {
   const [performanceData, setPerformanceData] = useState<APIResponse | null>(
     null,
   );
+  const [hoveredDataPoint, setHoveredDataPoint] = useState<number | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const chartRef = useRef<SVGSVGElement>(null);
 
   const {activeLocation} = useSelector((state: RootState) => state.activeLocation);
+
+  const locationID = localStorage.getItem("activeLocation");
+
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat().format(num);
+  };
 
   // Calculate date ranges based on selected period
   const getDateRange = () => {
@@ -114,7 +124,7 @@ export default function Reports() {
         
 
         const response = await axios.get(
-          `${SERVER}/api/v1/account/business-performance?location_id=${activeLocation.locationId?.split("/")?.[1]}&start_date=${start}&end_date=${end}&include_change=true`,
+          `${SERVER}/api/v1/account/business-performance?location_id=${locationID || activeLocation.locationId?.split("/")?.[1]}&start_date=${start}&end_date=${end}&include_change=true`,
           {
             withCredentials: true,
           },
@@ -286,6 +296,20 @@ export default function Reports() {
     1,
   );
 
+  function handleExportToCSV(data: DailyMetric[], filename: string) {
+
+    const formattedData = prepareDataForExport(data)
+
+    exportToCsv(formattedData, filename);
+  }
+
+  function handleExportToExcel(data: DailyMetric[], filename: string) {
+
+    const formattedData = prepareDataForExport(data)
+
+    exportToExcel(formattedData, filename);
+  }
+
   return (
     <div className="p-6 bg-gray-50 min-h-full">
       {/* Header with Banner */}
@@ -326,7 +350,16 @@ export default function Reports() {
                 <option value="custom">Custom range</option>
               </select>
             </div>
-            <button className="bg-gbp-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gbp-blue-600 flex items-center space-x-2">
+            <button
+              onClick={() => {
+                if (performanceData) {
+                  handleExportToExcel(performanceData.metrics.daily, "Performance_Report" )
+
+                  
+                }
+              }}
+              className="bg-gbp-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gbp-blue-600 flex items-center space-x-2"
+            >
               <Download className="w-4 h-4" />
               <span>Export</span>
             </button>
@@ -356,13 +389,15 @@ export default function Reports() {
             <div className="flex items-center space-x-4">
               <div>
                 <p className="text-2xl font-bold text-gray-900">
-                  {performanceData?.metrics.totals.search_views || 0}
+                  {formatNumber(
+                    performanceData?.metrics.totals.search_views || 0,
+                  )}
                 </p>
                 <p className="text-sm text-gray-500">Search views</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">
-                  {performanceData?.metrics.totals.map_views || 0}
+                  {formatNumber(performanceData?.metrics.totals.map_views || 0)}
                 </p>
                 <p className="text-sm text-gray-500">Map views</p>
               </div>
@@ -372,7 +407,12 @@ export default function Reports() {
 
         {/* Chart */}
         <div className="h-64 relative">
-          <svg viewBox="0 0 800 200" className="w-full h-full">
+          <svg
+            ref={chartRef}
+            viewBox="0 0 800 200"
+            className="w-full h-full"
+            onMouseLeave={() => setHoveredDataPoint(null)}
+          >
             {/* Grid lines */}
             {[0, 0.2, 0.4, 0.6, 0.8, 1].map((y) => (
               <line
@@ -386,6 +426,67 @@ export default function Reports() {
               />
             ))}
 
+            {/* Y-axis labels */}
+            {[0, 0.2, 0.4, 0.6, 0.8, 1].map((y) => (
+              <text
+                key={y}
+                x="40"
+                y={200 - y * 180 + 5}
+                textAnchor="end"
+                className="text-xs fill-gray-500"
+              >
+                {Math.round(maxValue * y)}
+              </text>
+            ))}
+
+            {/* Area fills with gradient */}
+            <defs>
+              <linearGradient id="searchGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" />
+              </linearGradient>
+              <linearGradient id="mapGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#9ca3af" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#9ca3af" stopOpacity="0.05" />
+              </linearGradient>
+            </defs>
+
+            {/* Search area */}
+            <path
+              d={`
+            M ${50} ${200}
+            ${chartData
+              .map(
+                (d, i) =>
+                  `L ${50 + (i * 700) / (chartData.length - 1)} ${200 - (d.searches / maxValue) * 180}`,
+              )
+              .join(" ")}
+            L ${750} ${200}
+            Z
+          `}
+              fill="url(#searchGradient)"
+              className="transition-opacity duration-200"
+              opacity={hoveredDataPoint !== null ? 0.5 : 1}
+            />
+
+            {/* Map views area */}
+            <path
+              d={`
+            M ${50} ${200}
+            ${chartData
+              .map(
+                (d, i) =>
+                  `L ${50 + (i * 700) / (chartData.length - 1)} ${200 - (d.mapViews / maxValue) * 180}`,
+              )
+              .join(" ")}
+            L ${750} ${200}
+            Z
+          `}
+              fill="url(#mapGradient)"
+              className="transition-opacity duration-200"
+              opacity={hoveredDataPoint !== null ? 0.5 : 1}
+            />
+
             {/* Search line */}
             <polyline
               fill="none"
@@ -397,6 +498,8 @@ export default function Reports() {
                     `${50 + (i * 700) / (chartData.length - 1)},${200 - (d.searches / maxValue) * 180}`,
                 )
                 .join(" ")}
+              className="transition-all duration-200"
+              strokeOpacity={hoveredDataPoint !== null ? 0.7 : 1}
             />
 
             {/* Map views line */}
@@ -410,26 +513,134 @@ export default function Reports() {
                     `${50 + (i * 700) / (chartData.length - 1)},${200 - (d.mapViews / maxValue) * 180}`,
                 )
                 .join(" ")}
+              className="transition-all duration-200"
+              strokeOpacity={hoveredDataPoint !== null ? 0.7 : 1}
             />
 
+            {/* Interactive overlay areas for hover detection */}
+            {chartData.map((d, i) => {
+              const x = 50 + (i * 700) / (chartData.length - 1);
+              const width =
+                i === chartData.length - 1 ? 50 : 700 / (chartData.length - 1);
+
+              return (
+                <rect
+                  key={i}
+                  x={x - width / 2}
+                  y={0}
+                  width={width}
+                  height={200}
+                  fill="transparent"
+                  onMouseEnter={(e) => {
+                    setHoveredDataPoint(i);
+                    const rect = chartRef.current?.getBoundingClientRect();
+                    if (rect) {
+                      setMousePosition({
+                        x: x,
+                        y: e.clientY - rect.top,
+                      });
+                    }
+                  }}
+                  onMouseMove={(e) => {
+                    const rect = chartRef.current?.getBoundingClientRect();
+                    if (rect) {
+                      setMousePosition({
+                        x: x,
+                        y: e.clientY - rect.top,
+                      });
+                    }
+                  }}
+                  style={{ cursor: "crosshair" }}
+                />
+              );
+            })}
+
+            {/* Vertical line on hover */}
+            {hoveredDataPoint !== null && (
+              <line
+                x1={50 + (hoveredDataPoint * 700) / (chartData.length - 1)}
+                y1={20}
+                x2={50 + (hoveredDataPoint * 700) / (chartData.length - 1)}
+                y2={200}
+                stroke="#e5e7eb"
+                strokeWidth="1"
+                strokeDasharray="4 4"
+                className="pointer-events-none"
+              />
+            )}
+
             {/* Data points */}
-            {chartData.map((d, i) => (
-              <g key={i}>
-                <circle
-                  cx={50 + (i * 700) / (chartData.length - 1)}
-                  cy={200 - (d.searches / maxValue) * 180}
-                  r="4"
-                  fill="#3b82f6"
-                />
-                <circle
-                  cx={50 + (i * 700) / (chartData.length - 1)}
-                  cy={200 - (d.mapViews / maxValue) * 180}
-                  r="4"
-                  fill="#9ca3af"
-                />
-              </g>
-            ))}
+            {chartData.map((d, i) => {
+              const x = 50 + (i * 700) / (chartData.length - 1);
+              const isHovered = hoveredDataPoint === i;
+
+              return (
+                <g key={i}>
+                  {/* Search view point */}
+                  <circle
+                    cx={x}
+                    cy={200 - (d.searches / maxValue) * 180}
+                    r={isHovered ? "6" : "4"}
+                    fill="#3b82f6"
+                    stroke="white"
+                    strokeWidth="2"
+                    className="transition-all duration-200"
+                    style={{
+                      filter: isHovered
+                        ? "drop-shadow(0 0 4px rgba(59, 130, 246, 0.5))"
+                        : "none",
+                    }}
+                  />
+                  {/* Map view point */}
+                  <circle
+                    cx={x}
+                    cy={200 - (d.mapViews / maxValue) * 180}
+                    r={isHovered ? "6" : "4"}
+                    fill="#9ca3af"
+                    stroke="white"
+                    strokeWidth="2"
+                    className="transition-all duration-200"
+                    style={{
+                      filter: isHovered
+                        ? "drop-shadow(0 0 4px rgba(156, 163, 175, 0.5))"
+                        : "none",
+                    }}
+                  />
+                </g>
+              );
+            })}
           </svg>
+
+          {/* Tooltip */}
+          {hoveredDataPoint !== null && (
+            <div
+              className="absolute bg-gray-900 text-white p-3 rounded-lg shadow-lg pointer-events-none z-10 text-sm"
+              style={{
+                left: `${(mousePosition.x / 800) * 100}%`,
+                top: `${Math.max(20, Math.min(mousePosition.y - 60, 140))}px`,
+                transform: "translateX(-50%)",
+              }}
+            >
+              <div className="font-medium mb-1">
+                {chartData[hoveredDataPoint].date}
+              </div>
+              <div className="flex items-center space-x-2 mb-1">
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span>
+                  Search: {formatNumber(chartData[hoveredDataPoint].searches)}
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                <span>
+                  Maps: {formatNumber(chartData[hoveredDataPoint].mapViews)}
+                </span>
+              </div>
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-between mt-4 text-xs text-gray-500">
