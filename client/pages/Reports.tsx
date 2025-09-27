@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   TrendingUp,
   Search,
@@ -10,6 +10,10 @@ import {
   Calendar,
   Filter,
 } from "lucide-react";
+import { SERVER } from "@/constants";
+import axios from "axios";
+import { RootState } from "@/redux/store";
+import { useSelector } from "react-redux";
 
 interface PerformanceMetric {
   name: string;
@@ -25,65 +29,191 @@ interface ChartData {
   mapViews: number;
 }
 
+interface DailyMetric {
+  date: string;
+  search_views: number;
+  map_views: number;
+  profile_views: number;
+  website_clicks: number;
+  phone_calls: number;
+  direction_requests: number;
+}
+
+interface APIResponse {
+  success: boolean;
+  locationId: string;
+  metrics: {
+    totals: {
+      search_views: number;
+      map_views: number;
+      profile_views: number;
+      website_clicks: number;
+      phone_calls: number;
+      direction_requests: number;
+    };
+    daily: DailyMetric[];
+    changes?: {
+      search_views_change: number;
+      map_views_change: number;
+      profile_views_change: number;
+      website_clicks_change: number;
+      phone_calls_change: number;
+      direction_requests_change: number;
+    };
+  };
+  period: {
+    start: string;
+    end: string;
+  };
+}
+
 export default function Reports() {
   const [selectedPeriod, setSelectedPeriod] = useState("last-3-months");
   const [reportType, setReportType] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [performanceData, setPerformanceData] = useState<APIResponse | null>(
+    null,
+  );
 
-  const performanceMetrics: PerformanceMetric[] = [
-    {
-      name: "Search views",
-      value: 262,
-      change: 15.2,
-      trend: "up",
-      color: "blue",
-    },
-    {
-      name: "Map views",
-      value: 252,
-      change: 8.4,
-      trend: "up",
-      color: "green",
-    },
-    {
-      name: "Phone Calls",
-      value: 4,
-      change: -12.5,
-      trend: "down",
-      color: "orange",
-    },
-    {
-      name: "Website clicks",
-      value: 13,
-      change: 25.0,
-      trend: "up",
-      color: "purple",
-    },
-    {
-      name: "Direction requests",
-      value: 0,
-      change: 0,
-      trend: "neutral",
-      color: "gray",
-    },
-    {
-      name: "Profile views",
-      value: 191,
-      change: 18.7,
-      trend: "up",
-      color: "teal",
-    },
-  ];
+  const {activeLocation} = useSelector((state: RootState) => state.activeLocation);
 
-  const chartData: ChartData[] = [
-    { date: "May 1, 2024", searches: 120, mapViews: 85 },
-    { date: "May 15, 2024", searches: 145, mapViews: 102 },
-    { date: "Jun 1, 2024", searches: 165, mapViews: 128 },
-    { date: "Jun 15, 2024", searches: 180, mapViews: 142 },
-    { date: "Jul 1, 2024", searches: 200, mapViews: 165 },
-    { date: "Jul 15, 2024", searches: 220, mapViews: 180 },
-    { date: "Aug 1, 2024", searches: 240, mapViews: 195 },
-    { date: "Aug 15, 2024", searches: 262, mapViews: 210 },
-  ];
+  // Calculate date ranges based on selected period
+  const getDateRange = () => {
+    const endDate = new Date();
+    let startDate = new Date();
+
+    switch (selectedPeriod) {
+      case "last-week":
+        startDate.setDate(endDate.getDate() - 7);
+        break;
+      case "last-month":
+        startDate.setMonth(endDate.getMonth() - 1);
+        break;
+      case "last-3-months":
+        startDate.setMonth(endDate.getMonth() - 3);
+        break;
+      default:
+        startDate.setMonth(endDate.getMonth() - 3);
+    }
+
+    return {
+      start: startDate.toISOString().split("T")[0],
+      end: endDate.toISOString().split("T")[0],
+    };
+  };
+
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const { start, end } = getDateRange();
+        
+
+        const response = await axios.get(
+          `${SERVER}/api/v1/account/business-performance?location_id=${activeLocation.locationId?.split("/")?.[1]}&start_date=${start}&end_date=${end}&include_change=true`,
+          {
+            withCredentials: true,
+          },
+        );
+
+        if (!response.data.success) {
+          throw new Error("Failed to fetch performance data");
+        }
+
+        const data: APIResponse = response.data;
+        setPerformanceData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedPeriod]);
+
+  // Calculate percentage changes (comparing to previous period)
+  const calculateChange = (metricName: string): number => {
+    if (!performanceData?.metrics.changes) return 0;
+
+    const changeKey =
+      `${metricName}_change` as keyof typeof performanceData.metrics.changes;
+    return performanceData.metrics.changes[changeKey] || 0;
+  };
+
+  // Transform API data to performance metrics
+  const performanceMetrics: PerformanceMetric[] = performanceData
+    ? [
+        {
+          name: "Search views",
+          value: performanceData.metrics.totals.search_views,
+          change: calculateChange(
+            "search_views"
+          ),
+          trend:
+            performanceData.metrics.totals.search_views > 0 ? "up" : "neutral",
+          color: "blue",
+        },
+        {
+          name: "Map views",
+          value: performanceData.metrics.totals.map_views,
+          change: calculateChange("map_views"),
+          trend:
+            performanceData.metrics.totals.map_views > 0 ? "up" : "neutral",
+          color: "green",
+        },
+        {
+          name: "Phone Calls",
+          value: performanceData.metrics.totals.phone_calls,
+          change: calculateChange("phone_calls"),
+          trend:
+            performanceData.metrics.totals.phone_calls > 0 ? "up" : "neutral",
+          color: "orange",
+        },
+        {
+          name: "Website clicks",
+          value: performanceData.metrics.totals.website_clicks,
+          change: calculateChange("website_clicks"),
+          trend:
+            performanceData.metrics.totals.website_clicks > 0
+              ? "up"
+              : "neutral",
+          color: "purple",
+        },
+        {
+          name: "Direction requests",
+          value: performanceData.metrics.totals.direction_requests,
+          change: calculateChange("direction_requests"),
+          trend: "neutral",
+          color: "gray",
+        },
+        {
+          name: "Profile views",
+          value: performanceData.metrics.totals.profile_views,
+          change: calculateChange("profile_views"),
+          trend:
+            performanceData.metrics.totals.profile_views > 0 ? "up" : "neutral",
+          color: "teal",
+        },
+      ]
+    : [];
+
+  // Transform API data to chart data
+  const chartData: ChartData[] = performanceData
+    ? performanceData.metrics.daily.map((day) => ({
+        date: new Date(day.date).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        searches: day.search_views,
+        mapViews: day.map_views,
+      }))
+    : [];
 
   const getIconForMetric = (name: string) => {
     switch (name) {
@@ -129,6 +259,32 @@ export default function Reports() {
     };
     return colorMap[color] || colorMap.gray;
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gbp-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading performance data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-full">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">Error loading data: {error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const maxValue = Math.max(
+    ...chartData.map((d) => Math.max(d.searches, d.mapViews)),
+    1,
+  );
 
   return (
     <div className="p-6 bg-gray-50 min-h-full">
@@ -199,11 +355,15 @@ export default function Reports() {
           <div className="text-right">
             <div className="flex items-center space-x-4">
               <div>
-                <p className="text-2xl font-bold text-gray-900">262</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {performanceData?.metrics.totals.search_views || 0}
+                </p>
                 <p className="text-sm text-gray-500">Search views</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">252</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {performanceData?.metrics.totals.map_views || 0}
+                </p>
                 <p className="text-sm text-gray-500">Map views</p>
               </div>
             </div>
@@ -214,13 +374,13 @@ export default function Reports() {
         <div className="h-64 relative">
           <svg viewBox="0 0 800 200" className="w-full h-full">
             {/* Grid lines */}
-            {[0, 50, 100, 150, 200, 250].map((y) => (
+            {[0, 0.2, 0.4, 0.6, 0.8, 1].map((y) => (
               <line
                 key={y}
                 x1="50"
-                y1={200 - (y * 200) / 300}
+                y1={200 - y * 180}
                 x2="750"
-                y2={200 - (y * 200) / 300}
+                y2={200 - y * 180}
                 stroke="#f3f4f6"
                 strokeWidth="1"
               />
@@ -233,7 +393,8 @@ export default function Reports() {
               strokeWidth="3"
               points={chartData
                 .map(
-                  (d, i) => `${50 + i * 100},${200 - (d.searches * 200) / 300}`,
+                  (d, i) =>
+                    `${50 + (i * 700) / (chartData.length - 1)},${200 - (d.searches / maxValue) * 180}`,
                 )
                 .join(" ")}
             />
@@ -245,7 +406,8 @@ export default function Reports() {
               strokeWidth="3"
               points={chartData
                 .map(
-                  (d, i) => `${50 + i * 100},${200 - (d.mapViews * 200) / 300}`,
+                  (d, i) =>
+                    `${50 + (i * 700) / (chartData.length - 1)},${200 - (d.mapViews / maxValue) * 180}`,
                 )
                 .join(" ")}
             />
@@ -254,14 +416,14 @@ export default function Reports() {
             {chartData.map((d, i) => (
               <g key={i}>
                 <circle
-                  cx={50 + i * 100}
-                  cy={200 - (d.searches * 200) / 300}
+                  cx={50 + (i * 700) / (chartData.length - 1)}
+                  cy={200 - (d.searches / maxValue) * 180}
                   r="4"
                   fill="#3b82f6"
                 />
                 <circle
-                  cx={50 + i * 100}
-                  cy={200 - (d.mapViews * 200) / 300}
+                  cx={50 + (i * 700) / (chartData.length - 1)}
+                  cy={200 - (d.mapViews / maxValue) * 180}
                   r="4"
                   fill="#9ca3af"
                 />
@@ -271,8 +433,8 @@ export default function Reports() {
         </div>
 
         <div className="flex justify-between mt-4 text-xs text-gray-500">
-          <span>May 1, 2024</span>
-          <span>August 1, 2024</span>
+          <span>{chartData[0]?.date || ""}</span>
+          <span>{chartData[chartData.length - 1]?.date || ""}</span>
         </div>
       </div>
 
@@ -315,21 +477,66 @@ export default function Reports() {
 
               {/* Mini chart */}
               <div className="mt-4 h-8 flex items-end space-x-1">
-                {[...Array(12)].map((_, i) => (
-                  <div
-                    key={i}
-                    className={`flex-1 bg-gray-200 rounded-sm ${colors.bg}`}
-                    style={{
-                      height: `${Math.random() * 100}%`,
-                      backgroundColor:
-                        metric.trend === "up"
-                          ? "#22c55e"
-                          : metric.trend === "down"
-                            ? "#ef4444"
-                            : "#9ca3af",
-                    }}
-                  ></div>
-                ))}
+                {performanceData?.metrics.daily.slice(-12).map((day, i) => {
+                  let value = 0;
+                  switch (metric.name) {
+                    case "Search views":
+                      value = day.search_views;
+                      break;
+                    case "Map views":
+                      value = day.map_views;
+                      break;
+                    case "Phone Calls":
+                      value = day.phone_calls;
+                      break;
+                    case "Website clicks":
+                      value = day.website_clicks;
+                      break;
+                    case "Direction requests":
+                      value = day.direction_requests;
+                      break;
+                    case "Profile views":
+                      value = day.profile_views;
+                      break;
+                  }
+                  const maxMetricValue = Math.max(
+                    ...performanceData.metrics.daily.map((d) => {
+                      switch (metric.name) {
+                        case "Search views":
+                          return d.search_views;
+                        case "Map views":
+                          return d.map_views;
+                        case "Phone Calls":
+                          return d.phone_calls;
+                        case "Website clicks":
+                          return d.website_clicks;
+                        case "Direction requests":
+                          return d.direction_requests;
+                        case "Profile views":
+                          return d.profile_views;
+                        default:
+                          return 0;
+                      }
+                    }),
+                    1,
+                  );
+                  return (
+                    <div
+                      key={i}
+                      className={`flex-1 rounded-sm`}
+                      style={{
+                        height: `${(value / maxMetricValue) * 100}%`,
+                        backgroundColor:
+                          metric.trend === "up"
+                            ? "#22c55e"
+                            : metric.trend === "down"
+                              ? "#ef4444"
+                              : "#9ca3af",
+                        minHeight: value > 0 ? "2px" : "0px",
+                      }}
+                    ></div>
+                  );
+                })}
               </div>
             </div>
           );
@@ -349,7 +556,9 @@ export default function Reports() {
                 <span className="text-gray-700">Phone calls</span>
               </div>
               <div className="text-right">
-                <p className="font-semibold text-gray-900">4</p>
+                <p className="font-semibold text-gray-900">
+                  {performanceData?.metrics.totals.phone_calls || 0}
+                </p>
                 <p className="text-xs text-gray-500">This period</p>
               </div>
             </div>
@@ -359,7 +568,9 @@ export default function Reports() {
                 <span className="text-gray-700">Website visits</span>
               </div>
               <div className="text-right">
-                <p className="font-semibold text-gray-900">13</p>
+                <p className="font-semibold text-gray-900">
+                  {performanceData?.metrics.totals.website_clicks || 0}
+                </p>
                 <p className="text-xs text-gray-500">This period</p>
               </div>
             </div>
@@ -369,7 +580,9 @@ export default function Reports() {
                 <span className="text-gray-700">Direction requests</span>
               </div>
               <div className="text-right">
-                <p className="font-semibold text-gray-900">0</p>
+                <p className="font-semibold text-gray-900">
+                  {performanceData?.metrics.totals.direction_requests || 0}
+                </p>
                 <p className="text-xs text-gray-500">This period</p>
               </div>
             </div>
@@ -387,10 +600,31 @@ export default function Reports() {
                 <div className="w-20 bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-gbp-blue-500 h-2 rounded-full"
-                    style={{ width: "85%" }}
+                    style={{
+                      width: `${
+                        performanceData
+                          ? (
+                              (performanceData.metrics.totals.search_views /
+                                (performanceData.metrics.totals.search_views +
+                                  performanceData.metrics.totals.map_views)) *
+                              100
+                            ).toFixed(0)
+                          : 0
+                      }%`,
+                    }}
                   ></div>
                 </div>
-                <span className="text-sm font-medium text-gray-900">85%</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {performanceData
+                    ? (
+                        (performanceData.metrics.totals.search_views /
+                          (performanceData.metrics.totals.search_views +
+                            performanceData.metrics.totals.map_views)) *
+                        100
+                      ).toFixed(0)
+                    : 0}
+                  %
+                </span>
               </div>
             </div>
             <div className="flex items-center justify-between">
@@ -399,10 +633,31 @@ export default function Reports() {
                 <div className="w-20 bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-green-500 h-2 rounded-full"
-                    style={{ width: "15%" }}
+                    style={{
+                      width: `${
+                        performanceData
+                          ? (
+                              (performanceData.metrics.totals.map_views /
+                                (performanceData.metrics.totals.search_views +
+                                  performanceData.metrics.totals.map_views)) *
+                              100
+                            ).toFixed(0)
+                          : 0
+                      }%`,
+                    }}
                   ></div>
                 </div>
-                <span className="text-sm font-medium text-gray-900">15%</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {performanceData
+                    ? (
+                        (performanceData.metrics.totals.map_views /
+                          (performanceData.metrics.totals.search_views +
+                            performanceData.metrics.totals.map_views)) *
+                        100
+                      ).toFixed(0)
+                    : 0}
+                  %
+                </span>
               </div>
             </div>
           </div>
