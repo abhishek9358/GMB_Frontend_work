@@ -1,11 +1,14 @@
 import { Search, Bell, ChevronDown, Menu, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../contexts/AuthContext";
 import { SERVER } from "@/constants";
 import axios from "axios";
 import { formatAddress } from "@/utils";
 import { UserBusiness } from "@/pages/Businesses";
+import { RootState } from "@/redux/store";
+import { useDispatch, useSelector } from "react-redux";
+import { setActiveLocation } from "@/redux/slices/activeLocation.slice";
 
 interface HeaderProps {
   title?: string;
@@ -31,9 +34,27 @@ export default function Header({ title, subtitle }: HeaderProps) {
   const [showProfile, setShowProfile] = useState(false);
   const [showBusinessSelector, setShowBusinessSelector] = useState(false);
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [activeSelectedBusiness, setActiveSelectedBusiness] = useState<Business | null>(
-    null,
-  );
+
+  const dispatch = useDispatch();
+
+  const {activeLocation} = useSelector((state: RootState) => state.activeLocation)
+
+  const activeSelectedBusiness: Business | null = useMemo(() => {
+    if (!activeLocation) return null;
+    return {
+      id: activeLocation.id,
+      name: activeLocation.title,
+      rating: activeLocation.rating,
+      reviewCount: activeLocation.reviewCount,
+      address: formatAddress(activeLocation.address),
+      category:
+        activeLocation.category?.primaryCategory?.displayName ||
+        "Uncategorized",
+      phone: activeLocation.phone || undefined,
+      website: activeLocation.websiteUri || undefined,
+      locationId: activeLocation.locationId,
+    };
+  }, [activeLocation]);
 
   async function fetchMyBusinesses() {
     try {
@@ -89,9 +110,9 @@ export default function Header({ title, subtitle }: HeaderProps) {
         try {
           const parsed: Business = JSON.parse(storedSelected);
           const found = allBusinesses.find((b) => b.id === parsed.id);
-          if (found) {
-            setActiveSelectedBusiness(found);
-          }
+          // if (found) {
+          //   setActiveSelectedBusiness(found);
+          // }
         } catch (err) {
           console.error("Failed to parse selectedBusiness:", err);
         }
@@ -111,9 +132,9 @@ export default function Header({ title, subtitle }: HeaderProps) {
       setBusinesses(allBusinesses);
 
       // Select default business
-      if (allBusinesses.length > 0 && !activeSelectedBusiness) {
-        setActiveSelectedBusiness(allBusinesses[0]);
-      }
+      // if (allBusinesses.length > 0 && !activeSelectedBusiness) {
+      //   setActiveSelectedBusiness(allBusinesses[0]);
+      // }
     };
 
     loadBusinesses();
@@ -131,10 +152,58 @@ export default function Header({ title, subtitle }: HeaderProps) {
   }, [activeSelectedBusiness]);
 
   const handleBusinessSelect = (business: Business) => {
-    setActiveSelectedBusiness(business);
     setShowBusinessSelector(false);
 
-    // Store full business + locationId separately
+    // Update Redux with normalized location
+    dispatch(
+      setActiveLocation({
+        ...business,
+        // minimal adapter so it fits Location type
+        id: business.id,
+        locationId: business.locationId || "",
+        title: business.name,
+        address: {
+          regionCode: "IN",
+          languageCode: "en",
+          postalCode: "",
+          administrativeArea: "",
+          locality: "",
+          addressLines: [business.address],
+        },
+        phone: business.phone || null,
+        websiteUri: business.website || null,
+        category: {
+          primaryCategory: {
+            name: business.category,
+            displayName: business.category,
+          },
+        },
+        status: "ACTIVE",
+        verification: "verified",
+        metadata: {
+          hasGoogleUpdated: false,
+          hasPendingEdits: false,
+          canDelete: true,
+          canModifyServiceList: true,
+          placeId: business.locationId || "",
+          mapsUri: "",
+          newReviewUri: "",
+          hasVoiceOfMerchant: false,
+        },
+        stats: {
+          averageRating: business.rating,
+          reviewCount: business.reviewCount,
+        },
+        isActive: true,
+        rating: business.rating,
+        reviewCount: business.reviewCount,
+        placeId: business.locationId || "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+
+    // Also persist for reload safety
     localStorage.setItem("selectedBusiness", JSON.stringify(business));
     localStorage.setItem(
       "selectedBusinessLocationId",
