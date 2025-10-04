@@ -113,7 +113,7 @@ export function normalizeLocation(apiLocation: any): Location {
 
   return {
     id: loc._id || loc.locationId || "",
-    locationId: loc.name || loc.locationId || "",
+    locationId: loc.name || loc.locationId?.split("/")?.[1] || "",
     title: loc.title || "",
     address,
     phone: null, // Not provided in either API — you may need to add it later

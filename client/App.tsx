@@ -175,7 +175,7 @@ function App() {
           const businesses = res.data.businesses;
           if (businesses.length > 0) {
             const firstBusiness = businesses[0];
-            localStorage.setItem("activeLocation", firstBusiness.locationId);
+            localStorage.setItem("activeLocation", firstBusiness.locationId?.split("/")?.[1] || "");
 
             const normalized = normalizeLocation(firstBusiness);
             dispatch(setActiveLocation(normalized));
