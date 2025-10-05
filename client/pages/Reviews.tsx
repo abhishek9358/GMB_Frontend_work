@@ -11,6 +11,8 @@ import {
 import axios from "axios";
 import { SERVER } from "@/constants";
 import * as XLSX from "xlsx";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 interface Review {
   id: string;
@@ -29,8 +31,10 @@ export default function Reviews() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { activeLocation } = useSelector((state: RootState) => state.activeLocation);
+
   // API endpoint
-  const API_URL = `${SERVER}/api/v1/location/4191602543204915524/reviews?place_id=ChIJkaZ0tqxLbDkRf86f9G6eEZo`;
+  const API_URL = `${SERVER}/api/v1/location/${activeLocation?.locationId || ""}/reviews?place_id=${activeLocation?.placeId || ""}`;
 
   useEffect(() => {
     const fetchReviews = async () => {

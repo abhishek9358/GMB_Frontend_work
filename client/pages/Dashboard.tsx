@@ -91,6 +91,7 @@ function MetricCard({
 
 export default function Dashboard() {
   const { selectedBusiness } = useBusinesses();
+  const { activeLocation } = useSelector((state: RootState) => state.activeLocation);
   const [automationTasks] = useState([
     "Upload an image every 4 days",
     "Publish an update every 5 days",
@@ -129,7 +130,7 @@ export default function Dashboard() {
         setLoading(true);
         setError(null); // Clear previous error
         const response = await axios.get(
-          `${SERVER}/api/v1/locations/4191602543204915524/?account_id=${accId}`,
+          `${SERVER}/api/v1/locations/${id}/?account_id=${accId}`,
           { withCredentials: true }
         );
         setLocationData(response.data.location);
@@ -140,12 +141,12 @@ export default function Dashboard() {
       }
     };
 
-    console.log(id, "Selected Business ID:", selectedBusiness?.id);
+    console.log(id, "Selected Business ID:", activeLocation?.locationId);
     console.log(user?.accountId, "Account ID from params:");
-    
-    const locId = selectedBusiness?.id || locationName; // Fallback to param if selectedBusiness.id not available
+
+    const locId = localStorage.getItem("activeLocation") || activeLocation?.locationId?.split("/")[1] || locationName; // Fallback to param if activeLocation.locationId not available
     fetchLocationData(locId);
-  }, [selectedBusiness?.id, user?.accountId, locationName, accountId]); // Dependencies to refetch on changes
+  }, [activeLocation?.locationId, user?.accountId, locationName, accountId]); // Dependencies to refetch on changes
 
   if (loading) {
     return <div className="p-6 text-gray-600">Loading...</div>;
