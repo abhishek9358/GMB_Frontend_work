@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import {
-  Upload,
-  MessageSquare,
-  Star,
-  Video,
   BarChart3,
   Bell,
   Calendar,
-  ChevronDown,
+  MessageSquare,
   Settings as SettingsIcon,
+  Star,
+  Upload,
+  Video,
+  X,
 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface AutomationModule {
   id: string;
@@ -196,6 +199,22 @@ interface AutomationContentProps {
   module: AutomationModule;
 }
 
+interface FileImportDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onImport: (data: { files: File[] }) => void;
+  acceptTypes?: string;
+  title?: string;
+  description?: string;
+  importButtonLabel?: string;
+  cancelButtonLabel?: string;
+  imageSrc?: string;
+  multiple?: boolean;
+  files: File[];
+  setFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  isImporting?: boolean;
+}
+
 function AutomationContent({ module }: AutomationContentProps) {
   switch (module.id) {
     case "upload-images":
@@ -217,7 +236,244 @@ function AutomationContent({ module }: AutomationContentProps) {
   }
 }
 
+function FileImportDialog({
+  open,
+  onClose,
+  onImport,
+  acceptTypes = ".jpg,.jpeg,.png,.gif",
+  title = "Upload Images",
+  description = "Supported formats: JPG, JPEG, PNG, GIF",
+  importButtonLabel = "Upload",
+  cancelButtonLabel = "Cancel",
+  imageSrc = "/Images/uploader.png",
+  multiple = true,
+  files,
+  setFiles,
+  isImporting = false,
+}: FileImportDialogProps) {
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previews, setPreviews] = useState<string[]>([]);
+
+  // Handle drag events
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const newFiles = Array.from(e.dataTransfer.files).filter((file) =>
+        file.type.startsWith("image/"),
+      );
+      setFiles((prev) => (multiple ? [...prev, ...newFiles] : [newFiles[0]]));
+      const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+      setPreviews((prev) =>
+        multiple ? [...prev, ...newPreviews] : [newPreviews[0]],
+      );
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      setFiles((prev) => (multiple ? [...prev, ...newFiles] : [newFiles[0]]));
+      const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+      setPreviews((prev) =>
+        multiple ? [...prev, ...newPreviews] : [newPreviews[0]],
+      );
+    }
+  };
+
+  const handleBrowseClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleRemoveFile = (indexToRemove: number) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFiles(files.filter((_, index) => index !== indexToRemove));
+    setPreviews(previews.filter((_, index) => index !== indexToRemove));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveAllFiles = () => {
+    setFiles([]);
+    setPreviews([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleImport = () => {
+    if (files.length === 0) {
+      console.error("Please select at least one file");
+      return;
+    }
+    onImport({ files });
+    handleRemoveAllFiles(); // Clear files after import
+    onClose(); // Close dialog
+  };
+
+  // Clean up previews on unmount
+  useEffect(() => {
+    return () => previews.forEach((url) => URL.revokeObjectURL(url));
+  }, [previews]);
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="p-0 max-w-2xl overflow-hidden border-0 rounded-lg shadow-xl">
+        <Card className="relative bg-white p-6 md:p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+          </div>
+
+          <div
+            className={`relative border-2 border-dashed rounded-lg transition-colors w-full h-64 flex items-center justify-center cursor-pointer ${
+              isDragging
+                ? "border-gbp-blue-500 bg-gbp-blue-50"
+                : "border-gray-200 hover:border-gbp-blue-400 bg-gray-50 hover:bg-gray-100"
+            }`}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onClick={handleBrowseClick}
+          >
+            {files.length > 0 ? (
+              <div className="flex flex-col items-center justify-start w-full px-4 overflow-auto h-full py-4">
+                <div className="flex items-center justify-between bg-gray-100 p-2 rounded w-full">
+                  <span className="text-sm text-gray-600">
+                    {multiple
+                      ? `${files.length} image(s) selected`
+                      : "Image selected"}
+                  </span>
+                  {multiple && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveAllFiles();
+                      }}
+                      className="text-red-500 hover:text-red-700 text-xs"
+                    >
+                      Remove all
+                    </button>
+                  )}
+                </div>
+                <div className="w-full space-y-2 mt-2">
+                  {files.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between bg-gray-100 p-2 rounded"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <img
+                          src={previews[index]}
+                          alt={file.name}
+                          className="w-10 h-10 object-cover rounded"
+                        />
+                        <span className="text-sm text-gray-600 truncate max-w-[200px]">
+                          {file.name}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveFile(index)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4">
+                <div className="flex justify-center mb-4">
+                  <Upload className="w-12 h-12 text-gray-400" />
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-600 mb-2">
+                    Click to upload or drag and drop
+                  </p>
+                  <p className="text-sm text-gray-500 mb-4">{description}</p>
+                </div>
+                <button
+                  className="border-gbp-blue-500 text-gbp-blue-600 hover:bg-gbp-blue-50"
+                >
+                  Browse Images
+                </button>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileSelect}
+              accept={acceptTypes}
+              multiple={multiple}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mt-8">
+            <button
+              onClick={onClose}
+              className="w-full border-gbp-blue-500 text-gbp-blue-600 hover:bg-gbp-blue-50"
+            >
+              {cancelButtonLabel}
+            </button>
+            <button
+              onClick={handleImport}
+              disabled={files.length === 0 || isImporting}
+              className={`w-full bg-gbp-blue-500 text-white hover:bg-gbp-blue-600 ${
+                files.length === 0 || isImporting
+                  ? "opacity-60 cursor-not-allowed"
+                  : ""
+              }`}
+            >
+              {isImporting ? "Uploading..." : importButtonLabel}
+            </button>
+          </div>
+        </Card>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Updated ImageUploadAutomation component
 function ImageUploadAutomation() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+
+  const handleImport = ({ files }: { files: File[] }) => {
+    console.log("Uploading files:", files);
+    // Implement your upload logic here (e.g., send to server via API)
+    // Example:
+    // const formData = new FormData();
+    // files.forEach((file, index) => formData.append(`image-${index}`, file));
+    // fetch('/api/upload', { method: 'POST', body: formData });
+  };
+
   return (
     <div className="max-w-4xl">
       <div className="bg-gbp-blue-500 text-white p-6 rounded-lg mb-6">
@@ -263,12 +519,28 @@ function ImageUploadAutomation() {
           <div className="border border-gray-200 rounded-lg p-4">
             <h4 className="font-medium text-gray-900 mb-2">Drag and Drop</h4>
             <p className="text-sm text-gray-600 mb-4">
-              Drag and drop images locally onto
+              Click to upload images or drag and drop them.
             </p>
-            <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
-              <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-500">Drop images here</p>
-            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <div
+                  className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => setDialogOpen(true)}
+                >
+                  <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">
+                    Click or drop images here
+                  </p>
+                </div>
+              </DialogTrigger>
+            </Dialog>
+            <FileImportDialog
+              open={dialogOpen}
+              onClose={() => setDialogOpen(false)}
+              onImport={handleImport}
+              files={files}
+              setFiles={setFiles}
+            />
           </div>
 
           <div className="border border-gray-200 rounded-lg p-4">
@@ -285,7 +557,6 @@ function ImageUploadAutomation() {
     </div>
   );
 }
-
 function ReviewManagementAutomation() {
   return (
     <div className="max-w-4xl">
