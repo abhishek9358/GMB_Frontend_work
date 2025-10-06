@@ -33,8 +33,10 @@ export default function Reviews() {
 
   const { activeLocation } = useSelector((state: RootState) => state.activeLocation);
 
+  const locationId = localStorage.getItem("activeLocation");
+
   // API endpoint
-  const API_URL = `${SERVER}/api/v1/location/${activeLocation?.locationId || ""}/reviews?place_id=${activeLocation?.placeId || ""}`;
+  const API_URL = `${SERVER}/api/v1/location/${ locationId || activeLocation?.locationId?.split("/")?.[1] || ""}/reviews?place_id=${activeLocation?.placeId || ""}`;
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -63,7 +65,7 @@ export default function Reviews() {
         setReviews(mappedReviews);
         setLoading(false);
       } catch (err) {
-        setError("Failed to fetch reviews");
+        // setError("Failed to fetch reviews");
         setLoading(false);
       }
     };
