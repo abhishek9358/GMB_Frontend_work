@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {  DialogContent } from "@/components/ui/dialog";
+import { RootState } from "@/redux/store";
 import {
   BarChart3,
   Bell,
@@ -12,7 +13,8 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 
 interface AutomationModule {
   id: string;
@@ -236,243 +238,778 @@ function AutomationContent({ module }: AutomationContentProps) {
   }
 }
 
-function FileImportDialog({
-  open,
-  onClose,
-  onImport,
-  acceptTypes = ".jpg,.jpeg,.png,.gif",
-  title = "Upload Images",
-  description = "Supported formats: JPG, JPEG, PNG, GIF",
-  importButtonLabel = "Upload",
-  cancelButtonLabel = "Cancel",
-  imageSrc = "/Images/uploader.png",
-  multiple = true,
-  files,
-  setFiles,
-  isImporting = false,
-}: FileImportDialogProps) {
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [previews, setPreviews] = useState<string[]>([]);
+// function FileImportDialog({
+//   open,
+//   onClose,
+//   onImport,
+//   acceptTypes = ".jpg,.jpeg,.png,.gif",
+//   title = "Upload Images",
+//   description = "Supported formats: JPG, JPEG, PNG, GIF",
+//   importButtonLabel = "Upload",
+//   cancelButtonLabel = "Cancel",
+//   imageSrc = "/Images/uploader.png",
+//   multiple = true,
+//   files,
+//   setFiles,
+//   isImporting = false,
+// }: FileImportDialogProps) {
+//   const [isDragging, setIsDragging] = useState(false);
+//   const fileInputRef = useRef<HTMLInputElement>(null);
+//   const [previews, setPreviews] = useState<string[]>([]);
 
-  // Handle drag events
-  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
+//   // Handle drag events
+//   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+//     e.preventDefault();
+//     e.stopPropagation();
+//     setIsDragging(true);
+//   };
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
+//   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+//     e.preventDefault();
+//     e.stopPropagation();
+//     setIsDragging(false);
+//   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
+//   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+//     e.preventDefault();
+//     e.stopPropagation();
+//   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
+//   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+//     e.preventDefault();
+//     e.stopPropagation();
+//     setIsDragging(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const newFiles = Array.from(e.dataTransfer.files).filter((file) =>
-        file.type.startsWith("image/"),
-      );
-      setFiles((prev) => (multiple ? [...prev, ...newFiles] : [newFiles[0]]));
-      const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
-      setPreviews((prev) =>
-        multiple ? [...prev, ...newPreviews] : [newPreviews[0]],
-      );
-    }
-  };
+//     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+//       const newFiles = Array.from(e.dataTransfer.files).filter((file) =>
+//         file.type.startsWith("image/"),
+//       );
+//       setFiles((prev) => (multiple ? [...prev, ...newFiles] : [newFiles[0]]));
+//       const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+//       setPreviews((prev) =>
+//         multiple ? [...prev, ...newPreviews] : [newPreviews[0]],
+//       );
+//     }
+//   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const newFiles = Array.from(e.target.files);
-      setFiles((prev) => (multiple ? [...prev, ...newFiles] : [newFiles[0]]));
-      const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
-      setPreviews((prev) =>
-        multiple ? [...prev, ...newPreviews] : [newPreviews[0]],
-      );
-    }
-  };
+//   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+//     if (e.target.files && e.target.files.length > 0) {
+//       const newFiles = Array.from(e.target.files);
+//       setFiles((prev) => (multiple ? [...prev, ...newFiles] : [newFiles[0]]));
+//       const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+//       setPreviews((prev) =>
+//         multiple ? [...prev, ...newPreviews] : [newPreviews[0]],
+//       );
+//     }
+//   };
 
-  const handleBrowseClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
+//   const handleBrowseClick = () => {
+//     if (fileInputRef.current) {
+//       fileInputRef.current.click();
+//     }
+//   };
 
-  const handleRemoveFile = (indexToRemove: number) => (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setFiles(files.filter((_, index) => index !== indexToRemove));
-    setPreviews(previews.filter((_, index) => index !== indexToRemove));
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
+//   const handleRemoveFile = (indexToRemove: number) => (e: React.MouseEvent) => {
+//     e.stopPropagation();
+//     setFiles(files.filter((_, index) => index !== indexToRemove));
+//     setPreviews(previews.filter((_, index) => index !== indexToRemove));
+//     if (fileInputRef.current) {
+//       fileInputRef.current.value = "";
+//     }
+//   };
 
-  const handleRemoveAllFiles = () => {
-    setFiles([]);
-    setPreviews([]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
+//   const handleRemoveAllFiles = () => {
+//     setFiles([]);
+//     setPreviews([]);
+//     if (fileInputRef.current) {
+//       fileInputRef.current.value = "";
+//     }
+//   };
 
-  const handleImport = () => {
-    if (files.length === 0) {
-      console.error("Please select at least one file");
-      return;
-    }
-    onImport({ files });
-    handleRemoveAllFiles(); // Clear files after import
-    onClose(); // Close dialog
-  };
+//   const handleImport = () => {
+//     if (files.length === 0) {
+//       console.error("Please select at least one file");
+//       return;
+//     }
+//     onImport({ files });
+//     handleRemoveAllFiles(); // Clear files after import
+//     onClose(); // Close dialog
+//   };
 
-  // Clean up previews on unmount
-  useEffect(() => {
-    return () => previews.forEach((url) => URL.revokeObjectURL(url));
-  }, [previews]);
+//   // Clean up previews on unmount
+//   useEffect(() => {
+//     return () => previews.forEach((url) => URL.revokeObjectURL(url));
+//   }, [previews]);
 
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="p-0 max-w-2xl overflow-hidden border-0 rounded-lg shadow-xl">
-        <Card className="relative bg-white p-6 md:p-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
-          </div>
+//   return (
+//     <Dialog open={open} onOpenChange={onClose}>
+//       <DialogContent className="p-0 max-w-2xl overflow-hidden border-0 rounded-lg shadow-xl">
+//         <Card className="relative bg-white p-6 md:p-8">
+//           <div className="flex justify-between items-center mb-6">
+//             <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+//           </div>
 
-          <div
-            className={`relative border-2 border-dashed rounded-lg transition-colors w-full h-64 flex items-center justify-center cursor-pointer ${
-              isDragging
-                ? "border-gbp-blue-500 bg-gbp-blue-50"
-                : "border-gray-200 hover:border-gbp-blue-400 bg-gray-50 hover:bg-gray-100"
-            }`}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-            onClick={handleBrowseClick}
-          >
-            {files.length > 0 ? (
-              <div className="flex flex-col items-center justify-start w-full px-4 overflow-auto h-full py-4">
-                <div className="flex items-center justify-between bg-gray-100 p-2 rounded w-full">
-                  <span className="text-sm text-gray-600">
-                    {multiple
-                      ? `${files.length} image(s) selected`
-                      : "Image selected"}
-                  </span>
-                  {multiple && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveAllFiles();
-                      }}
-                      className="text-red-500 hover:text-red-700 text-xs"
+//           <div
+//             className={`relative border-2 border-dashed rounded-lg transition-colors w-full h-64 flex items-center justify-center cursor-pointer ${
+//               isDragging
+//                 ? "border-gbp-blue-500 bg-gbp-blue-50"
+//                 : "border-gray-200 hover:border-gbp-blue-400 bg-gray-50 hover:bg-gray-100"
+//             }`}
+//             onDragEnter={handleDragEnter}
+//             onDragLeave={handleDragLeave}
+//             onDragOver={handleDragOver}
+//             onDrop={handleDrop}
+//             onClick={handleBrowseClick}
+//           >
+//             {files.length > 0 ? (
+//               <div className="flex flex-col items-center justify-start w-full px-4 overflow-auto h-full py-4">
+//                 <div className="flex items-center justify-between bg-gray-100 p-2 rounded w-full">
+//                   <span className="text-sm text-gray-600">
+//                     {multiple
+//                       ? `${files.length} image(s) selected`
+//                       : "Image selected"}
+//                   </span>
+//                   {multiple && (
+//                     <button
+//                       type="button"
+//                       onClick={(e) => {
+//                         e.stopPropagation();
+//                         handleRemoveAllFiles();
+//                       }}
+//                       className="text-red-500 hover:text-red-700 text-xs"
+//                     >
+//                       Remove all
+//                     </button>
+//                   )}
+//                 </div>
+//                 <div className="w-full space-y-2 mt-2">
+//                   {files.map((file, index) => (
+//                     <div
+//                       key={index}
+//                       className="flex items-center justify-between bg-gray-100 p-2 rounded"
+//                     >
+//                       <div className="flex items-center space-x-2">
+//                         <img
+//                           src={previews[index]}
+//                           alt={file.name}
+//                           className="w-10 h-10 object-cover rounded"
+//                         />
+//                         <span className="text-sm text-gray-600 truncate max-w-[200px]">
+//                           {file.name}
+//                         </span>
+//                       </div>
+//                       <button
+//                         type="button"
+//                         onClick={handleRemoveFile(index)}
+//                         className="text-gray-400 hover:text-gray-600"
+//                       >
+//                         <X className="w-4 h-4" />
+//                       </button>
+//                     </div>
+//                   ))}
+//                 </div>
+//               </div>
+//             ) : (
+//               <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4">
+//                 <div className="flex justify-center mb-4">
+//                   <Upload className="w-12 h-12 text-gray-400" />
+//                 </div>
+//                 <div className="text-center">
+//                   <p className="text-gray-600 mb-2">
+//                     Click to upload or drag and drop
+//                   </p>
+//                   <p className="text-sm text-gray-500 mb-4">{description}</p>
+//                 </div>
+//                 <button
+//                   className="border-gbp-blue-500 text-gbp-blue-600 hover:bg-gbp-blue-50"
+//                 >
+//                   Browse Images
+//                 </button>
+//               </div>
+//             )}
+//             <input
+//               ref={fileInputRef}
+//               type="file"
+//               className="hidden"
+//               onChange={handleFileSelect}
+//               accept={acceptTypes}
+//               multiple={multiple}
+//             />
+//           </div>
+
+//           <div className="grid grid-cols-2 gap-4 mt-8">
+//             <button
+//               onClick={onClose}
+//               className="w-full border-gbp-blue-500 text-gbp-blue-600 hover:bg-gbp-blue-50"
+//             >
+//               {cancelButtonLabel}
+//             </button>
+//             <button
+//               onClick={handleImport}
+//               disabled={files.length === 0 || isImporting}
+//               className={`w-full bg-gbp-blue-500 text-white hover:bg-gbp-blue-600 ${
+//                 files.length === 0 || isImporting
+//                   ? "opacity-60 cursor-not-allowed"
+//                   : ""
+//               }`}
+//             >
+//               {isImporting ? "Uploading..." : importButtonLabel}
+//             </button>
+//           </div>
+//         </Card>
+//       </DialogContent>
+//     </Dialog>
+//   );
+// }
+
+
+// Placeholder for your FileImportDialog component (MUST be defined elsewhere)
+// import FileImportDialog from './FileImportDialog'; 
+
+// --- Configuration ---
+const API_BASE_URL = "http://localhost:3000/api/v1"; // <-- UPDATE THIS TO YOUR SERVER ROOT
+
+// Dummy implementation for the dialog trigger/state management
+const Dialog = ({ children }) => <>{children}</>;
+const DialogTrigger = ({ asChild, children, ...props }) => <div {...props}>{children}</div>;
+
+
+// Mock FileImportDialog structure for completeness
+const FileImportDialog = ({ open, onClose, onImport, files, setFiles }) => {
+    if (!open) return null;
+
+    const handleFilesDrop = (newFiles) => {
+        // In a real scenario, this function would be complex, 
+        // but for integration, we just call onImport with the final list.
+        onImport({ files: newFiles });
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
+                <h4 className="font-bold mb-4">Select Files to Upload</h4>
+                {/* Simulated file list */}
+                {files.length > 0 && (
+                    <ul className="mb-4 text-sm list-disc list-inside">
+                        {files.map((f, i) => <li key={i}>{f.name} ({Math.round(f.size / 1024)} KB)</li>)}
+                    </ul>
+                )}
+                
+                {/* Input simulation for demo */}
+                <input
+                    type="file"
+                    multiple
+                    onChange={(e) => {
+                        const selectedFiles = Array.from(e.target.files || []);
+                        setFiles(selectedFiles);
+                    }}
+                    className="mb-4 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gbp-blue-100 file:text-gbp-blue-700 hover:file:bg-gbp-blue-200"
+                />
+
+                <div className="flex justify-end space-x-2">
+                    <button 
+                        onClick={() => {
+                            // In a real scenario, you might use the files state here 
+                            // or just rely on the handleImport from the main component flow.
+                            handleFilesDrop(files); 
+                        }}
+                        className="bg-gbp-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-gbp-blue-700"
+                        disabled={files.length === 0}
                     >
-                      Remove all
+                        Process & Upload ({files.length})
                     </button>
-                  )}
-                </div>
-                <div className="w-full space-y-2 mt-2">
-                  {files.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between bg-gray-100 p-2 rounded"
+                    <button 
+                        onClick={onClose}
+                        className="border border-gray-300 px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100"
                     >
-                      <div className="flex items-center space-x-2">
-                        <img
-                          src={previews[index]}
-                          alt={file.name}
-                          className="w-10 h-10 object-cover rounded"
-                        />
-                        <span className="text-sm text-gray-600 truncate max-w-[200px]">
-                          {file.name}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRemoveFile(index)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                        Cancel
+                    </button>
                 </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4">
-                <div className="flex justify-center mb-4">
-                  <Upload className="w-12 h-12 text-gray-400" />
-                </div>
-                <div className="text-center">
-                  <p className="text-gray-600 mb-2">
-                    Click to upload or drag and drop
-                  </p>
-                  <p className="text-sm text-gray-500 mb-4">{description}</p>
-                </div>
-                <button
-                  className="border-gbp-blue-500 text-gbp-blue-600 hover:bg-gbp-blue-50"
-                >
-                  Browse Images
-                </button>
-              </div>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={handleFileSelect}
-              accept={acceptTypes}
-              multiple={multiple}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mt-8">
-            <button
-              onClick={onClose}
-              className="w-full border-gbp-blue-500 text-gbp-blue-600 hover:bg-gbp-blue-50"
-            >
-              {cancelButtonLabel}
-            </button>
-            <button
-              onClick={handleImport}
-              disabled={files.length === 0 || isImporting}
-              className={`w-full bg-gbp-blue-500 text-white hover:bg-gbp-blue-600 ${
-                files.length === 0 || isImporting
-                  ? "opacity-60 cursor-not-allowed"
-                  : ""
-              }`}
-            >
-              {isImporting ? "Uploading..." : importButtonLabel}
-            </button>
-          </div>
-        </Card>
-      </DialogContent>
-    </Dialog>
-  );
+            </div>
+        </div>
+    );
 }
 
-// Updated ImageUploadAutomation component
+
+// function ImageUploadAutomation() {
+//   const [dialogOpen, setDialogOpen] = useState(false);
+//   const [files, setFiles] = useState<File[]>([]);
+//   const [loading, setLoading] = useState(false);
+//   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+//   const [url, setUrl] = useState("");
+//   const [urlError, setUrlError] = useState("");
+//   const {user} = useSelector((state: RootState) => state.user)
+//   const {activeLocation} = useSelector((state: RootState) => state.activeLocation)
+
+//   // --- Placeholder IDs (MUST BE REPLACED WITH REAL VALUES FROM CONTEXT/STATE) ---
+//   const ACCOUNT_ID = user?.accountId ||  ""; 
+//   const LOCATION_ID =
+//     localStorage.getItem("activeLocation") || activeLocation.locationId?.[1]?.[0] ;
+//   // ------------------------------------------------------------------------------
+
+//   const handleUrlUpload = async () => {
+//     console.log("Step 1");
+//   const trimmedUrl = url.trim();
+//   if (!trimmedUrl) {
+//     console.log("Step 2");
+//     setUrlError('Please enter a valid image URL.');
+//     return;
+//   }
+
+//   setLoading(true);
+//   setUrlError('');
+//   setMessage(null);
+
+//   try {
+//     // 1. Preload image to check dimensions
+//     console.log("Step 3");
+//     const img = new Image();
+//     img.crossOrigin = "anonymous"; // Helps avoid CORS issues if server allows it
+
+//     const loadImg = () => {
+//     console.log("Step 4");
+
+//       return new Promise((resolve, reject) => {
+//         img.onload = () => resolve(img);
+//         img.onerror = () => reject(new Error("Failed to load image from URL. Check the URL or CORS."));
+//       });
+//     };
+
+//     await loadImg();
+
+//     console.log("Step 5");
+
+
+//     // 2. Validate dimensions
+//     if (img.width < 250 || img.height < 250) {
+//       throw new Error(`Image too small: ${img.width}x${img.height}px. Minimum is 250x250px.`);
+//     }
+
+//     console.log("Step 6");
+
+//     console.log(`✅ Image from URL validated: ${img.width}x${img.height}px`);
+
+//     // 3. Now use the URL directly via `temp_host_url` logic
+//     // We'll simulate the same flow as file upload by calling `uploadFinalMedia`
+//     await uploadFinalMedia(trimmedUrl);
+
+//     // Success
+//     setMessage({ type: 'success', text: 'Image uploaded successfully from URL!' });
+//     setUrl(''); // Clear input
+
+//   } catch (error) {
+//     console.error("URL upload failed:", error);
+//     setMessage({ 
+//       type: 'error', 
+//       text: `Failed to upload from URL: ${error.message || 'Invalid image or network issue.'}` 
+//     });
+//     setUrlError(error.message);
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+
+//   const uploadToTempServer = useCallback(async (file: File): Promise<{ temp_url: string, file_id: string }> => {
+//     const formData = new FormData();
+//     formData.append('file', file);
+
+//     const response = await fetch(`${API_BASE_URL}/upload-temp-file`, {
+//         method: 'POST',
+//         body: formData,
+//         credentials: "include"
+//     });
+
+//     if (!response.ok) {
+//         const errorData = await response.json();
+//         throw new Error(`Temporary upload failed: ${errorData.detail || response.statusText}`);
+//     }
+
+//     return response.json();
+//   }, []);
+
+
+//   const uploadFinalMedia = useCallback(async (tempUrl: string) => {
+//     const uploadUrl = `${API_BASE_URL}/accounts/${ACCOUNT_ID}/locations/${LOCATION_ID}/media`;
+//     console.log("Step 7");
+    
+//     const formData = new FormData();
+//     // We use temp_host_url as per your backend logic for final submission
+//     formData.append('temp_host_url', tempUrl); 
+//     formData.append('media_format', 'PHOTO'); // Assuming all uploaded files are photos initially
+//     formData.append('category', 'ADDITIONAL');
+
+//     console.log("Step 8");
+
+
+//     const response = await fetch(uploadUrl, {
+//         method: 'POST',
+       
+//         body: formData,
+//         credentials: "include"
+//     });
+
+//     console.log("Step 9");
+
+
+//     if (!response.ok) {
+//         const errorData = await response.json();
+//         throw new Error(`Final media upload failed: ${errorData.detail || response.statusText}`);
+//     }
+
+//     console.log("Step 10");
+
+//     return response.json();
+//   }, []);
+
+
+//   const handleImport = useCallback(async ({ files: importedFiles }: { files: File[] }) => {
+//     if (importedFiles.length === 0) return;
+
+//     setLoading(true);
+//     setMessage(null);
+//     setFiles(importedFiles); // Update state with files being processed
+
+//     let successCount = 0;
+//     let errorCount = 0;
+
+//     for (const file of importedFiles) {
+//         console.log(`Processing file: ${file.name}`);
+//         try {
+//             // 1. Upload to Temporary Server
+//             const tempResult = await uploadToTempServer(file);
+//             console.log(`Got temp URL: ${tempResult.temp_url}`);
+            
+
+//             // 2. Submit Final Media Request using the temporary URL
+//             await uploadFinalMedia(tempResult.temp_url);
+            
+//             successCount++;
+//             console.log(`Successfully posted media for ${file.name}`);
+
+//         } catch (error) {
+//             errorCount++;
+//             console.error(`Failed to process ${file.name}:`, error);
+//             setMessage({ type: 'error', text: `Failed to upload ${file.name}. Check console for details.` });
+//         }
+//     }
+
+//     setLoading(false);
+//     if (errorCount === 0 && successCount > 0) {
+//         setMessage({ type: 'success', text: `Successfully uploaded ${successCount} image(s)!` });
+//     } else if (errorCount > 0) {
+//         setMessage({ type: 'error', text: `Finished with ${errorCount} errors and ${successCount} successes.` });
+//     }
+    
+//     // Clear files list after processing attempt
+//     setFiles([]); 
+
+//   }, [uploadToTempServer, uploadFinalMedia]);
+
+
+//   return (
+//     <div className="max-w-4xl">
+//       {/* ... (Existing blue panel content remains the same) ... */}
+//       <div className="bg-gbp-blue-500 text-white p-6 rounded-lg mb-6">
+//         <div className="flex items-center space-x-3 mb-3">
+//           <Upload className="w-6 h-6" />
+//           <h2 className="text-xl font-semibold">
+//             How often do you want to drip images onto your profile?
+//           </h2>
+//         </div>
+//         <div className="flex items-center space-x-2 text-gbp-blue-100">
+//           <span>✓ Trust Paige</span>
+//         </div>
+//         <p className="text-gbp-blue-100 text-sm mt-2">
+//           Paige analyses this frequency automatically based on an analysis of
+//           over 1,000+ data points weekly. Trusting Paige will help you rank
+//           higher faster.
+//         </p>
+//         <button className="bg-white text-gbp-blue-600 px-4 py-2 rounded-lg mt-3 text-sm font-medium">
+//           Set custom timing
+//         </button>
+//       </div>
+//       {/* ... (Existing options panel content) ... */}
+      
+//       {message && (
+//         <div className={`p-3 rounded-lg mb-4 ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+//             {message.text}
+//         </div>
+//       )}
+
+//       <div className="bg-white rounded-lg p-6 border border-gray-200">
+//         <h3 className="text-lg font-semibold text-gray-900 mb-4">
+//           You have 3 options to upload images:
+//         </h3>
+
+//         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+//           {/* Option 1: URL Upload (Unchanged) */}
+//           <div className="border border-gray-200 rounded-lg p-4">
+//             <h4 className="font-medium text-gray-900 mb-2">
+//               Upload using link
+//             </h4>
+//             <p className="text-sm text-gray-600 mb-4">
+//               Upload from the via direct link upload box.
+//             </p>
+//             <div className="space-y-2">
+//   <input
+//     type="url"
+//     value={url}
+//     onChange={(e) => setUrl(e.target.value)}
+//     placeholder="https://example.com/image.jpg"
+//     className={`w-full border rounded px-3 py-2 text-sm ${
+//       urlError ? 'border-red-500' : 'border-gray-200'
+//     }`}
+//     disabled={loading}
+//   />
+//   {urlError && <p className="text-red-500 text-xs">{urlError}</p>}
+  
+//   <button
+//     onClick={handleUrlUpload}
+//     disabled={loading || !url.trim()}
+//     className="w-full bg-gbp-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-gbp-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+//   >
+//     {loading ? 'Uploading...' : 'Upload from URL'}
+//   </button>
+// </div>
+//           </div>
+
+//           {/* Option 2: Drag and Drop / File Upload (Updated logic hook) */}
+//           <div className="border border-gray-200 rounded-lg p-4">
+//             <h4 className="font-medium text-gray-900 mb-2">Drag and Drop</h4>
+//             <p className="text-sm text-gray-600 mb-4">
+//               Click to upload images or drag and drop them.
+//             </p>
+//             <Dialog>
+//               <DialogTrigger asChild>
+//                 <div
+//                   className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${loading ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-50 border-gray-200'}`}
+//                   onClick={() => !loading && setDialogOpen(true)}
+//                 >
+//                   <Upload className="w-8 h-8 mx-auto mb-2" />
+//                   <p className="text-sm">
+//                     {loading ? "Processing..." : "Click or drop images here"}
+//                   </p>
+//                 </div>
+//               </DialogTrigger>
+//             </Dialog>
+//             <FileImportDialog
+//               open={dialogOpen}
+//               onClose={() => setDialogOpen(false)}
+//               onImport={handleImport}
+//               files={files}
+//               setFiles={setFiles}
+//             />
+//           </div>
+
+//           {/* Option 3: Integrations (Unchanged) */}
+//           <div className="border border-gray-200 rounded-lg p-4">
+//             <h4 className="font-medium text-gray-900 mb-2">Integrations</h4>
+//             <p className="text-sm text-gray-600 mb-4">
+//               Integrate your asset library/photo gallery
+//             </p>
+//             <button disabled className="w-full border border-gray-200 rounded px-3 py-2 text-sm text-gray-400 bg-gray-50 cursor-not-allowed">
+//               Coming soon
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+
 function ImageUploadAutomation() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [url, setUrl] = useState("");
+  const [urlError, setUrlError] = useState("");
+  const { user } = useSelector((state: RootState) => state.user);
+  const { activeLocation } = useSelector(
+    (state: RootState) => state.activeLocation,
+  );
 
-  const handleImport = ({ files }: { files: File[] }) => {
-    console.log("Uploading files:", files);
-    // Implement your upload logic here (e.g., send to server via API)
-    // Example:
-    // const formData = new FormData();
-    // files.forEach((file, index) => formData.append(`image-${index}`, file));
-    // fetch('/api/upload', { method: 'POST', body: formData });
+  // --- Placeholder IDs (MUST BE REPLACED WITH REAL VALUES FROM CONTEXT/STATE) ---
+  const ACCOUNT_ID = user?.accountId || "";
+  const LOCATION_ID =
+    localStorage.getItem("activeLocation") ||
+    activeLocation.locationId?.[1]?.[0];
+  // ------------------------------------------------------------------------------
+
+  const handleUrlUpload = async () => {
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl) {
+      setUrlError("Please enter a valid image URL.");
+      return;
+    }
+
+    // Basic URL validation
+    try {
+      new URL(trimmedUrl);
+    } catch {
+      setUrlError("Invalid URL format.");
+      return;
+    }
+
+    setLoading(true);
+    setUrlError("");
+    setMessage(null);
+
+    try {
+      // Skip client-side image validation for URL uploads
+      // Let the server and Google API handle validation
+      console.log("Uploading image from URL:", trimmedUrl);
+
+      // Upload directly using source_url
+      await uploadFromSourceUrl(trimmedUrl);
+
+      // Success
+      setMessage({
+        type: "success",
+        text: "Image uploaded successfully from URL!",
+      });
+      setUrl(""); // Clear input
+    } catch (error: any) {
+      console.error("URL upload failed:", error);
+      setMessage({
+        type: "error",
+        text: `Failed to upload from URL: ${error.message || "Invalid image or network issue."}`,
+      });
+      setUrlError(error.message || "Upload failed");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const uploadFromSourceUrl = useCallback(
+    async (sourceUrl: string) => {
+      const uploadUrl = `${API_BASE_URL}/accounts/${ACCOUNT_ID}/locations/${LOCATION_ID}/media`;
+
+      const formData = new FormData();
+      formData.append("source_url", sourceUrl); // Use source_url for direct URLs
+      formData.append("media_format", "PHOTO");
+      formData.append("category", "ADDITIONAL");
+
+      const response = await fetch(uploadUrl, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.detail || `Upload failed with status ${response.status}`,
+        );
+      }
+
+      return response.json();
+    },
+    [ACCOUNT_ID, LOCATION_ID],
+  );
+
+  const uploadToTempServer = useCallback(
+    async (file: File): Promise<{ temp_url: string; file_id: string }> => {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`${API_BASE_URL}/upload-temp-file`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Temporary upload failed: ${errorData.detail || response.statusText}`,
+        );
+      }
+
+      return response.json();
+    },
+    [],
+  );
+
+  const uploadFinalMedia = useCallback(
+    async (tempUrl: string) => {
+      const uploadUrl = `${API_BASE_URL}/accounts/${ACCOUNT_ID}/locations/${LOCATION_ID}/media`;
+
+      const formData = new FormData();
+      formData.append("temp_host_url", tempUrl);
+      formData.append("media_format", "PHOTO");
+      formData.append("category", "ADDITIONAL");
+
+      const response = await fetch(uploadUrl, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Final media upload failed: ${errorData.detail || response.statusText}`,
+        );
+      }
+
+      return response.json();
+    },
+    [ACCOUNT_ID, LOCATION_ID],
+  );
+
+  const handleImport = useCallback(
+    async ({ files: importedFiles }: { files: File[] }) => {
+      if (importedFiles.length === 0) return;
+
+      setLoading(true);
+      setMessage(null);
+      setFiles(importedFiles);
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const file of importedFiles) {
+        console.log(`Processing file: ${file.name}`);
+        try {
+          // 1. Upload to Temporary Server
+          const tempResult = await uploadToTempServer(file);
+          console.log(`Got temp URL: ${tempResult.temp_url}`);
+
+          // 2. Submit Final Media Request using the temporary URL
+          await uploadFinalMedia(tempResult.temp_url);
+
+          successCount++;
+          console.log(`Successfully posted media for ${file.name}`);
+        } catch (error: any) {
+          errorCount++;
+          console.error(`Failed to process ${file.name}:`, error);
+        }
+      }
+
+      setLoading(false);
+      if (errorCount === 0 && successCount > 0) {
+        setMessage({
+          type: "success",
+          text: `Successfully uploaded ${successCount} image(s)!`,
+        });
+      } else if (errorCount > 0) {
+        setMessage({
+          type: "error",
+          text: `Finished with ${errorCount} errors and ${successCount} successes.`,
+        });
+      }
+
+      setFiles([]);
+    },
+    [uploadToTempServer, uploadFinalMedia],
+  );
 
   return (
     <div className="max-w-4xl">
@@ -496,12 +1033,21 @@ function ImageUploadAutomation() {
         </button>
       </div>
 
+      {message && (
+        <div
+          className={`p-3 rounded-lg mb-4 ${message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+        >
+          {message.text}
+        </div>
+      )}
+
       <div className="bg-white rounded-lg p-6 border border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           You have 3 options to upload images:
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Option 1: URL Upload */}
           <div className="border border-gray-200 rounded-lg p-4">
             <h4 className="font-medium text-gray-900 mb-2">
               Upload using link
@@ -509,13 +1055,33 @@ function ImageUploadAutomation() {
             <p className="text-sm text-gray-600 mb-4">
               Upload from the via direct link upload box.
             </p>
-            <input
-              type="url"
-              placeholder="Image URL"
-              className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
-            />
+            <div className="space-y-2">
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setUrlError(""); // Clear error on change
+                }}
+                placeholder="https://example.com/image.jpg"
+                className={`w-full border rounded px-3 py-2 text-sm ${
+                  urlError ? "border-red-500" : "border-gray-200"
+                }`}
+                disabled={loading}
+              />
+              {urlError && <p className="text-red-500 text-xs">{urlError}</p>}
+
+              <button
+                onClick={handleUrlUpload}
+                disabled={loading || !url.trim()}
+                className="w-full bg-gbp-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-gbp-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? "Uploading..." : "Upload from URL"}
+              </button>
+            </div>
           </div>
 
+          {/* Option 2: Drag and Drop */}
           <div className="border border-gray-200 rounded-lg p-4">
             <h4 className="font-medium text-gray-900 mb-2">Drag and Drop</h4>
             <p className="text-sm text-gray-600 mb-4">
@@ -524,12 +1090,12 @@ function ImageUploadAutomation() {
             <Dialog>
               <DialogTrigger asChild>
                 <div
-                  className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => setDialogOpen(true)}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${loading ? "bg-gray-100 text-gray-400" : "hover:bg-gray-50 border-gray-200"}`}
+                  onClick={() => !loading && setDialogOpen(true)}
                 >
-                  <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">
-                    Click or drop images here
+                  <Upload className="w-8 h-8 mx-auto mb-2" />
+                  <p className="text-sm">
+                    {loading ? "Processing..." : "Click or drop images here"}
                   </p>
                 </div>
               </DialogTrigger>
@@ -543,12 +1109,16 @@ function ImageUploadAutomation() {
             />
           </div>
 
+          {/* Option 3: Integrations */}
           <div className="border border-gray-200 rounded-lg p-4">
             <h4 className="font-medium text-gray-900 mb-2">Integrations</h4>
             <p className="text-sm text-gray-600 mb-4">
               Integrate your asset library/photo gallery
             </p>
-            <button className="w-full border border-gray-200 rounded px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+            <button
+              disabled
+              className="w-full border border-gray-200 rounded px-3 py-2 text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
+            >
               Coming soon
             </button>
           </div>
@@ -557,6 +1127,9 @@ function ImageUploadAutomation() {
     </div>
   );
 }
+
+
+
 function ReviewManagementAutomation() {
   return (
     <div className="max-w-4xl">
