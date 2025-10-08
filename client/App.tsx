@@ -10,6 +10,7 @@ import BusinessOnboarding from "./pages/BusinessOnboarding";
 import BusinessProfileManagement from "./pages/BusinessProfileManagement";
 import Automation from "./pages/Automation";
 import Reviews from "./pages/Reviews";
+import CompetitorDashboard from "./pages/Competitor";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -225,6 +226,7 @@ function App() {
             />
             <Route path="automation" element={<Automation />} />
             <Route path="reviews" element={<Reviews />} />
+            <Route path="compatitor" element={<CompetitorDashboard  />} />
             <Route path="reports" element={<Reports />} />
             {/* Analytics - Google Search Console */}
             <Route
