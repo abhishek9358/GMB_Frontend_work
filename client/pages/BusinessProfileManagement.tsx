@@ -405,48 +405,77 @@ const apiService = {
   },
 };
 
-// Transform ILocation data to match the form's BusinessProfile structure (unchanged)
-const transformApiDataToProfile = (data: ILocation | null): BusinessProfile => {
+
+const transformApiDataToProfile = (data: any): BusinessProfile => {
+  // Helper function to format time with minutes
+  const formatTime = (
+    timeObj: { hours: number; minutes?: number } | undefined,
+  ) => {
+    if (!timeObj) return "09:00";
+    const hours = String(timeObj.hours).padStart(2, "0");
+    const minutes = String(timeObj.minutes || 0).padStart(2, "0");
+    return `${hours}:${minutes}`;
+  };
+
+  // Helper function to format opening date
+  const formatOpeningDate = (openingDateObj: any) => {
+    if (!openingDateObj) return "";
+    const { year, month, day } = openingDateObj;
+    if (!year || !month || !day) return "";
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  };
+
   return {
-    name: data?.name || "",
+    name: data?.title || "",
     title: data?.title || "",
-    category: data?.info.businessCategory || "",
-    description: "",
-    openingDate: "",
+    category: data?.primaryCategoryName || "",
+    description: data?.description || "",
+    openingDate: formatOpeningDate(data?.rawGoogleData?.openInfo?.openingDate),
     phoneNumbers: {
-      primary: "",
+      primary:
+        data?.phone || data?.rawGoogleData?.phoneNumbers?.primaryPhone || "",
       secondary: "",
     },
     chatEnabled: false,
-    websiteUri: data?.stats.hasWebsite ? "https://example.com" : "",
+    websiteUri: data?.websiteUri || "",
     storefrontAddress: {
-      addressLines: data?.storefrontAddress?.addressLines || [""],
-      locality: data?.storefrontAddress?.locality || "",
-      administrativeArea: data?.storefrontAddress?.administrativeArea || "",
-      postalCode: data?.storefrontAddress?.postalCode || "",
-      regionCode: data?.storefrontAddress?.regionCode || "IN",
+      addressLines: data?.rawGoogleData?.storefrontAddress?.addressLines || [
+        data?.street || "",
+      ],
+      locality:
+        data?.city || data?.rawGoogleData?.storefrontAddress?.locality || "",
+      administrativeArea:
+        data?.state ||
+        data?.rawGoogleData?.storefrontAddress?.administrativeArea ||
+        "",
+      postalCode:
+        data?.postalCode ||
+        data?.rawGoogleData?.storefrontAddress?.postalCode ||
+        "",
+      regionCode:
+        data?.regionCode ||
+        data?.rawGoogleData?.storefrontAddress?.regionCode ||
+        "IN",
     },
     serviceArea: {
       businessType: "BUSINESS_LOCATION_ONLY",
-      regionCode: data?.storefrontAddress?.regionCode || "IN",
+      regionCode:
+        data?.regionCode ||
+        data?.rawGoogleData?.storefrontAddress?.regionCode ||
+        "IN",
       places: [],
     },
     regularHours: {
       periods:
-        data?.rawGoogleData?.regularHours?.map((period) => ({
+        data?.regularHours?.periods?.map((period: any) => ({
           openDay: period.openDay || "MONDAY",
-          openTime: period.openTime
-            ? `${String(period.openTime.hours).padStart(2, "0")}:00`
-            : "09:00",
+          openTime: formatTime(period.openTime),
           closeDay: period.closeDay || "MONDAY",
-          closeTime: period.closeTime
-            ? `${String(period.closeTime.hours).padStart(2, "0")}:00`
-            : "17:00",
+          closeTime: formatTime(period.closeTime),
         })) || [],
     },
-    //@ts-ignore
-    specialHours: data?.rawGoogleData?.specialHours || [],
-    moreHours: data?.rawGoogleData?.moreHours || [],
+    specialHours: data?.specialHours || data?.rawGoogleData?.specialHours || [],
+    moreHours: data?.moreHours || data?.rawGoogleData?.moreHours || [],
     accessibility: {
       wheelchairAccessible: false,
       wheelchairAccessibleParking: false,
@@ -487,10 +516,11 @@ const transformApiDataToProfile = (data: ILocation | null): BusinessProfile => {
     serviceOptions: {
       onlineEstimates: false,
       onSiteServices: false,
-      languageSpoken: data?.responseLanguage ? [data.responseLanguage] : [],
+      languageSpoken: [],
     },
   };
 };
+
 
 export default function BusinessProfileManagement() {
   const [location, setLocation] = useState<ILocation | null>(null);
