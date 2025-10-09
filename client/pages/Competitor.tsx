@@ -4,6 +4,7 @@ import axios from 'axios';
 import { SERVER } from '@/constants';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
+import DynamicReviewChart from '@/components/dynamicCompatitorReviewChart';
 
 // =============================================
 // TYPE DEFINITIONS
@@ -345,7 +346,7 @@ function calculateAnalytics(reviews: Review[]) {
 
 function CompetitorDashboard() {
   const [selectedCompetitor, setSelectedCompetitor] = useState(competitors[0]);
-  const [timeRange, setTimeRange] = useState<number>(90);
+  const [timeRange, setTimeRange] = useState<number>(3);
   const [chartMode, setChartMode] = useState('single');
   const [hoveredDataPoint, setHoveredDataPoint] = useState<{
     month: string;
@@ -361,27 +362,69 @@ function CompetitorDashboard() {
   const [competitorss, setCompetitorss] = useState<BusinessData[]>([]);
   const [clientReviews, setClientReviews] = useState<Review[]>([]);
 
+      const { activeLocation } = useSelector(
+      (state: RootState) => state.activeLocation,
+    );
+
+    const activeLocationId = localStorage.getItem("activeLocation")
+
+  
+  const yourClientData: BusinessData = useMemo(() => {
+    return {
+      place_name: activeLocation.title,
+      place_id: activeLocation.placeId,
+      reviews: clientReviews
+    };
+  }, [activeLocation]);
+
+    const [selectedBusiness, setSelectedBusiness] = useState<BusinessData>({
+    place_name: yourClientData.place_name,
+    place_id: yourClientData.place_id,
+    reviews: clientReviews
+  });
+
 
   // Get Date range reviews and showcase in 5 elements
   const [dateRangeData, setDateRangeData] = useState<DateRangeReviewData | null>(null);
 
   async function fetchDateRangeReviewsData(){
     try {
-      const res = await axios.post(`${SERVER}/api/v1/scraper/date-range-reviews`, {months: timeRange, place_id: selectedBusiness?.place_id}, { withCredentials: true });
+      const res = await axios.post(`${SERVER}/api/v1/scraper/date-range-reviews`, {months: timeRange, place_id: selectedBusiness?.place_id}, { withCredentials: true, timeout: 1 * 60 * 1000 });
       console.log("DateRangeREviewsDAta", res)
+      const dta = res.data;
+      if(dta){
+        setDateRangeData(dta)
+      }
     } catch (error) {
       console.error("ERror", error)
     }
   }
+
+  console.log("Date Range Data", dateRangeData);
+
+  useEffect(() => {
+    if(selectedBusiness?.place_id){
+      fetchDateRangeReviewsData();
+    }
+  }, [timeRange, selectedBusiness])
   
 
   console.log("Client reviews", clientReviews);
 
-    const { activeLocation } = useSelector(
-      (state: RootState) => state.activeLocation,
-    );
 
-    const activeLocationId = localStorage.getItem("activeLocation")
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   async function fetchClientReviews(){
@@ -422,13 +465,6 @@ function CompetitorDashboard() {
   
 
 
-  const yourClientData: BusinessData = useMemo(() => {
-    return {
-      place_name: activeLocation.title,
-      place_id: activeLocation.placeId,
-      reviews: clientReviews
-    };
-  }, [activeLocation]);
 
   console.log("Your client data", yourClientData);
 
@@ -486,11 +522,7 @@ function CompetitorDashboard() {
     place_id: activeLocation.placeId,
     reviews: []
   }, ...competitorss];
-  const [selectedBusiness, setSelectedBusiness] = useState<BusinessData>({
-    place_name: yourClientData.place_name,
-    place_id: yourClientData.place_id,
-    reviews: clientReviews
-  });
+
 
 
   const yourAnalytics = useMemo(() => calculateAnalytics(yourClientData.reviews || []), []);
@@ -1233,6 +1265,16 @@ const prepareAIAnalyticsData = (
       setIsDownloadingPDF(false);
     }
   };
+
+
+  function getReviewVelocity(reviews: any) {
+  if (!reviews || !reviews.months_scraped || !reviews.reviews_in_range) {
+    return 0;
+  }
+
+  const velocity = reviews.reviews_in_range / reviews.months_scraped;
+  return velocity;
+}
 
 
 
@@ -2144,9 +2186,9 @@ const prepareAIAnalyticsData = (
             onChange={(e) => setTimeRange(Number(e.target.value))}
             className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-black hover:border-blue-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none cursor-pointer"
           >
-            <option value="30">Last 30 Days</option>
-            <option value="60">Last 60 Days</option>
-            <option value="90">Last 90 Days</option>
+            <option value={1}>Last 30 Days</option>
+            <option value={2}>Last 60 Days</option>
+            <option value={3}>Last 90 Days</option>
           </select>
         </div>
 
@@ -2157,7 +2199,7 @@ const prepareAIAnalyticsData = (
               <span className="text-sm text-gray-500 font-medium">Total Reviews</span>
               <MessageSquare className="w-5 h-5 text-blue-500" />
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-2">{selectedAnalytics.totalReviews}</div>
+            <div className="text-3xl font-bold text-gray-900 mb-2">{dateRangeData?.total_reviews_on_profile}</div>
             <p className="text-xs text-gray-500">No previous data</p>
           </div>
 
@@ -2166,12 +2208,12 @@ const prepareAIAnalyticsData = (
               <span className="text-sm text-gray-500 font-medium">Average Rating</span>
               <Star className="w-5 h-5 text-blue-500" />
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-2">{selectedAnalytics.avgRating}</div>
+            <div className="text-3xl font-bold text-gray-900 mb-2">{dateRangeData?.statistics?.average_rating}</div>
             <div className="flex items-center gap-1">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
-                  className={`w-4 h-4 ${i < Math.round(parseFloat(selectedAnalytics.avgRating)) ? 'text-blue-500 fill-blue-500' : 'text-gray-300'}`}
+                  className={`w-4 h-4 ${i < Math.round(dateRangeData?.statistics?.average_rating) ? 'text-blue-500 fill-blue-500' : 'text-gray-300'}`}
                 />
               ))}
             </div>
@@ -2182,8 +2224,8 @@ const prepareAIAnalyticsData = (
               <span className="text-sm text-gray-500 font-medium">Response Rate</span>
               <Reply className="w-5 h-5 text-blue-500" />
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-2">{selectedAnalytics.responseRate}%</div>
-            <p className="text-xs text-gray-500">{selectedAnalytics.totalReviews} total responses</p>
+            <div className="text-3xl font-bold text-gray-900 mb-2">{dateRangeData?.statistics?.owner_response_rate}%</div>
+            <p className="text-xs text-gray-500">{dateRangeData?.statistics?.reviews_with_response} total responses</p>
           </div>
 
           <div className="bg-white rounded-lg p-6 border border-gray-200">
@@ -2191,13 +2233,13 @@ const prepareAIAnalyticsData = (
               <span className="text-sm text-gray-500 font-medium">Review Velocity</span>
               <TrendingUp className="w-5 h-5 text-blue-500" />
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-2">2.0</div>
+            <div className="text-3xl font-bold text-gray-900 mb-2">{getReviewVelocity(dateRangeData)}</div>
             <p className="text-xs text-gray-500">Avg reviews per month</p>
           </div>
         </div>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-white rounded-lg p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -2372,7 +2414,8 @@ const prepareAIAnalyticsData = (
               ))}
             </div>
           </div>
-        </div>
+        </div> */}
+        <DynamicReviewChart dateRangeData={dateRangeData} />
 
         {/* Comparison Dashboard - All Businesses */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
