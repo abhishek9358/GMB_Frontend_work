@@ -155,7 +155,9 @@ function App() {
         const apiLocation = res.data?.location;
         if (apiLocation) {
           const normalizedLocation = normalizeLocation(apiLocation);
-          dispatch(setActiveLocation(normalizedLocation));
+          if(normalizedLocation.locationId){
+            dispatch(setActiveLocation(normalizedLocation));
+          }
         }
       } catch (error) {
         console.error("Failed to fetch location details:", error);
@@ -179,7 +181,9 @@ function App() {
             localStorage.setItem("activeLocation", firstBusiness.locationId?.split("/")?.[1] || "");
 
             const normalized = normalizeLocation(firstBusiness);
-            dispatch(setActiveLocation(normalized));
+            if(normalized.locationId){
+              dispatch(setActiveLocation(normalized));
+            }
           }
         }
       } catch (error) {

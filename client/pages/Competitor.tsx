@@ -1,5 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Star, TrendingUp, MessageSquare, Reply, Download, Plus, ExternalLink, ArrowUpRight, ArrowDownRight, Minus, ChevronDown, Loader2, Sparkles } from 'lucide-react';
+import axios from 'axios';
+import { SERVER } from '@/constants';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/store';
 
 // =============================================
 // TYPE DEFINITIONS
@@ -35,24 +39,24 @@ interface AIRecommendations {
 // DUMMY DATA
 // =============================================
 
-const yourClientData: BusinessData = {
-  place_name: "Your Business",
-  place_id: "your-business-001",
-  reviews: [
-    { author: "John Smith", rating: 5, date: "1 day ago", review_text: "Excellent service! Highly recommend.", response_by_owner: "yes" },
-    { author: "Sarah Johnson", rating: 5, date: "3 days ago", review_text: "Professional and efficient.", response_by_owner: "yes" },
-    { author: "Mike Davis", rating: 4, date: "5 days ago", review_text: "Good experience overall.", response_by_owner: "yes" },
-    { author: "Emily Chen", rating: 5, date: "a week ago", review_text: "Amazing team!", response_by_owner: "yes" },
-    { author: "Robert Lee", rating: 3, date: "2 weeks ago", review_text: "Decent but could improve.", response_by_owner: "no" },
-    { author: "Linda Martinez", rating: 5, date: "3 weeks ago", review_text: "Best service in town!", response_by_owner: "yes" },
-    { author: "David Wilson", rating: 4, date: "a month ago", review_text: "Very satisfied.", response_by_owner: "yes" },
-    { author: "Jennifer Taylor", rating: 5, date: "a month ago", review_text: "Outstanding quality!", response_by_owner: "yes" },
-    { author: "James Anderson", rating: 5, date: "2 months ago", review_text: "Exceeded expectations.", response_by_owner: "yes" },
-    { author: "Patricia Thomas", rating: 4, date: "2 months ago", review_text: "Great job!", response_by_owner: "no" },
-    { author: "Michael Brown", rating: 5, date: "3 months ago", review_text: "Highly professional.", response_by_owner: "yes" },
-    { author: "Mary Garcia", rating: 5, date: "4 months ago", review_text: "Wonderful experience.", response_by_owner: "yes" },
-  ]
-};
+// const yourClientData: BusinessData = {
+//   place_name: "Your Business",
+//   place_id: "your-business-001",
+  // reviews: [
+  //   { author: "John Smith", rating: 5, date: "1 day ago", review_text: "Excellent service! Highly recommend.", response_by_owner: "yes" },
+  //   { author: "Sarah Johnson", rating: 5, date: "3 days ago", review_text: "Professional and efficient.", response_by_owner: "yes" },
+  //   { author: "Mike Davis", rating: 4, date: "5 days ago", review_text: "Good experience overall.", response_by_owner: "yes" },
+  //   { author: "Emily Chen", rating: 5, date: "a week ago", review_text: "Amazing team!", response_by_owner: "yes" },
+  //   { author: "Robert Lee", rating: 3, date: "2 weeks ago", review_text: "Decent but could improve.", response_by_owner: "no" },
+  //   { author: "Linda Martinez", rating: 5, date: "3 weeks ago", review_text: "Best service in town!", response_by_owner: "yes" },
+  //   { author: "David Wilson", rating: 4, date: "a month ago", review_text: "Very satisfied.", response_by_owner: "yes" },
+  //   { author: "Jennifer Taylor", rating: 5, date: "a month ago", review_text: "Outstanding quality!", response_by_owner: "yes" },
+  //   { author: "James Anderson", rating: 5, date: "2 months ago", review_text: "Exceeded expectations.", response_by_owner: "yes" },
+  //   { author: "Patricia Thomas", rating: 4, date: "2 months ago", review_text: "Great job!", response_by_owner: "no" },
+  //   { author: "Michael Brown", rating: 5, date: "3 months ago", review_text: "Highly professional.", response_by_owner: "yes" },
+  //   { author: "Mary Garcia", rating: 5, date: "4 months ago", review_text: "Wonderful experience.", response_by_owner: "yes" },
+  // ]
+// };
 
 const competitors: BusinessData[] = [
   {
@@ -126,7 +130,7 @@ const competitors: BusinessData[] = [
 // =============================================
 
 function calculateAnalytics(reviews: Review[]) {
-  const total = reviews.length;
+  const total = reviews?.length;
   const avgRating = total > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / total : 0;
   const responseRate = total > 0 ? (reviews.filter(r => r.response_by_owner === 'yes').length / total) * 100 : 0;
 
@@ -162,9 +166,9 @@ function prepareAIAnalyticsData(
   selectedCompetitor: BusinessData,
   timeRangeMonths: number
 ) {
-  const yourAnalytics = calculateAnalytics(yourBusiness.reviews);
-  const competitorAnalytics = calculateAnalytics(selectedCompetitor.reviews);
-  const allCompetitorsReviews = competitors.flatMap(c => c.reviews);
+  const yourAnalytics = calculateAnalytics(yourBusiness.reviews || []);
+  const competitorAnalytics = calculateAnalytics(selectedCompetitor.reviews || []);
+  const allCompetitorsReviews = competitors.flatMap(c => c.reviews || []);
   const allCompetitorsAnalytics = calculateAnalytics(allCompetitorsReviews);
 
   return {
@@ -225,6 +229,89 @@ function CompetitorDashboard() {
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+  const [competitorss, setCompetitorss] = useState<BusinessData[]>([]);
+  const [clientReviews, setClientReviews] = useState<Review[]>([]);
+
+  console.log("Client reviews", clientReviews);
+
+    const { activeLocation } = useSelector(
+      (state: RootState) => state.activeLocation,
+    );
+
+    const activeLocationId = localStorage.getItem("activeLocation")
+
+
+  async function fetchClientReviews(){
+    try {
+      console.log("ActiveLocation", activeLocation)
+      const res = await axios.get(`${SERVER}/api/v1/location/${activeLocationId}/reviews?place_id=${activeLocation.placeId}`, { withCredentials: true });
+      console.log("Reviews", res.data);
+      if (res.data?.reviews && Array.isArray(res.data?.reviews)) {
+        const formattedReviews = res.data.reviews.map((r: any) => ({
+          "author": r.author_name || "Anonymous",
+          "rating": r.rating || 0,
+          "date": r.relative_time_description || "Unknown",
+          "review_text": r.text || "",
+          "response_by_owner": r.ownerReply ? "yes" : "no"
+        }));
+        setClientReviews(formattedReviews);
+        if(selectedBusiness.place_id === activeLocation.placeId){
+          setSelectedBusiness({
+            place_name: activeLocation.title,
+            place_id: activeLocation.placeId,
+            reviews: formattedReviews
+          });
+        }
+      }
+      
+    } catch (error) {
+      console.error("Failed to fetch client reviews:", error);
+    }
+  }
+
+  useEffect(() => {
+    if(clientReviews.length === 0 && activeLocationId){
+      fetchClientReviews();
+    }
+  }, [clientReviews]);
+
+
+  
+
+
+  const yourClientData: BusinessData = useMemo(() => {
+    return {
+      place_name: activeLocation.title,
+      place_id: activeLocation.placeId,
+      reviews: clientReviews
+    };
+  }, [activeLocation]);
+
+  console.log("Your client data", yourClientData);
+
+  const fetchServerCompetitors = async () => {
+    try {
+      const res = await axios.get(`${SERVER}/api/v1/competitors`, { withCredentials: true });
+      console.log("Compet res", res)
+      if (res.data?.data && Array.isArray(res.data?.data)) {
+        setCompetitorss(res.data?.data?.map((c: any) => ({
+          place_name: c?.title || "",
+          place_id: c?.placeId || "",
+          reviews: c?.reviews || []
+        })));
+        console.log("Fetched competitors from server:", res.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch competitors from server:", error);
+    }
+
+  }
+
+  useEffect(() => {
+    fetchServerCompetitors();
+  }, [])
+
+  console.log("Competitors from server:", competitorss);
 
   // Add Competitor Dialog State
   const [showAddCompetitorDialog, setShowAddCompetitorDialog] = useState(false);
@@ -232,15 +319,42 @@ function CompetitorDashboard() {
   const [isAddingCompetitor, setIsAddingCompetitor] = useState(false);
   const [addCompetitorError, setAddCompetitorError] = useState('');
 
-  // Combine all businesses for selection
-  const allBusinesses = [yourClientData, ...competitors];
-  const [selectedBusiness, setSelectedBusiness] = useState<BusinessData>(competitors[0]);
+  const handleAddNewCompetitor = async () => {
+    try {
+      const res = await axios.post(`${SERVER}/api/v1/competitors`, {placeId: newPlaceId}, {withCredentials: true});
+      if(res.data){
+        console.log("Successfully added competitor", res.data);
+        setShowAddCompetitorDialog(false);
+        setNewPlaceId("");
+        setAddCompetitorError("");
+      }
+    } catch (error) {
+      console.error("Failed to add competitor", error);
+      //  setShowAddCompetitorDialog(false);
+      //  setNewPlaceId("");
+       setAddCompetitorError("Failed to add competitor. Please try again.");
+    }
+  }
 
-  const yourAnalytics = useMemo(() => calculateAnalytics(yourClientData.reviews), []);
-  const selectedAnalytics = useMemo(() => calculateAnalytics(selectedBusiness.reviews), [selectedBusiness]);
+
+  // Combine all businesses for selection
+  const allBusinesses = [{
+    place_name: activeLocation.title,
+    place_id: activeLocation.placeId,
+    reviews: []
+  }, ...competitorss];
+  const [selectedBusiness, setSelectedBusiness] = useState<BusinessData>({
+    place_name: yourClientData.place_name,
+    place_id: yourClientData.place_id,
+    reviews: clientReviews
+  });
+
+
+  const yourAnalytics = useMemo(() => calculateAnalytics(yourClientData.reviews || []), []);
+  const selectedAnalytics = useMemo(() => calculateAnalytics(selectedBusiness?.reviews || []), [selectedBusiness]);
   const allCompetitorsAnalytics = useMemo(() => {
-    const allReviews = competitors.flatMap(c => c.reviews);
-    return calculateAnalytics(allReviews);
+    const allReviews = competitorss.flatMap(c => c.reviews || []);
+    return calculateAnalytics(allReviews || []);
   }, []);
 
   const getComparisonIcon = (yourVal: number, compVal: number, inverse = false) => {
@@ -251,103 +365,103 @@ function CompetitorDashboard() {
       <ArrowDownRight className="w-4 h-4 text-red-600" />;
   };
 
-  const latestReviews = selectedBusiness.reviews.slice(0, 5);
+  const latestReviews = selectedBusiness?.reviews?.slice(0, 5);
 
   // =============================================
   // ADD COMPETITOR FUNCTION
   // =============================================
 
-  const handleAddCompetitor = async () => {
-    // Validate Place ID
-    if (!newPlaceId.trim()) {
-      setAddCompetitorError('Please enter a Place ID');
-      return;
-    }
+  // const handleAddCompetitor = async () => {
+  //   // Validate Place ID
+  //   if (!newPlaceId.trim()) {
+  //     setAddCompetitorError('Please enter a Place ID');
+  //     return;
+  //   }
 
-    setIsAddingCompetitor(true);
-    setAddCompetitorError('');
+  //   setIsAddingCompetitor(true);
+  //   setAddCompetitorError('');
 
-    try {
-      // TODO: Replace with your actual API endpoint
-      const response = await fetch('YOUR_API_ENDPOINT/fetch-competitor-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': 'Bearer YOUR_TOKEN'
-        },
-        body: JSON.stringify({
-          place_id: newPlaceId.trim()
-        })
-      });
+  //   try {
+  //     // TODO: Replace with your actual API endpoint
+  //     const response = await fetch('YOUR_API_ENDPOINT/fetch-competitor-data', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         // 'Authorization': 'Bearer YOUR_TOKEN'
+  //       },
+  //       body: JSON.stringify({
+  //         place_id: newPlaceId.trim()
+  //       })
+  //     });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch competitor data');
-      }
+  //     if (!response.ok) {
+  //       throw new Error('Failed to fetch competitor data');
+  //     }
 
-      const competitorData = await response.json();
+  //     const competitorData = await response.json();
 
-      // Validate response data structure
-      if (!competitorData.place_name || !competitorData.reviews) {
-        throw new Error('Invalid data format received from API');
-      }
+  //     // Validate response data structure
+  //     if (!competitorData.place_name || !competitorData.reviews) {
+  //       throw new Error('Invalid data format received from API');
+  //     }
 
-      // Check if competitor already exists
-      const existingCompetitor = competitors.find(c => c.place_id === competitorData.place_id);
-      if (existingCompetitor) {
-        setAddCompetitorError('This competitor is already added');
-        return;
-      }
+  //     // Check if competitor already exists
+  //     const existingCompetitor = competitors.find(c => c.place_id === competitorData.place_id);
+  //     if (existingCompetitor) {
+  //       setAddCompetitorError('This competitor is already added');
+  //       return;
+  //     }
 
-      // Add new competitor to the list
-      competitors.push(competitorData);
+  //     // Add new competitor to the list
+  //     competitors.push(competitorData);
 
-      // Select the newly added competitor
-      setSelectedBusiness(competitorData);
+  //     // Select the newly added competitor
+  //     setSelectedBusiness(competitorData);
 
-      // Close dialog and reset
-      setShowAddCompetitorDialog(false);
-      setNewPlaceId('');
+  //     // Close dialog and reset
+  //     setShowAddCompetitorDialog(false);
+  //     setNewPlaceId('');
 
-      alert(`✅ ${competitorData.place_name} has been added successfully!`);
+  //     alert(`✅ ${competitorData.place_name} has been added successfully!`);
 
-    } catch (error) {
-      console.error('Error adding competitor:', error);
+  //   } catch (error) {
+  //     console.error('Error adding competitor:', error);
 
-      // Show friendly error message
-      setAddCompetitorError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to add competitor. Please check the Place ID and try again.'
-      );
+  //     // Show friendly error message
+  //     setAddCompetitorError(
+  //       error instanceof Error
+  //         ? error.message
+  //         : 'Failed to add competitor. Please check the Place ID and try again.'
+  //     );
 
-      // For demo purposes: simulate adding a competitor
-      if (error instanceof Error && error.message.includes('YOUR_API_ENDPOINT')) {
-        alert(
-          '⚠️ API endpoint not configured yet!\n\n' +
-          'To enable this feature:\n\n' +
-          '1. Set up your backend API endpoint\n' +
-          '2. Update YOUR_API_ENDPOINT in handleAddCompetitor function\n' +
-          '3. API should accept Place ID and return competitor data\n\n' +
-          'Expected API Response:\n' +
-          '{\n' +
-          '  "place_name": "Business Name",\n' +
-          '  "place_id": "place-id-123",\n' +
-          '  "reviews": [\n' +
-          '    {\n' +
-          '      "author": "John Doe",\n' +
-          '      "rating": 5,\n' +
-          '      "date": "2 days ago",\n' +
-          '      "review_text": "Great!",\n' +
-          '      "response_by_owner": "yes"\n' +
-          '    }\n' +
-          '  ]\n' +
-          '}'
-        );
-      }
-    } finally {
-      setIsAddingCompetitor(false);
-    }
-  };
+  //     // For demo purposes: simulate adding a competitor
+  //     if (error instanceof Error && error.message.includes('YOUR_API_ENDPOINT')) {
+  //       alert(
+  //         '⚠️ API endpoint not configured yet!\n\n' +
+  //         'To enable this feature:\n\n' +
+  //         '1. Set up your backend API endpoint\n' +
+  //         '2. Update YOUR_API_ENDPOINT in handleAddCompetitor function\n' +
+  //         '3. API should accept Place ID and return competitor data\n\n' +
+  //         'Expected API Response:\n' +
+  //         '{\n' +
+  //         '  "place_name": "Business Name",\n' +
+  //         '  "place_id": "place-id-123",\n' +
+  //         '  "reviews": [\n' +
+  //         '    {\n' +
+  //         '      "author": "John Doe",\n' +
+  //         '      "rating": 5,\n' +
+  //         '      "date": "2 days ago",\n' +
+  //         '      "review_text": "Great!",\n' +
+  //         '      "response_by_owner": "yes"\n' +
+  //         '    }\n' +
+  //         '  ]\n' +
+  //         '}'
+  //       );
+  //     }
+  //   } finally {
+  //     setIsAddingCompetitor(false);
+  //   }
+  // };
 
   // =============================================
   // AI RECOMMENDATIONS FUNCTION
@@ -711,7 +825,7 @@ function CompetitorDashboard() {
         },
         ratingDistribution: selectedAnalytics.ratingDistribution,
         comparisonData: allBusinesses.map(business => {
-          const analytics = calculateAnalytics(business.reviews);
+          const analytics = calculateAnalytics(business.reviews || []);
           return {
             name: business.place_name,
             isYourBusiness: business.place_id === yourClientData.place_id,
@@ -732,7 +846,7 @@ function CompetitorDashboard() {
           responded: review.response_by_owner === 'yes',
         })),
         competitorsSummary: competitors.map(comp => {
-          const analytics = calculateAnalytics(comp.reviews);
+          const analytics = calculateAnalytics(comp.reviews || []);
           return {
             name: comp.place_name,
             totalReviews: analytics.totalReviews,
@@ -1611,6 +1725,8 @@ function CompetitorDashboard() {
     `;
   };
 
+  console.log("Selected business", selectedBusiness)
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-[1600px] mx-auto space-y-6">
@@ -1620,8 +1736,8 @@ function CompetitorDashboard() {
             <p className="text-sm font-semibold text-blue-600 uppercase tracking-wide mb-1">
               COMPETITOR ANALYSIS
             </p>
-            <h1 className="text-4xl font-bold text-gray-900">{selectedBusiness.place_name}</h1>
-            {selectedBusiness.place_id === yourClientData.place_id && (
+            <h1 className="text-4xl font-bold text-gray-900">{selectedBusiness?.place_name}</h1>
+            {selectedBusiness?.place_id === yourClientData?.place_id && (
               <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
                 Your Business
               </span>
@@ -1630,14 +1746,14 @@ function CompetitorDashboard() {
           <div className="flex items-center gap-3">
             <div className="relative">
               <select
-                value={selectedBusiness.place_id}
+                value={selectedBusiness?.place_id}
                 onChange={(e) => setSelectedBusiness(allBusinesses.find(b => b.place_id === e.target.value)!)}
                 className="appearance-none px-6 py-3 pr-10 bg-blue-600 text-white rounded-lg font-medium cursor-pointer hover:bg-blue-700 transition-colors"
               >
-                <option value={yourClientData.place_id}>{yourClientData.place_name} (Your Business)</option>
+                <option value={yourClientData?.place_id}>{yourClientData?.place_name} (Your Business)</option>
                 <option disabled>───────────────</option>
-                {competitors.map(comp => (
-                  <option key={comp.place_id} value={comp.place_id}>{comp.place_name}</option>
+                {competitorss.map(comp => (
+                  <option key={comp.place_id} value={comp.place_id}>{ comp?.place_name || comp.place_id}</option>
                 ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white pointer-events-none" />
@@ -1744,7 +1860,7 @@ function CompetitorDashboard() {
                   className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${chartMode === 'single' ? 'bg-blue-600 text-white' : 'bg-white text-black'
                     }`}
                 >
-                  {selectedBusiness.place_name}
+                  {selectedBusiness?.place_name}
                 </button>
                 <button
                   onClick={() => setChartMode('comparison')}
@@ -1933,7 +2049,7 @@ function CompetitorDashboard() {
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white">Total Reviews</td>
                   <td className="px-6 py-4 text-sm font-semibold text-blue-700 bg-blue-50">{yourAnalytics.totalReviews}</td>
                   {competitors.map((comp) => {
-                    const analytics = calculateAnalytics(comp.reviews);
+                    const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -1962,7 +2078,7 @@ function CompetitorDashboard() {
                     </div>
                   </td>
                   {competitors.map((comp) => {
-                    const analytics = calculateAnalytics(comp.reviews);
+                    const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -1997,7 +2113,7 @@ function CompetitorDashboard() {
                     </div>
                   </td>
                   {competitors.map((comp) => {
-                    const analytics = calculateAnalytics(comp.reviews);
+                    const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -2020,7 +2136,7 @@ function CompetitorDashboard() {
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white">Positive Reviews (4-5★)</td>
                   <td className="px-6 py-4 text-sm font-semibold text-blue-700 bg-blue-50">{yourAnalytics.positivePercentage}%</td>
                   {competitors.map((comp) => {
-                    const analytics = calculateAnalytics(comp.reviews);
+                    const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -2037,7 +2153,7 @@ function CompetitorDashboard() {
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white">Negative Reviews (1-2★)</td>
                   <td className="px-6 py-4 text-sm font-semibold text-blue-700 bg-blue-50">{yourAnalytics.negativePercentage}%</td>
                   {competitors.map((comp) => {
-                    const analytics = calculateAnalytics(comp.reviews);
+                    const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -2054,7 +2170,7 @@ function CompetitorDashboard() {
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white">5-Star Reviews</td>
                   <td className="px-6 py-4 text-sm font-semibold text-blue-700 bg-blue-50">{yourAnalytics.highestRatingCount}</td>
                   {competitors.map((comp) => {
-                    const analytics = calculateAnalytics(comp.reviews);
+                    const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -2071,7 +2187,7 @@ function CompetitorDashboard() {
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white">1-2 Star Reviews</td>
                   <td className="px-6 py-4 text-sm font-semibold text-blue-700 bg-blue-50">{yourAnalytics.lowestRatingCount}</td>
                   {competitors.map((comp) => {
-                    const analytics = calculateAnalytics(comp.reviews);
+                    const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -2260,14 +2376,14 @@ function CompetitorDashboard() {
         <div className="bg-white rounded-lg p-6 border border-gray-200">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-900">
-              Latest reviews - {selectedBusiness.place_name}
+              Latest reviews - {selectedBusiness?.place_name}
             </h2>
             <button className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors">
               Read more
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {latestReviews.map((review, idx) => (
+            {latestReviews?.map((review, idx) => (
               <div key={idx} className="border border-gray-200 rounded-lg p-5 hover:border-blue-300 transition-colors">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
@@ -2294,7 +2410,7 @@ function CompetitorDashboard() {
           </div>
           <div className="text-center">
             <a
-              href={`https://www.google.com/maps/place/?q=place_id:${selectedBusiness.place_id}`}
+              href={`https://www.google.com/maps/place/?q=place_id:${selectedBusiness?.place_id}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
@@ -2310,11 +2426,11 @@ function CompetitorDashboard() {
           <h2 className="text-xl font-semibold text-gray-900 mb-6">All Competitors Overview</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {competitors.map((comp) => {
-              const analytics = calculateAnalytics(comp.reviews);
+              const analytics = calculateAnalytics(comp.reviews || []);
               return (
                 <div
                   key={comp.place_id}
-                  className={`border-2 rounded-lg p-5 cursor-pointer transition-all ${selectedBusiness.place_id === comp.place_id
+                  className={`border-2 rounded-lg p-5 cursor-pointer transition-all ${selectedBusiness?.place_id === comp.place_id
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-blue-300'
                     }`}
@@ -2360,12 +2476,13 @@ function CompetitorDashboard() {
               <h3 className="text-xl font-bold text-gray-900">Add New Competitor</h3>
               <button
                 onClick={() => {
-                  setShowAddCompetitorDialog(false);
-                  setNewPlaceId('');
-                  setAddCompetitorError('');
+                   setShowAddCompetitorDialog(false);
+                   setNewPlaceId("");
+                   setAddCompetitorError("");
                 }}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
+                
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -2426,7 +2543,7 @@ function CompetitorDashboard() {
                 Cancel
               </button>
               <button
-                onClick={handleAddCompetitor}
+                onClick={handleAddNewCompetitor}
                 disabled={isAddingCompetitor || !newPlaceId.trim()}
                 className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >

@@ -155,53 +155,56 @@ export default function Header({ title, subtitle }: HeaderProps) {
     setShowBusinessSelector(false);
 
     // Update Redux with normalized location
-    dispatch(
-      setActiveLocation({
-        ...business,
-        // minimal adapter so it fits Location type
-        id: business.id,
-        locationId: business.locationId || "",
-        title: business.name,
-        address: {
-          regionCode: "IN",
-          languageCode: "en",
-          postalCode: "",
-          administrativeArea: "",
-          locality: "",
-          addressLines: [business.address],
-        },
-        phone: business.phone || null,
-        websiteUri: business.website || null,
-        category: {
-          primaryCategory: {
-            name: business.category,
-            displayName: business.category,
-          },
-        },
-        status: "ACTIVE",
-        verification: "verified",
-        metadata: {
-          hasGoogleUpdated: false,
-          hasPendingEdits: false,
-          canDelete: true,
-          canModifyServiceList: true,
-          placeId: business.locationId || "",
-          mapsUri: "",
-          newReviewUri: "",
-          hasVoiceOfMerchant: false,
-        },
-        stats: {
-          averageRating: business.rating,
-          reviewCount: business.reviewCount,
-        },
-        isActive: true,
-        rating: business.rating,
-        reviewCount: business.reviewCount,
-        placeId: business.locationId || "",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }),
-    );
+    if(business.locationId){
+          dispatch(
+            setActiveLocation({
+              ...business,
+              // minimal adapter so it fits Location type
+              id: business.id,
+              locationId: business.locationId || "",
+              title: business.name,
+              address: {
+                regionCode: "IN",
+                languageCode: "en",
+                postalCode: "",
+                administrativeArea: "",
+                locality: "",
+                addressLines: [business.address],
+              },
+              phone: business.phone || null,
+              websiteUri: business.website || null,
+              category: {
+                primaryCategory: {
+                  name: business.category,
+                  displayName: business.category,
+                },
+              },
+              status: "ACTIVE",
+              verification: "verified",
+              metadata: {
+                hasGoogleUpdated: false,
+                hasPendingEdits: false,
+                canDelete: true,
+                canModifyServiceList: true,
+                placeId: business.locationId || "",
+                mapsUri: "",
+                newReviewUri: "",
+                hasVoiceOfMerchant: false,
+              },
+              stats: {
+                averageRating: business.rating,
+                reviewCount: business.reviewCount,
+              },
+              isActive: true,
+              rating: business.rating,
+              reviewCount: business.reviewCount,
+              placeId: business.locationId || "",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }),
+          );
+    }
+
 
     // Also persist for reload safety
     localStorage.setItem("selectedBusiness", JSON.stringify(business));
