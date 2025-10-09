@@ -9,6 +9,30 @@ import { RootState } from '@/redux/store';
 // TYPE DEFINITIONS
 // =============================================
 
+
+interface ReviewStatistics {
+  average_rating: number;
+  owner_response_rate: number; // percentage (0–100)
+  reviews_with_response: number;
+} 
+
+interface DateRangeReviewData {
+  success: boolean;
+  place_id: string;
+  place_name: string;
+  total_reviews_on_profile: number;
+  cutoff_date: string; // ISO date string or "YYYY-MM-DD"
+  months_scraped: number;
+  total_reviews_found: number;
+  reviews_in_range: number;
+  statistics: ReviewStatistics;
+  reviews: {
+  rating: number;
+  date: string; // e.g., "11 hours ago", "2 weeks ago"
+  response_by_owner: "yes" | "no";
+}[];
+}
+
 interface Review {
   author?: string;
   rating: number;
@@ -17,9 +41,16 @@ interface Review {
   response_by_owner?: "yes" | "no";
 }
 
+// interface BusinessData {
+//   place_name: string;
+//   place_id: string;
+//   reviews: Review[];
+// }
+
 interface BusinessData {
   place_name: string;
   place_id: string;
+  category?: string | null;  // ADD THIS LINE
   reviews: Review[];
 }
 
@@ -160,55 +191,153 @@ function calculateAnalytics(reviews: Review[]) {
 // PREPARE DATA FOR AI API
 // =============================================
 
-function prepareAIAnalyticsData(
-  yourBusiness: BusinessData,
-  competitors: BusinessData[],
-  selectedCompetitor: BusinessData,
-  timeRangeMonths: number
-) {
-  const yourAnalytics = calculateAnalytics(yourBusiness.reviews || []);
-  const competitorAnalytics = calculateAnalytics(selectedCompetitor.reviews || []);
-  const allCompetitorsReviews = competitors.flatMap(c => c.reviews || []);
-  const allCompetitorsAnalytics = calculateAnalytics(allCompetitorsReviews);
+// function prepareAIAnalyticsData(
+//   yourBusiness: BusinessData,
+//   competitors: BusinessData[],
+//   selectedCompetitor: BusinessData,
+//   timeRangeMonths: number
+// ) {
+//   const yourAnalytics = calculateAnalytics(yourBusiness.reviews);
+//   const competitorAnalytics = calculateAnalytics(selectedCompetitor.reviews);
+//   const allCompetitorsReviews = competitors.flatMap(c => c.reviews);
+//   const allCompetitorsAnalytics = calculateAnalytics(allCompetitorsReviews);
 
-  return {
-    businessName: yourBusiness.place_name,
-    analysisDate: new Date().toISOString(),
-    timeRangeMonths,
-    yourPerformance: {
-      totalReviews: yourAnalytics.totalReviews,
-      averageRating: parseFloat(yourAnalytics.avgRating),
-      responseRate: yourAnalytics.responseRate,
-      positivePercentage: yourAnalytics.positivePercentage,
-      negativePercentage: yourAnalytics.negativePercentage,
-      ratingBreakdown: {
-        fiveStars: yourAnalytics.ratingDistribution[0].count,
-        fourStars: yourAnalytics.ratingDistribution[1].count,
-        threeStars: yourAnalytics.ratingDistribution[2].count,
-        twoStars: yourAnalytics.ratingDistribution[3].count,
-        oneStars: yourAnalytics.ratingDistribution[4].count,
-      }
-    },
-    competitiveData: {
-      selectedCompetitor: {
-        name: selectedCompetitor.place_name,
-        totalReviews: competitorAnalytics.totalReviews,
-        averageRating: parseFloat(competitorAnalytics.avgRating),
-        responseRate: competitorAnalytics.responseRate,
-      },
-      allCompetitors: {
-        averageTotalReviews: Math.round(allCompetitorsAnalytics.totalReviews / competitors.length),
-        averageRating: parseFloat(allCompetitorsAnalytics.avgRating),
-        averageResponseRate: allCompetitorsAnalytics.responseRate,
-      }
-    },
-    gaps: {
-      reviewVolumeDifference: yourAnalytics.totalReviews - competitorAnalytics.totalReviews,
-      ratingDifference: parseFloat((parseFloat(yourAnalytics.avgRating) - parseFloat(competitorAnalytics.avgRating)).toFixed(2)),
-      responseRateDifference: yourAnalytics.responseRate - competitorAnalytics.responseRate,
-    }
-  };
-}
+//   return {
+//     businessName: yourBusiness.place_name,
+//     analysisDate: new Date().toISOString(),
+//     timeRangeMonths,
+//     yourPerformance: {
+//       totalReviews: yourAnalytics.totalReviews,
+//       averageRating: parseFloat(yourAnalytics.avgRating),
+//       responseRate: yourAnalytics.responseRate,
+//       positivePercentage: yourAnalytics.positivePercentage,
+//       negativePercentage: yourAnalytics.negativePercentage,
+//       ratingBreakdown: {
+//         fiveStars: yourAnalytics.ratingDistribution[0].count,
+//         fourStars: yourAnalytics.ratingDistribution[1].count,
+//         threeStars: yourAnalytics.ratingDistribution[2].count,
+//         twoStars: yourAnalytics.ratingDistribution[3].count,
+//         oneStars: yourAnalytics.ratingDistribution[4].count,
+//       }
+//     },
+//     competitiveData: {
+//       selectedCompetitor: {
+//         name: selectedCompetitor.place_name,
+//         totalReviews: competitorAnalytics.totalReviews,
+//         averageRating: parseFloat(competitorAnalytics.avgRating),
+//         responseRate: competitorAnalytics.responseRate,
+//       },
+//       allCompetitors: {
+//         averageTotalReviews: Math.round(allCompetitorsAnalytics.totalReviews / competitors.length),
+//         averageRating: parseFloat(allCompetitorsAnalytics.avgRating),
+//         averageResponseRate: allCompetitorsAnalytics.responseRate,
+//       }
+//     },
+//     gaps: {
+//       reviewVolumeDifference: yourAnalytics.totalReviews - competitorAnalytics.totalReviews,
+//       ratingDifference: parseFloat((parseFloat(yourAnalytics.avgRating) - parseFloat(competitorAnalytics.avgRating)).toFixed(2)),
+//       responseRateDifference: yourAnalytics.responseRate - competitorAnalytics.responseRate,
+//     }
+//   };
+// }
+
+// function prepareAIAnalyticsData(
+//   yourClientData: BusinessData,
+//   competitors: BusinessData[],
+//   selectedBusiness: BusinessData,
+//   timeRange: string
+// ) {
+//   // Helper to calculate neutral percentage
+//   const calculateNeutralPercentage = (analytics: any) => {
+//     if (analytics.neutralPercentage !== undefined) {
+//       return Number(analytics.neutralPercentage);
+//     }
+//     const positive = Number(analytics.positivePercentage) || 0;
+//     const negative = Number(analytics.negativePercentage) || 0;
+//     return Math.max(0, 100 - positive - negative);
+//   };
+
+//   // Calculate analytics for your business
+//   const yourAnalytics = calculateAnalytics(yourClientData.reviews);
+  
+//   // Calculate analytics for ALL competitors individually
+//   const allCompetitorsAnalytics = competitors.map(competitor => {
+//     const analytics = calculateAnalytics(competitor.reviews);
+//     return {
+//       place_name: competitor.place_name,
+//       place_id: competitor.place_id,
+//       analytics: {
+//         avgRating: Number(analytics.avgRating) || 0,
+//         totalReviews: Number(analytics.totalReviews) || 0,
+//         responseRate: Number(analytics.responseRate) || 0,
+//         positivePercentage: Number(analytics.positivePercentage) || 0,
+//         neutralPercentage: calculateNeutralPercentage(analytics),
+//         negativePercentage: Number(analytics.negativePercentage) || 0
+//       }
+//     };
+//   });
+
+//   // Selected competitor analytics
+//   const selectedAnalytics = calculateAnalytics(selectedBusiness.reviews);
+
+//   // Calculate market averages
+//   const totalCompetitors = competitors.length;
+//   const avgMarketRating = allCompetitorsAnalytics.reduce((sum, c) => sum + c.analytics.avgRating, 0) / totalCompetitors;
+//   const avgMarketReviews = Math.round(allCompetitorsAnalytics.reduce((sum, c) => sum + c.analytics.totalReviews, 0) / totalCompetitors);
+//   const avgMarketResponseRate = Math.round(allCompetitorsAnalytics.reduce((sum, c) => sum + c.analytics.responseRate, 0) / totalCompetitors);
+
+//   // Calculate rankings
+//   const yourRating = Number(yourAnalytics.avgRating);
+//   const yourReviews = Number(yourAnalytics.totalReviews);
+//   const yourResponseRate = Number(yourAnalytics.responseRate);
+
+//   // Prepare the NEW data structure for API
+//   const data = {
+//     yourClient: {
+//       place_name: yourClientData.place_name,
+//       place_id: yourClientData.place_id,
+//       category: yourClientData.category || null
+//     },
+//     yourAnalytics: {
+//       avgRating: yourRating,
+//       totalReviews: yourReviews,
+//       responseRate: yourResponseRate,
+//       positivePercentage: Number(yourAnalytics.positivePercentage) || 0,
+//       neutralPercentage: calculateNeutralPercentage(yourAnalytics),
+//       negativePercentage: Number(yourAnalytics.negativePercentage) || 0
+//     },
+//     primaryCompetitor: {
+//       place_name: selectedBusiness.place_name,
+//       place_id: selectedBusiness.place_id,
+//       category: selectedBusiness.category || null,
+//       analytics: {
+//         avgRating: Number(selectedAnalytics.avgRating) || 0,
+//         totalReviews: Number(selectedAnalytics.totalReviews) || 0,
+//         responseRate: Number(selectedAnalytics.responseRate) || 0,
+//         positivePercentage: Number(selectedAnalytics.positivePercentage) || 0,
+//         neutralPercentage: calculateNeutralPercentage(selectedAnalytics),
+//         negativePercentage: Number(selectedAnalytics.negativePercentage) || 0
+//       }
+//     },
+//     allCompetitors: allCompetitorsAnalytics,
+//     marketInsights: {
+//       totalCompetitors: totalCompetitors,
+//       averageMarketRating: avgMarketRating.toFixed(2),
+//       averageMarketReviews: avgMarketReviews,
+//       averageMarketResponseRate: avgMarketResponseRate,
+//       yourRankByReviews: allCompetitorsAnalytics.filter(c => c.analytics.totalReviews > yourReviews).length + 1,
+//       yourRankByRating: allCompetitorsAnalytics.filter(c => c.analytics.avgRating > yourRating).length + 1,
+//       yourRankByResponseRate: allCompetitorsAnalytics.filter(c => c.analytics.responseRate > yourResponseRate).length + 1,
+//     },
+//     timeRange: timeRange || 'Not specified'
+//   };
+
+//   console.log('📊 Prepared AI Analytics Data with ALL competitors:', data);
+//   console.log(`✅ Sending ${totalCompetitors} competitors to AI for comprehensive analysis`);
+//   console.log(`🏆 Your Rankings: Reviews #${data.marketInsights.yourRankByReviews}, Rating #${data.marketInsights.yourRankByRating}, Response #${data.marketInsights.yourRankByResponseRate}`);
+  
+//   return data;
+// }
 
 // =============================================
 // MAIN DASHBOARD COMPONENT
@@ -216,7 +345,7 @@ function prepareAIAnalyticsData(
 
 function CompetitorDashboard() {
   const [selectedCompetitor, setSelectedCompetitor] = useState(competitors[0]);
-  const [timeRange, setTimeRange] = useState(6);
+  const [timeRange, setTimeRange] = useState<number>(90);
   const [chartMode, setChartMode] = useState('single');
   const [hoveredDataPoint, setHoveredDataPoint] = useState<{
     month: string;
@@ -231,6 +360,20 @@ function CompetitorDashboard() {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [competitorss, setCompetitorss] = useState<BusinessData[]>([]);
   const [clientReviews, setClientReviews] = useState<Review[]>([]);
+
+
+  // Get Date range reviews and showcase in 5 elements
+  const [dateRangeData, setDateRangeData] = useState<DateRangeReviewData | null>(null);
+
+  async function fetchDateRangeReviewsData(){
+    try {
+      const res = await axios.post(`${SERVER}/api/v1/scraper/date-range-reviews`, {months: timeRange, place_id: selectedBusiness?.place_id}, { withCredentials: true });
+      console.log("DateRangeREviewsDAta", res)
+    } catch (error) {
+      console.error("ERror", error)
+    }
+  }
+  
 
   console.log("Client reviews", clientReviews);
 
@@ -467,77 +610,285 @@ function CompetitorDashboard() {
   // AI RECOMMENDATIONS FUNCTION
   // =============================================
 
-  const generateAIRecommendations = async () => {
-    setIsLoadingAI(true);
-    setShowAIPanel(true);
 
-    try {
-      // Prepare data for AI API
-      const analyticsData = prepareAIAnalyticsData(
-        yourClientData,
-        competitors,
-        selectedBusiness,
-        timeRange
+
+//   const generateAIRecommendations = async () => {
+//   setIsLoadingAI(true);
+//   setShowAIPanel(true);
+
+//   try {
+//     const analyticsData = prepareAIAnalyticsData(
+//       yourClientData,
+//       competitors,
+//       selectedBusiness,
+//       String(timeRange)
+//     );
+
+//     // Log the exact URL being called
+//     const apiUrl = 'http://localhost:5000/api/v1/ai-recommendations';
+//     console.log('🔍 Calling API URL:', apiUrl);
+//     console.log('📦 Request data:', analyticsData);
+
+//     const response = await fetch(apiUrl, {
+//       method: 'POST',
+//       headers: { 
+//         'Content-Type': 'application/json',
+//       },
+//       body: JSON.stringify(analyticsData)
+//     });
+
+//     console.log('📡 Response status:', response.status);
+//     console.log('📡 Response URL:', response.url);
+
+//     if (!response.ok) {
+//       const errorText = await response.text();
+//       console.error('❌ Error response:', errorText);
+      
+//       let errorData;
+//       try {
+//         errorData = JSON.parse(errorText);
+//       } catch {
+//         errorData = { detail: errorText };
+//       }
+      
+//       throw new Error(
+//         errorData.detail?.message || 
+//         JSON.stringify(errorData.detail) || 
+//         errorData.detail ||
+//         `HTTP ${response.status}: ${response.statusText}`
+//       );
+//     }
+
+//     const aiResponse: AIRecommendations = await response.json();
+//     console.log('✅ AI Response received:', aiResponse);
+//     setAiRecommendations(aiResponse);
+
+//   } catch (error) {
+//     console.error('💥 Error generating AI recommendations:', error);
+    
+//     if (error instanceof Error) {
+//       alert(`Failed to generate AI recommendations: ${error.message}`);
+//     } else {
+//       alert('Failed to generate AI recommendations. Please try again.');
+//     }
+//   } finally {
+//     setIsLoadingAI(false);
+//   }
+// };
+
+const generateAIRecommendations = async () => {
+  setIsLoadingAI(true);
+  setShowAIPanel(true);
+
+  try {
+    // Use the NEW prepareAIAnalyticsData function
+    const analyticsData = prepareAIAnalyticsData(
+      yourClientData,
+      competitors,
+      selectedBusiness,
+      String(timeRange)
+    );
+
+    const apiUrl = 'http://localhost:3000/api/v1/ai-recommendations';
+    console.log('🔍 Calling API URL:', apiUrl);
+    console.log('📦 Request data:', analyticsData);
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(analyticsData)
+    });
+
+    console.log('📡 Response status:', response.status);
+    console.log('📡 Response URL:', response.url);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Error response:', errorText);
+      
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { detail: errorText };
+      }
+      
+      throw new Error(
+        errorData.detail?.message || 
+        JSON.stringify(errorData.detail) || 
+        errorData.detail ||
+        `HTTP ${response.status}: ${response.statusText}`
       );
-
-      // TODO: Replace with your actual AI API endpoint
-      // const response = await fetch('YOUR_AI_API_ENDPOINT', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(analyticsData)
-      // });
-      // const aiResponse = await response.json();
-
-      // Simulate AI API call with dummy response
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const dummyAIResponse: AIRecommendations = {
-        summary: `${yourClientData.place_name} shows strong performance with ${yourAnalytics.avgRating} average rating and ${yourAnalytics.responseRate}% response rate. However, there are ${yourAnalytics.totalReviews - selectedAnalytics.totalReviews} fewer reviews than ${selectedBusiness.place_name}, presenting an opportunity for growth.`,
-        strengths: [
-          `High response rate of ${yourAnalytics.responseRate}% demonstrates excellent customer engagement`,
-          `Strong average rating of ${yourAnalytics.avgRating} stars indicates quality service delivery`,
-          `${yourAnalytics.positivePercentage}% positive reviews show high customer satisfaction`
-        ],
-        weaknesses: [
-          `Review volume is ${Math.abs(yourAnalytics.totalReviews - selectedAnalytics.totalReviews)} behind ${selectedBusiness.place_name}`,
-          `${yourAnalytics.negativePercentage}% negative reviews need attention and resolution`,
-          `Response time to reviews could be improved for faster engagement`
-        ],
-        recommendations: [
-          "Implement automated review request system after each completed service",
-          "Create response templates for common review types to improve response time",
-          "Address recurring issues mentioned in negative reviews",
-          "Incentivize satisfied customers to leave detailed reviews",
-          "Monitor competitor strategies and adapt best practices",
-          "Set up Google Business Profile optimization with keywords",
-          "Train team on proper review response etiquette and timing"
-        ],
-        actionPlan: {
-          days30: [
-            "Set up automated email/SMS review requests",
-            "Respond to all pending reviews within 48 hours",
-            "Create review response templates"
-          ],
-          days60: [
-            "Launch customer feedback survey to improve service",
-            "Implement staff training on review management",
-            "Optimize Google Business Profile with photos and updates"
-          ],
-          days90: [
-            "Analyze review trends and adjust strategy",
-            "Create case studies from positive reviews",
-            "Implement loyalty program to encourage repeat reviews"
-          ]
-        }
-      };
-
-      setAiRecommendations(dummyAIResponse);
-    } catch (error) {
-      console.error('Error generating AI recommendations:', error);
-    } finally {
-      setIsLoadingAI(false);
     }
+
+    const aiResponse: AIRecommendations = await response.json();
+    console.log('✅ AI Response received:', aiResponse);
+    setAiRecommendations(aiResponse);
+
+  } catch (error) {
+    console.error('💥 Error generating AI recommendations:', error);
+    
+    if (error instanceof Error) {
+      alert(`Failed to generate AI recommendations: ${error.message}`);
+    } else {
+      alert('Failed to generate AI recommendations. Please try again.');
+    }
+  } finally {
+    setIsLoadingAI(false);
+  }
+};
+  // // Helper function to ensure data structure matches API expectations
+  // const prepareAIAnalyticsData = (
+  //   yourClientData: any,
+  //   competitors: any[],
+  //   selectedBusiness: any,
+  //   timeRange: string
+  // ) => {
+  //   // Calculate neutral percentage if not present
+  //   const calculateNeutralPercentage = (analytics: any) => {
+  //     if (analytics.neutralPercentage !== undefined) {
+  //       return Number(analytics.neutralPercentage);
+  //     }
+  //     // Calculate as 100 - (positive + negative)
+  //     const positive = Number(analytics.positivePercentage) || 0;
+  //     const negative = Number(analytics.negativePercentage) || 0;
+  //     return Math.max(0, 100 - positive - negative);
+  //   };
+
+  //   // Make sure all required fields are present and in correct format
+  //   const data = {
+  //     yourClient: {
+  //       place_name: yourClientData.place_name || yourClientData.name || 'Unknown',
+  //       category: yourClientData.category || null
+  //     },
+  //     yourAnalytics: {
+  //       avgRating: Number(yourAnalytics.avgRating) || 0,
+  //       totalReviews: Number(yourAnalytics.totalReviews) || 0,
+  //       responseRate: Number(yourAnalytics.responseRate) || 0,
+  //       positivePercentage: Number(yourAnalytics.positivePercentage) || 0,
+  //       neutralPercentage: calculateNeutralPercentage(yourAnalytics),
+  //       negativePercentage: Number(yourAnalytics.negativePercentage) || 0
+  //     },
+  //     competitor: {
+  //       place_name: selectedBusiness.place_name || selectedBusiness.name || 'Unknown',
+  //       category: selectedBusiness.category || null
+  //     },
+  //     competitorAnalytics: {
+  //       avgRating: Number(selectedAnalytics.avgRating) || 0,
+  //       totalReviews: Number(selectedAnalytics.totalReviews) || 0,
+  //       responseRate: Number(selectedAnalytics.responseRate) || 0,
+  //       positivePercentage: Number(selectedAnalytics.positivePercentage) || 0,
+  //       neutralPercentage: calculateNeutralPercentage(selectedAnalytics),
+  //       negativePercentage: Number(selectedAnalytics.negativePercentage) || 0
+  //     },
+  //     timeRange: timeRange || 'Not specified'
+  //   };
+
+  //   console.log('Prepared analytics data:', data);
+  //   return data;
+  // };
+
+// Replace your existing prepareAIAnalyticsData function with this:
+
+const prepareAIAnalyticsData = (
+  yourClientData: any,
+  competitors: any[],
+  selectedBusiness: any,
+  timeRange: string
+) => {
+  // Helper to calculate neutral percentage
+  const calculateNeutralPercentage = (analytics: any) => {
+    if (analytics.neutralPercentage !== undefined) {
+      return Number(analytics.neutralPercentage);
+    }
+    const positive = Number(analytics.positivePercentage) || 0;
+    const negative = Number(analytics.negativePercentage) || 0;
+    return Math.max(0, 100 - positive - negative);
   };
+
+  // Calculate analytics for your business
+  const yourAnalytics = calculateAnalytics(yourClientData.reviews);
+  
+  // Calculate analytics for ALL competitors individually
+  const allCompetitorsAnalytics = competitors.map(competitor => {
+    const analytics = calculateAnalytics(competitor.reviews);
+    return {
+      place_name: competitor.place_name,
+      place_id: competitor.place_id,
+      analytics: {
+        avgRating: Number(analytics.avgRating) || 0,
+        totalReviews: Number(analytics.totalReviews) || 0,
+        responseRate: Number(analytics.responseRate) || 0,
+        positivePercentage: Number(analytics.positivePercentage) || 0,
+        neutralPercentage: calculateNeutralPercentage(analytics),
+        negativePercentage: Number(analytics.negativePercentage) || 0
+      }
+    };
+  });
+
+  // Selected competitor analytics
+  const selectedAnalytics = calculateAnalytics(selectedBusiness.reviews);
+
+  // Calculate market averages
+  const totalCompetitors = competitors.length;
+  const avgMarketRating = allCompetitorsAnalytics.reduce((sum, c) => sum + c.analytics.avgRating, 0) / totalCompetitors;
+  const avgMarketReviews = Math.round(allCompetitorsAnalytics.reduce((sum, c) => sum + c.analytics.totalReviews, 0) / totalCompetitors);
+  const avgMarketResponseRate = Math.round(allCompetitorsAnalytics.reduce((sum, c) => sum + c.analytics.responseRate, 0) / totalCompetitors);
+
+  // Calculate rankings
+  const yourRating = Number(yourAnalytics.avgRating);
+  const yourReviews = Number(yourAnalytics.totalReviews);
+  const yourResponseRate = Number(yourAnalytics.responseRate);
+
+  // Prepare the NEW data structure for API
+  const data = {
+    yourClient: {
+      place_name: yourClientData.place_name || yourClientData.name || 'Unknown',
+      place_id: yourClientData.place_id,
+      category: yourClientData.category || null
+    },
+    yourAnalytics: {
+      avgRating: yourRating,
+      totalReviews: yourReviews,
+      responseRate: yourResponseRate,
+      positivePercentage: Number(yourAnalytics.positivePercentage) || 0,
+      neutralPercentage: calculateNeutralPercentage(yourAnalytics),
+      negativePercentage: Number(yourAnalytics.negativePercentage) || 0
+    },
+    primaryCompetitor: {
+      place_name: selectedBusiness.place_name || selectedBusiness.name || 'Unknown',
+      place_id: selectedBusiness.place_id,
+      category: selectedBusiness.category || null,
+      analytics: {
+        avgRating: Number(selectedAnalytics.avgRating) || 0,
+        totalReviews: Number(selectedAnalytics.totalReviews) || 0,
+        responseRate: Number(selectedAnalytics.responseRate) || 0,
+        positivePercentage: Number(selectedAnalytics.positivePercentage) || 0,
+        neutralPercentage: calculateNeutralPercentage(selectedAnalytics),
+        negativePercentage: Number(selectedAnalytics.negativePercentage) || 0
+      }
+    },
+    allCompetitors: allCompetitorsAnalytics,
+    marketInsights: {
+      totalCompetitors: totalCompetitors,
+      averageMarketRating: avgMarketRating.toFixed(2),
+      averageMarketReviews: avgMarketReviews,
+      averageMarketResponseRate: avgMarketResponseRate,
+      yourRankByReviews: allCompetitorsAnalytics.filter(c => c.analytics.totalReviews > yourReviews).length + 1,
+      yourRankByRating: allCompetitorsAnalytics.filter(c => c.analytics.avgRating > yourRating).length + 1,
+      yourRankByResponseRate: allCompetitorsAnalytics.filter(c => c.analytics.responseRate > yourResponseRate).length + 1,
+    },
+    timeRange: timeRange || 'Not specified'
+  };
+
+  console.log('📊 Prepared AI Analytics Data with ALL competitors:', data);
+  console.log(`✅ Sending ${totalCompetitors} competitors to AI for comprehensive analysis`);
+  console.log(`🏆 Your Rankings: Reviews #${data.marketInsights.yourRankByReviews}, Rating #${data.marketInsights.yourRankByRating}, Response #${data.marketInsights.yourRankByResponseRate}`);
+  
+  return data;
+};
 
   // =============================================
   // PDF DOWNLOAD FUNCTION - Using html2canvas + jsPDF
@@ -1789,14 +2140,13 @@ function CompetitorDashboard() {
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-600">Time range:</span>
           <select
-            value={timeRange}
+            value={String(timeRange)}
             onChange={(e) => setTimeRange(Number(e.target.value))}
             className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-black hover:border-blue-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none cursor-pointer"
           >
-            <option value={1}>1 Month</option>
-            <option value={3}>3 Month</option>
-            <option value={6}>6 Month</option>
-            <option value={12}>12 Month</option>
+            <option value="30">Last 30 Days</option>
+            <option value="60">Last 60 Days</option>
+            <option value="90">Last 90 Days</option>
           </select>
         </div>
 
