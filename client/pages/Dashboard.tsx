@@ -146,11 +146,10 @@ export default function Dashboard() {
     console.log(user?.accountId, "Account ID from params:");
 
     const locId =
-      localStorage.getItem("activeLocation") ||
-      activeLocation?.locationId?.split("/")[1] ||
+      activeLocation?.locationId || localStorage.getItem("activeLocation")  ||
       locationName;
     fetchLocationData(locId);
-  }, [activeLocation?.locationId, user?.accountId, locationName, accountId]);
+  }, [activeLocation?.locationId, user?.accountId]);
 
   if (loading) {
     return <div className="p-6 text-gray-600">Loading...</div>;

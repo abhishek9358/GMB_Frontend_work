@@ -644,8 +644,8 @@ function CompetitorDashboard() {
   
   const yourClientData: BusinessData = useMemo(() => {
     return {
-      place_name: activeLocation.title,
-      place_id: activeLocation.placeId,
+      place_name: activeLocation?.title,
+      place_id: activeLocation?.placeId,
       reviews: clientReviews
     };
   }, [activeLocation]);
@@ -662,16 +662,24 @@ function CompetitorDashboard() {
   const [selfDateRangeData, setSelfDateRangeData] = useState<DateRangeReviewData | null>(null);
   const [allCompetDateRangeData, setAllCompetDateRangeData] = useState<DateRangeReviewData[]>([]);
 
-  const [dateRangeDataLoading, setDateRangeDataLoading] = useState<boolean>(false);
+  const [selfDateRangeLoading, setSelfDateRangeLoading] = useState<boolean>(false);
+const [allCompetDateRangeLoading, setAllCompetDateRangeLoading] = useState<boolean>(false);
+const [dateRangeLoading, setDateRangeLoading] = useState<boolean>(false);
+
+// Or use a combined loading indicator
+const dateRangeDataLoading = selfDateRangeLoading || allCompetDateRangeLoading || dateRangeLoading;
 
   async function fetchSelfDateRangeReviewsData(){
     try {
-      setDateRangeDataLoading(true);
+      setSelfDateRangeLoading(true);
       const res = await axios.post(`${SERVER}/api/v1/scraper/date-range-reviews`, {months: timeRange, place_id: yourClientData?.place_id}, { withCredentials: true, timeout: 2 * 60 * 1000 });
       console.log("Self DateRangeREviewsDAta", res)
       const dta = res.data;
       if(dta){
         setSelfDateRangeData(dta)
+        if(selectedBusiness?.place_id === activeLocation?.placeId){
+          setDateRangeData(dta);
+        }
         // if(!selectedBusiness || selectedBusiness.place_id === yourClientData.place_id){
         //   setSelectedBusiness({
         //     place_name: yourClientData.place_name,
@@ -690,18 +698,34 @@ function CompetitorDashboard() {
     } catch (error) {
       console.error("ERror", error)
     } finally {
-      setDateRangeDataLoading(false);
+      setSelfDateRangeLoading(false);
     }
   }
 
   async function fetchAllCompetDateRangeData(){
-    
+    try {
+      setAllCompetDateRangeLoading(true);
+      const res = await axios.post(
+        `${SERVER}/api/v1/scraper/all-comp/date-range-reviews`,
+        { time_range: timeRange*30, use_cache: true, cache_ttl_hours: 24 },
+      );
+      const dta = res.data;
+      console.log("DATA::", dta?.data)
+      setAllCompetDateRangeData(dta?.data);
+    } catch (error) {
+      console.error("ERROR:", error);
+    } finally {
+      setAllCompetDateRangeLoading(false)
+    }
   }
 
 
   async function fetchDateRangeReviewsData(){
+    if(selectedBusiness?.place_id === activeLocation?.placeId){
+      return null
+    }
     try {
-      setDateRangeDataLoading(true);
+      setDateRangeLoading(true);
       const res = await axios.post(`${SERVER}/api/v1/scraper/date-range-reviews`, {months: timeRange, place_id: selectedBusiness?.place_id}, { withCredentials: true, timeout: 2 * 60 * 1000 });
       console.log("DateRangeREviewsDAta", res)
       const dta = res.data;
@@ -711,7 +735,7 @@ function CompetitorDashboard() {
     } catch (error) {
       console.error("ERror", error)
     } finally {
-      setDateRangeDataLoading(false);
+      setDateRangeLoading(false);
     }
   }
 
@@ -727,6 +751,7 @@ function CompetitorDashboard() {
     if(yourClientData?.place_id){
       fetchSelfDateRangeReviewsData()
     }
+    fetchAllCompetDateRangeData();
   }, [timeRange])
 
   
@@ -840,8 +865,8 @@ function CompetitorDashboard() {
 
   // Combine all businesses for selection
   const allBusinesses = [{
-    place_name: activeLocation.title,
-    place_id: activeLocation.placeId,
+    place_name: activeLocation?.title,
+    place_id: activeLocation?.placeId,
     reviews: []
   }, ...competitorss];
 
@@ -2568,7 +2593,7 @@ const prepareAIAnalyticsData = (
               </div>
 
               {/* Charts Row */}
-              {dateRangeData && selfDateRangeData && (<DynamicReviewChart dateRangeData={dateRangeData} allCompetitorsData={demoAllCompetitors} competitorData={selfDateRangeData} />)}
+              {dateRangeData && selfDateRangeData && mergeCompetitorData(allCompetDateRangeData) && (<DynamicReviewChart dateRangeData={dateRangeData} allCompetitorsData={mergeCompetitorData(allCompetDateRangeData)} competitorData={selfDateRangeData} />)}
             </>
           )
         }
