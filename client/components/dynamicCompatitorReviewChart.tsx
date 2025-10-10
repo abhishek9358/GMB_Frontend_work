@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { Star } from "lucide-react";
 
+
+
 // Helper function to parse relative dates and get month/year
 const parseRelativeDate = (dateStr: string, cutoffDate: string) => {
   const cutoff = new Date(cutoffDate);
@@ -61,56 +63,84 @@ const calculateRatingDistribution = (reviews: any[]) => {
   return distribution;
 };
 
-const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
-  // Sample data - replace with your actual dateRangeData
-//   const dateRangeData = {
-//     success: true,
-//     place_id: "ChIJn3y_J-20bTkRYRCIxaD8Prc",
-//     place_name: "Reinstatement Ninja",
-//     total_reviews_on_profile: 358,
-//     cutoff_date: "2025-07-09",
-//     months_scraped: 3,
-//     total_reviews_found: 60,
-//     reviews_in_range: 39,
-//     statistics: {
-//       average_rating: 5,
-//       owner_response_rate: 0,
-//       reviews_with_response: 0,
-//     },
-//     reviews: Array(39)
-//       .fill(null)
-//       .map((_, i) => ({
-//         rating: 5,
-//         date:
-//           i < 5
-//             ? `${i + 1} days ago`
-//             : i < 15
-//               ? `${Math.floor((i - 5) / 7) + 1} weeks ago`
-//               : i < 25
-//                 ? "a month ago"
-//                 : i < 35
-//                   ? "2 months ago"
-//                   : "3 months ago",
-//         response_by_owner: "no" as const,
-//       })),
-//   };
-
+const DynamicReviewChart = ({
+  dateRangeData,
+  competitorData,
+  allCompetitorsData,
+}: {
+  dateRangeData: any;
+  competitorData?: any;
+  allCompetitorsData?: any;
+}) => {
   const [chartMode, setChartMode] = useState<"single" | "comparison">("single");
   const [hoveredDataPoint, setHoveredDataPoint] = useState<any>(null);
 
+  // Process data for all three datasets
   const monthlyData = useMemo(
     () => processReviewsByMonth(dateRangeData),
     [dateRangeData],
   );
+
+  const competitorMonthlyData = useMemo(
+    () => (competitorData ? processReviewsByMonth(competitorData) : []),
+    [competitorData],
+  );
+
+  const allCompetitorsMonthlyData = useMemo(
+    () => (allCompetitorsData ? processReviewsByMonth(allCompetitorsData) : []),
+    [allCompetitorsData],
+  );
+
   const ratingDistribution = useMemo(
     () => calculateRatingDistribution(dateRangeData?.reviews || []),
     [dateRangeData],
   );
 
-  // Calculate max value for y-axis scaling
-  const maxReviews = Math.max(...monthlyData.map((d) => d.count), 10);
+  // Calculate max value for y-axis scaling across all datasets
+  const maxReviews = useMemo(() => {
+    const allCounts = [
+      ...monthlyData.map((d) => d.count),
+      ...(chartMode === "comparison"
+        ? competitorMonthlyData.map((d) => d.count)
+        : []),
+      ...(chartMode === "comparison"
+        ? allCompetitorsMonthlyData.map((d) => d.count)
+        : []),
+    ];
+    return Math.max(...allCounts, 10);
+  }, [
+    monthlyData,
+    competitorMonthlyData,
+    allCompetitorsMonthlyData,
+    chartMode,
+  ]);
+
   const yAxisMax = Math.ceil(maxReviews / 5) * 5; // Round up to nearest 5
   const yScale = 230 / yAxisMax;
+
+  // Ensure all datasets have the same months for proper alignment
+  const allMonths = useMemo(() => {
+    const monthSet = new Set<string>();
+    monthlyData.forEach((d) => monthSet.add(d.fullDate));
+    competitorMonthlyData.forEach((d) => monthSet.add(d.fullDate));
+    allCompetitorsMonthlyData.forEach((d) => monthSet.add(d.fullDate));
+
+    return Array.from(monthSet)
+      .sort()
+      .slice(-6)
+      .map((fullDate) => {
+        const [year, month] = fullDate.split("-");
+        const date = new Date(parseInt(year), parseInt(month) - 1);
+        const monthName = date.toLocaleString("default", { month: "short" });
+        return { month: monthName, fullDate };
+      });
+  }, [monthlyData, competitorMonthlyData, allCompetitorsMonthlyData]);
+
+  // Helper function to get count for a specific month
+  const getCountForMonth = (data: any[], fullDate: string) => {
+    const item = data.find((d) => d.fullDate === fullDate);
+    return item ? item.count : 0;
+  };
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
@@ -128,7 +158,7 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
                   Review trends
                 </h3>
                 <p className="text-sm text-gray-500">
-                  Past {dateRangeData.months_scraped} months
+                  Past {dateRangeData?.months_scraped} months
                 </p>
               </div>
               <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
@@ -140,7 +170,7 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
                       : "bg-white text-black"
                   }`}
                 >
-                  {dateRangeData.place_name}
+                  {dateRangeData?.place_name}
                 </button>
                 <button
                   onClick={() => setChartMode("comparison")}
@@ -185,10 +215,10 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
                 })}
 
                 {/* X-axis labels */}
-                {monthlyData.map((data, i) => (
+                {allMonths.map((data, i) => (
                   <text
                     key={i}
-                    x={100 + i * (600 / (monthlyData.length - 1 || 1))}
+                    x={100 + i * (600 / (allMonths.length - 1 || 1))}
                     y="245"
                     fill="#6b7280"
                     fontSize="12"
@@ -201,13 +231,16 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
                 {chartMode === "single" ? (
                   <>
                     {/* Single line */}
-                    {monthlyData.length > 1 && (
+                    {allMonths.length > 1 && (
                       <polyline
-                        points={monthlyData
+                        points={allMonths
                           .map((data, i) => {
-                            const x =
-                              100 + i * (600 / (monthlyData.length - 1));
-                            const y = 230 - data.count * yScale;
+                            const x = 100 + i * (600 / (allMonths.length - 1));
+                            const count = getCountForMonth(
+                              monthlyData,
+                              data.fullDate,
+                            );
+                            const y = 230 - count * yScale;
                             return `${x},${y}`;
                           })
                           .join(" ")}
@@ -217,9 +250,13 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
                       />
                     )}
 
-                    {monthlyData.map((data, i) => {
-                      const x = 100 + i * (600 / (monthlyData.length - 1 || 1));
-                      const y = 230 - data.count * yScale;
+                    {allMonths.map((data, i) => {
+                      const x = 100 + i * (600 / (allMonths.length - 1 || 1));
+                      const count = getCountForMonth(
+                        monthlyData,
+                        data.fullDate,
+                      );
+                      const y = 230 - count * yScale;
 
                       return (
                         <g key={i}>
@@ -232,7 +269,7 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
                             onMouseEnter={() =>
                               setHoveredDataPoint({
                                 month: data.month,
-                                value: data.count,
+                                value: count,
                                 x,
                                 y,
                                 label: dateRangeData.place_name,
@@ -264,15 +301,19 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
                   </>
                 ) : (
                   <>
-                    {/* Comparison mode - three lines */}
+                    {/* Comparison mode - three lines with REAL DATA */}
+
                     {/* Line 1: Your Client (Blue) */}
-                    {monthlyData.length > 1 && (
+                    {allMonths.length > 1 && (
                       <polyline
-                        points={monthlyData
+                        points={allMonths
                           .map((data, i) => {
-                            const x =
-                              100 + i * (600 / (monthlyData.length - 1));
-                            const y = 230 - data.count * yScale;
+                            const x = 100 + i * (600 / (allMonths.length - 1));
+                            const count = getCountForMonth(
+                              monthlyData,
+                              data.fullDate,
+                            );
+                            const y = 230 - count * yScale;
                             return `${x},${y}`;
                           })
                           .join(" ")}
@@ -282,9 +323,13 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
                       />
                     )}
 
-                    {monthlyData.map((data, i) => {
-                      const x = 100 + i * (600 / (monthlyData.length - 1 || 1));
-                      const y = 230 - data.count * yScale;
+                    {allMonths.map((data, i) => {
+                      const x = 100 + i * (600 / (allMonths.length - 1 || 1));
+                      const count = getCountForMonth(
+                        monthlyData,
+                        data.fullDate,
+                      );
+                      const y = 230 - count * yScale;
 
                       return (
                         <g key={`client-${i}`}>
@@ -297,10 +342,10 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
                             onMouseEnter={() =>
                               setHoveredDataPoint({
                                 month: data.month,
-                                value: data.count,
+                                value: count,
                                 x,
                                 y,
-                                label: "A R Techno Solutions",
+                                label: dateRangeData.place_name,
                               })
                             }
                             onMouseLeave={() => setHoveredDataPoint(null)}
@@ -314,7 +359,7 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
                           />
                           {hoveredDataPoint?.month === data.month &&
                             hoveredDataPoint?.label ===
-                              "A R Techno Solutions" && (
+                              dateRangeData.place_name && (
                               <circle
                                 cx={x}
                                 cy={y}
@@ -327,18 +372,17 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
                       );
                     })}
 
-                    {/* Line 2: Competitor (Green) - slightly different data */}
-                    {monthlyData.length > 1 && (
+                    {/* Line 2: Main Competitor (Green) - REAL DATA */}
+                    {competitorData && allMonths.length > 1 && (
                       <polyline
-                        points={monthlyData
+                        points={allMonths
                           .map((data, i) => {
-                            const x =
-                              100 + i * (600 / (monthlyData.length - 1));
-                            const adjustedCount = Math.max(
-                              0,
-                              data.count + (i === 4 ? 1 : 0),
-                            ); // Slight variation
-                            const y = 230 - adjustedCount * yScale;
+                            const x = 100 + i * (600 / (allMonths.length - 1));
+                            const count = getCountForMonth(
+                              competitorMonthlyData,
+                              data.fullDate,
+                            );
+                            const y = 230 - count * yScale;
                             return `${x},${y}`;
                           })
                           .join(" ")}
@@ -348,67 +392,67 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
                       />
                     )}
 
-                    {monthlyData.map((data, i) => {
-                      const x = 100 + i * (600 / (monthlyData.length - 1 || 1));
-                      const adjustedCount = Math.max(
-                        0,
-                        data.count + (i === 4 ? 1 : 0),
-                      );
-                      const y = 230 - adjustedCount * yScale;
+                    {competitorData &&
+                      allMonths.map((data, i) => {
+                        const x = 100 + i * (600 / (allMonths.length - 1 || 1));
+                        const count = getCountForMonth(
+                          competitorMonthlyData,
+                          data.fullDate,
+                        );
+                        const y = 230 - count * yScale;
 
-                      return (
-                        <g key={`comp-${i}`}>
-                          <circle
-                            cx={x}
-                            cy={y}
-                            r="15"
-                            fill="transparent"
-                            style={{ cursor: "pointer" }}
-                            onMouseEnter={() =>
-                              setHoveredDataPoint({
-                                month: data.month,
-                                value: adjustedCount,
-                                x,
-                                y,
-                                label: dateRangeData.place_name,
-                              })
-                            }
-                            onMouseLeave={() => setHoveredDataPoint(null)}
-                          />
-                          <circle
-                            cx={x}
-                            cy={y}
-                            r="5"
-                            fill="#10b981"
-                            style={{ pointerEvents: "none" }}
-                          />
-                          {hoveredDataPoint?.month === data.month &&
-                            hoveredDataPoint?.label ===
-                              dateRangeData.place_name && (
-                              <circle
-                                cx={x}
-                                cy={y}
-                                r="8"
-                                fill="#10b981"
-                                opacity="0.5"
-                              />
-                            )}
-                        </g>
-                      );
-                    })}
+                        return (
+                          <g key={`comp-${i}`}>
+                            <circle
+                              cx={x}
+                              cy={y}
+                              r="15"
+                              fill="transparent"
+                              style={{ cursor: "pointer" }}
+                              onMouseEnter={() =>
+                                setHoveredDataPoint({
+                                  month: data.month,
+                                  value: count,
+                                  x,
+                                  y,
+                                  label: competitorData.place_name,
+                                })
+                              }
+                              onMouseLeave={() => setHoveredDataPoint(null)}
+                            />
+                            <circle
+                              cx={x}
+                              cy={y}
+                              r="5"
+                              fill="#10b981"
+                              style={{ pointerEvents: "none" }}
+                            />
+                            {hoveredDataPoint?.month === data.month &&
+                              hoveredDataPoint?.label ===
+                                competitorData.place_name && (
+                                <circle
+                                  cx={x}
+                                  cy={y}
+                                  r="8"
+                                  fill="#10b981"
+                                  opacity="0.5"
+                                />
+                              )}
+                          </g>
+                        );
+                      })}
 
-                    {/* Line 3: All Competitors (Orange) */}
-                    {monthlyData.length > 1 && (
+                    {/* Line 3: All Competitors (Orange) - REAL DATA */}
+                    {allCompetitorsData && allMonths.length > 1 && (
                       <polyline
-                        points={monthlyData
+                        points={allMonths
                           .map((data, i) => {
-                            const x =
-                              100 + i * (600 / (monthlyData.length - 1));
-                            const adjustedCount = Math.max(
-                              0,
-                              data.count + (i === 4 ? 2 : 0),
-                            ); // More variation
-                            const y = 230 - adjustedCount * yScale;
+                            const x = 100 + i * (600 / (allMonths.length - 1));
+                            const count = getCountForMonth(
+                              allCompetitorsMonthlyData,
+                              data.fullDate,
+                            );
+                            const y = 230 - count * yScale;
                             return `${x},${y}`;
                           })
                           .join(" ")}
@@ -418,53 +462,55 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
                       />
                     )}
 
-                    {monthlyData.map((data, i) => {
-                      const x = 100 + i * (600 / (monthlyData.length - 1 || 1));
-                      const adjustedCount = Math.max(
-                        0,
-                        data.count + (i === 4 ? 2 : 0),
-                      );
-                      const y = 230 - adjustedCount * yScale;
+                    {allCompetitorsData &&
+                      allMonths.map((data, i) => {
+                        const x = 100 + i * (600 / (allMonths.length - 1 || 1));
+                        const count = getCountForMonth(
+                          allCompetitorsMonthlyData,
+                          data.fullDate,
+                        );
+                        const y = 230 - count * yScale;
 
-                      return (
-                        <g key={`all-${i}`}>
-                          <circle
-                            cx={x}
-                            cy={y}
-                            r="15"
-                            fill="transparent"
-                            style={{ cursor: "pointer" }}
-                            onMouseEnter={() =>
-                              setHoveredDataPoint({
-                                month: data.month,
-                                value: adjustedCount,
-                                x,
-                                y,
-                                label: "All Competitors",
-                              })
-                            }
-                            onMouseLeave={() => setHoveredDataPoint(null)}
-                          />
-                          <circle
-                            cx={x}
-                            cy={y}
-                            r="5"
-                            fill="#f97316"
-                            style={{ pointerEvents: "none" }}
-                          />
-                          {hoveredDataPoint?.month === data.month &&
-                            hoveredDataPoint?.label === "All Competitors" && (
-                              <circle
-                                cx={x}
-                                cy={y}
-                                r="8"
-                                fill="#f97316"
-                                opacity="0.5"
-                              />
-                            )}
-                        </g>
-                      );
-                    })}
+                        return (
+                          <g key={`all-${i}`}>
+                            <circle
+                              cx={x}
+                              cy={y}
+                              r="15"
+                              fill="transparent"
+                              style={{ cursor: "pointer" }}
+                              onMouseEnter={() =>
+                                setHoveredDataPoint({
+                                  month: data.month,
+                                  value: count,
+                                  x,
+                                  y,
+                                  label: allCompetitorsData.place_name,
+                                })
+                              }
+                              onMouseLeave={() => setHoveredDataPoint(null)}
+                            />
+                            <circle
+                              cx={x}
+                              cy={y}
+                              r="5"
+                              fill="#f97316"
+                              style={{ pointerEvents: "none" }}
+                            />
+                            {hoveredDataPoint?.month === data.month &&
+                              hoveredDataPoint?.label ===
+                                allCompetitorsData.place_name && (
+                                <circle
+                                  cx={x}
+                                  cy={y}
+                                  r="8"
+                                  fill="#f97316"
+                                  opacity="0.5"
+                                />
+                              )}
+                          </g>
+                        );
+                      })}
                   </>
                 )}
               </svg>
@@ -492,18 +538,26 @@ const DynamicReviewChart = ({dateRangeData}: {dateRangeData: any}) => {
               <div className="flex items-center justify-center gap-6 mt-4 text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-gray-600">A R Techno Solutions</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                   <span className="text-gray-600">
                     {dateRangeData.place_name}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                  <span className="text-gray-600">All Competitors</span>
-                </div>
+                {competitorData && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-gray-600">
+                      {competitorData.place_name}
+                    </span>
+                  </div>
+                )}
+                {allCompetitorsData && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                    <span className="text-gray-600">
+                      {allCompetitorsData.place_name}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>

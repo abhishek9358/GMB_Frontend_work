@@ -6,6 +6,345 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 import DynamicReviewChart from '@/components/dynamicCompatitorReviewChart';
 
+// Demo data for self company
+const demoSelfCompany = {
+  success: true,
+  place_id: "ChIJn3y_J-20bTkRYRCIxaD8Prc",
+  place_name: "A R Techno Solutions",
+  total_reviews_on_profile: 358,
+  cutoff_date: "2025-01-15",
+  months_scraped: 6,
+  total_reviews_found: 85,
+  reviews_in_range: 72,
+  statistics: {
+    average_rating: 4.8,
+    owner_response_rate: 85,
+    reviews_with_response: 61,
+  },
+  reviews: [
+    ...Array(12)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: `${i + 1} days ago`,
+        response_by_owner: "yes",
+      })),
+    ...Array(10)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: `${i + 1} weeks ago`,
+        response_by_owner: "yes",
+      })),
+    ...Array(15)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: "a month ago",
+        response_by_owner: "yes",
+      })),
+    ...Array(12)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 4,
+        date: "2 months ago",
+        response_by_owner: "no",
+      })),
+    ...Array(13)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: "3 months ago",
+        response_by_owner: "yes",
+      })),
+    ...Array(8)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: "4 months ago",
+        response_by_owner: "yes",
+      })),
+    ...Array(2)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 3,
+        date: "5 months ago",
+        response_by_owner: "no",
+      })),
+  ],
+};
+
+// Demo data for main competitor
+const demoMainCompetitor = {
+  success: true,
+  place_id: "ChIJa1b2c3d4e5fGhIjKlMnOpQr",
+  place_name: "TechPro Solutions",
+  total_reviews_on_profile: 425,
+  cutoff_date: "2025-01-15",
+  months_scraped: 6,
+  total_reviews_found: 92,
+  reviews_in_range: 78,
+  statistics: {
+    average_rating: 4.6,
+    owner_response_rate: 45,
+    reviews_with_response: 35,
+  },
+  reviews: [
+    ...Array(10)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: `${i + 1} days ago`,
+        response_by_owner: "no",
+      })),
+    ...Array(12)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 4,
+        date: `${i + 1} weeks ago`,
+        response_by_owner: "yes",
+      })),
+    ...Array(16)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: "a month ago",
+        response_by_owner: "no",
+      })),
+    ...Array(13)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: "2 months ago",
+        response_by_owner: "yes",
+      })),
+    ...Array(11)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 4,
+        date: "3 months ago",
+        response_by_owner: "no",
+      })),
+    ...Array(10)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: "4 months ago",
+        response_by_owner: "no",
+      })),
+    ...Array(6)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 4,
+        date: "5 months ago",
+        response_by_owner: "yes",
+      })),
+  ],
+};
+
+// Demo data for competitor 2
+const demoCompetitor2 = {
+  success: true,
+  place_id: "ChIJb2c3d4e5f6gHiJkLmNoPqRs",
+  place_name: "Digital Innovators",
+  total_reviews_on_profile: 312,
+  cutoff_date: "2025-01-15",
+  months_scraped: 6,
+  total_reviews_found: 68,
+  reviews_in_range: 58,
+  statistics: {
+    average_rating: 4.3,
+    owner_response_rate: 28,
+    reviews_with_response: 16,
+  },
+  reviews: [
+    ...Array(8)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 4,
+        date: `${i + 1} days ago`,
+        response_by_owner: "no",
+      })),
+    ...Array(9)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: `${i + 1} weeks ago`,
+        response_by_owner: "no",
+      })),
+    ...Array(12)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 4,
+        date: "a month ago",
+        response_by_owner: "yes",
+      })),
+    ...Array(10)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: "2 months ago",
+        response_by_owner: "no",
+      })),
+    ...Array(9)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 4,
+        date: "3 months ago",
+        response_by_owner: "yes",
+      })),
+    ...Array(7)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 3,
+        date: "4 months ago",
+        response_by_owner: "no",
+      })),
+    ...Array(3)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: "5 months ago",
+        response_by_owner: "no",
+      })),
+  ],
+};
+
+// Demo data for competitor 3
+const demoCompetitor3 = {
+  success: true,
+  place_id: "ChIJc3d4e5f6g7hIjKlMnOpQrSt",
+  place_name: "Smart Tech Services",
+  total_reviews_on_profile: 278,
+  cutoff_date: "2025-01-15",
+  months_scraped: 6,
+  total_reviews_found: 55,
+  reviews_in_range: 47,
+  statistics: {
+    average_rating: 4.5,
+    owner_response_rate: 35,
+    reviews_with_response: 16,
+  },
+  reviews: [
+    ...Array(7)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: `${i + 1} days ago`,
+        response_by_owner: "yes",
+      })),
+    ...Array(8)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 4,
+        date: `${i + 1} weeks ago`,
+        response_by_owner: "no",
+      })),
+    ...Array(10)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: "a month ago",
+        response_by_owner: "yes",
+      })),
+    ...Array(9)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 4,
+        date: "2 months ago",
+        response_by_owner: "no",
+      })),
+    ...Array(7)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 5,
+        date: "3 months ago",
+        response_by_owner: "yes",
+      })),
+    ...Array(4)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 4,
+        date: "4 months ago",
+        response_by_owner: "no",
+      })),
+    ...Array(2)
+      .fill(null)
+      .map((_, i) => ({
+        rating: 3,
+        date: "5 months ago",
+        response_by_owner: "no",
+      })),
+  ],
+};
+
+// Function to merge multiple competitor datasets
+const mergeCompetitorData = (competitors: any[]) => {
+  if (competitors.length === 0) return null;
+
+  // Merge all reviews
+  const allReviews = competitors.flatMap((comp) => comp.reviews || []);
+
+  // Calculate totals
+  const totalReviewsOnProfile = competitors.reduce(
+    (sum, comp) => sum + (comp.total_reviews_on_profile || 0),
+    0,
+  );
+  const totalReviewsFound = competitors.reduce(
+    (sum, comp) => sum + (comp.total_reviews_found || 0),
+    0,
+  );
+  const totalReviewsInRange = competitors.reduce(
+    (sum, comp) => sum + (comp.reviews_in_range || 0),
+    0,
+  );
+
+  // Calculate average statistics
+  const avgRating =
+    competitors.reduce(
+      (sum, comp) => sum + (comp.statistics?.average_rating || 0),
+      0,
+    ) / competitors.length;
+  const avgResponseRate =
+    competitors.reduce(
+      (sum, comp) => sum + (comp.statistics?.owner_response_rate || 0),
+      0,
+    ) / competitors.length;
+  const totalResponsesWithReview = competitors.reduce(
+    (sum, comp) => sum + (comp.statistics?.reviews_with_response || 0),
+    0,
+  );
+
+  // Use the cutoff date from the first competitor (assuming all have the same cutoff)
+  const cutoffDate =
+    competitors[0]?.cutoff_date || new Date().toISOString().split("T")[0];
+  const monthsScraped = competitors[0]?.months_scraped || 6;
+
+  return {
+    success: true,
+    place_id: "merged_competitors",
+    place_name: "All Competitors",
+    total_reviews_on_profile: totalReviewsOnProfile,
+    cutoff_date: cutoffDate,
+    months_scraped: monthsScraped,
+    total_reviews_found: totalReviewsFound,
+    reviews_in_range: totalReviewsInRange,
+    statistics: {
+      average_rating: parseFloat(avgRating.toFixed(1)),
+      owner_response_rate: Math.round(avgResponseRate),
+      reviews_with_response: totalResponsesWithReview,
+    },
+    reviews: allReviews,
+  };
+};
+
+// Merge all competitors
+const demoAllCompetitors = mergeCompetitorData([
+  demoMainCompetitor,
+  demoCompetitor2,
+  demoCompetitor3,
+]);
+
 // =============================================
 // TYPE DEFINITIONS
 // =============================================
@@ -90,72 +429,6 @@ interface AIRecommendations {
   // ]
 // };
 
-const competitors: BusinessData[] = [
-  {
-    place_name: "Competitor A",
-    place_id: "competitor-a-001",
-    reviews: [
-      { author: "Alex Thompson", rating: 5, date: "2 days ago", review_text: "Great service!", response_by_owner: "yes" },
-      { author: "Rachel Green", rating: 4, date: "4 days ago", review_text: "Pretty good experience.", response_by_owner: "no" },
-      { author: "Chris Evans", rating: 5, date: "a week ago", review_text: "Excellent work!", response_by_owner: "yes" },
-      { author: "Monica Geller", rating: 3, date: "2 weeks ago", review_text: "Average service.", response_by_owner: "no" },
-      { author: "Joey Tribbiani", rating: 4, date: "3 weeks ago", review_text: "Good overall.", response_by_owner: "yes" },
-      { author: "Phoebe Buffay", rating: 5, date: "a month ago", review_text: "Amazing!", response_by_owner: "yes" },
-      { author: "Ross Geller", rating: 4, date: "a month ago", review_text: "Satisfied.", response_by_owner: "no" },
-      { author: "Chandler Bing", rating: 5, date: "2 months ago", review_text: "Top notch!", response_by_owner: "yes" },
-      { author: "Emma Watson", rating: 3, date: "3 months ago", review_text: "Could be better.", response_by_owner: "no" },
-      { author: "Daniel Radcliffe", rating: 4, date: "4 months ago", review_text: "Good job.", response_by_owner: "yes" },
-    ]
-  },
-  {
-    place_name: "Competitor B",
-    place_id: "competitor-b-002",
-    reviews: [
-      { author: "Tony Stark", rating: 5, date: "1 day ago", review_text: "Incredible service!", response_by_owner: "yes" },
-      { author: "Steve Rogers", rating: 5, date: "3 days ago", review_text: "Professional team.", response_by_owner: "yes" },
-      { author: "Natasha Romanoff", rating: 4, date: "5 days ago", review_text: "Very good.", response_by_owner: "yes" },
-      { author: "Bruce Banner", rating: 2, date: "a week ago", review_text: "Not satisfied.", response_by_owner: "no" },
-      { author: "Thor Odinson", rating: 5, date: "2 weeks ago", review_text: "Worthy service!", response_by_owner: "yes" },
-      { author: "Clint Barton", rating: 4, date: "3 weeks ago", review_text: "Hit the mark.", response_by_owner: "no" },
-      { author: "Wanda Maximoff", rating: 5, date: "a month ago", review_text: "Magical experience.", response_by_owner: "yes" },
-      { author: "Vision", rating: 5, date: "2 months ago", review_text: "Perfectly executed.", response_by_owner: "yes" },
-      { author: "Peter Parker", rating: 4, date: "3 months ago", review_text: "Web-slingin' good!", response_by_owner: "yes" },
-      { author: "Stephen Strange", rating: 3, date: "4 months ago", review_text: "Seen better.", response_by_owner: "no" },
-    ]
-  },
-  {
-    place_name: "Competitor C",
-    place_id: "competitor-c-003",
-    reviews: [
-      { author: "Luke Skywalker", rating: 5, date: "2 days ago", review_text: "The Force is strong!", response_by_owner: "yes" },
-      { author: "Leia Organa", rating: 4, date: "4 days ago", review_text: "You're my only hope.", response_by_owner: "yes" },
-      { author: "Han Solo", rating: 5, date: "a week ago", review_text: "Never tell me the odds!", response_by_owner: "no" },
-      { author: "Chewbacca", rating: 5, date: "2 weeks ago", review_text: "RRWWWGG!", response_by_owner: "yes" },
-      { author: "Obi-Wan Kenobi", rating: 4, date: "3 weeks ago", review_text: "This is the service you're looking for.", response_by_owner: "yes" },
-      { author: "Yoda", rating: 5, date: "a month ago", review_text: "Do or do not. They do!", response_by_owner: "yes" },
-      { author: "Darth Vader", rating: 3, date: "2 months ago", review_text: "I find lack of speed disturbing.", response_by_owner: "no" },
-      { author: "Rey", rating: 5, date: "3 months ago", review_text: "The belonging you seek is here.", response_by_owner: "yes" },
-      { author: "Finn", rating: 4, date: "4 months ago", review_text: "Rebel good!", response_by_owner: "yes" },
-      { author: "Kylo Ren", rating: 2, date: "5 months ago", review_text: "Show me the power.", response_by_owner: "no" },
-    ]
-  },
-  {
-    place_name: "Competitor D",
-    place_id: "competitor-d-004",
-    reviews: [
-      { author: "Harry Potter", rating: 5, date: "1 day ago", review_text: "Brilliant! Expecto Patronum level!", response_by_owner: "yes" },
-      { author: "Hermione Granger", rating: 5, date: "3 days ago", review_text: "Textbook perfect execution.", response_by_owner: "yes" },
-      { author: "Ron Weasley", rating: 4, date: "5 days ago", review_text: "Bloody brilliant!", response_by_owner: "no" },
-      { author: "Albus Dumbledore", rating: 5, date: "a week ago", review_text: "Happiness found here!", response_by_owner: "yes" },
-      { author: "Severus Snape", rating: 3, date: "2 weeks ago", review_text: "Acceptable... barely.", response_by_owner: "no" },
-      { author: "Minerva McGonagall", rating: 5, date: "3 weeks ago", review_text: "5 points!", response_by_owner: "yes" },
-      { author: "Sirius Black", rating: 4, date: "a month ago", review_text: "Mischief managed!", response_by_owner: "yes" },
-      { author: "Rubeus Hagrid", rating: 5, date: "2 months ago", review_text: "Yer a wizard with service!", response_by_owner: "yes" },
-      { author: "Luna Lovegood", rating: 4, date: "3 months ago", review_text: "Extraordinary!", response_by_owner: "no" },
-      { author: "Draco Malfoy", rating: 2, date: "4 months ago", review_text: "My father will hear about this.", response_by_owner: "no" },
-    ]
-  }
-];
 
 // =============================================
 // ANALYTICS FUNCTIONS
@@ -345,7 +618,6 @@ function calculateAnalytics(reviews: Review[]) {
 // =============================================
 
 function CompetitorDashboard() {
-  const [selectedCompetitor, setSelectedCompetitor] = useState(competitors[0]);
   const [timeRange, setTimeRange] = useState<number>(3);
   const [chartMode, setChartMode] = useState('single');
   const [hoveredDataPoint, setHoveredDataPoint] = useState<{
@@ -361,6 +633,7 @@ function CompetitorDashboard() {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [competitorss, setCompetitorss] = useState<BusinessData[]>([]);
   const [clientReviews, setClientReviews] = useState<Review[]>([]);
+  
 
       const { activeLocation } = useSelector(
       (state: RootState) => state.activeLocation,
@@ -386,10 +659,50 @@ function CompetitorDashboard() {
 
   // Get Date range reviews and showcase in 5 elements
   const [dateRangeData, setDateRangeData] = useState<DateRangeReviewData | null>(null);
+  const [selfDateRangeData, setSelfDateRangeData] = useState<DateRangeReviewData | null>(null);
+  const [allCompetDateRangeData, setAllCompetDateRangeData] = useState<DateRangeReviewData[]>([]);
+
+  const [dateRangeDataLoading, setDateRangeDataLoading] = useState<boolean>(false);
+
+  async function fetchSelfDateRangeReviewsData(){
+    try {
+      setDateRangeDataLoading(true);
+      const res = await axios.post(`${SERVER}/api/v1/scraper/date-range-reviews`, {months: timeRange, place_id: yourClientData?.place_id}, { withCredentials: true, timeout: 2 * 60 * 1000 });
+      console.log("Self DateRangeREviewsDAta", res)
+      const dta = res.data;
+      if(dta){
+        setSelfDateRangeData(dta)
+        // if(!selectedBusiness || selectedBusiness.place_id === yourClientData.place_id){
+        //   setSelectedBusiness({
+        //     place_name: yourClientData.place_name,
+        //     place_id: yourClientData.place_id,
+        //     reviews: dta.reviews || []
+        //   });
+        // }
+        // if(!yourClientData || yourClientData.place_id === yourClientData.place_id){
+        //   setSelectedBusiness({
+        //     place_name: yourClientData.place_name,
+        //     place_id: yourClientData.place_id,
+        //     reviews: dta.reviews || []
+        //   });
+        // }
+      }
+    } catch (error) {
+      console.error("ERror", error)
+    } finally {
+      setDateRangeDataLoading(false);
+    }
+  }
+
+  async function fetchAllCompetDateRangeData(){
+    
+  }
+
 
   async function fetchDateRangeReviewsData(){
     try {
-      const res = await axios.post(`${SERVER}/api/v1/scraper/date-range-reviews`, {months: timeRange, place_id: selectedBusiness?.place_id}, { withCredentials: true, timeout: 1 * 60 * 1000 });
+      setDateRangeDataLoading(true);
+      const res = await axios.post(`${SERVER}/api/v1/scraper/date-range-reviews`, {months: timeRange, place_id: selectedBusiness?.place_id}, { withCredentials: true, timeout: 2 * 60 * 1000 });
       console.log("DateRangeREviewsDAta", res)
       const dta = res.data;
       if(dta){
@@ -397,6 +710,8 @@ function CompetitorDashboard() {
       }
     } catch (error) {
       console.error("ERror", error)
+    } finally {
+      setDateRangeDataLoading(false);
     }
   }
 
@@ -407,6 +722,13 @@ function CompetitorDashboard() {
       fetchDateRangeReviewsData();
     }
   }, [timeRange, selectedBusiness])
+
+  useEffect(() => {
+    if(yourClientData?.place_id){
+      fetchSelfDateRangeReviewsData()
+    }
+  }, [timeRange])
+
   
 
   console.log("Client reviews", clientReviews);
@@ -716,7 +1038,7 @@ const generateAIRecommendations = async () => {
     // Use the NEW prepareAIAnalyticsData function
     const analyticsData = prepareAIAnalyticsData(
       yourClientData,
-      competitors,
+      competitorss,
       selectedBusiness,
       String(timeRange)
     );
@@ -1228,7 +1550,7 @@ const prepareAIAnalyticsData = (
           reviewText: review.review_text || 'No review text',
           responded: review.response_by_owner === 'yes',
         })),
-        competitorsSummary: competitors.map(comp => {
+        competitorsSummary: competitorss.map(comp => {
           const analytics = calculateAnalytics(comp.reviews || []);
           return {
             name: comp.place_name,
@@ -1273,7 +1595,7 @@ const prepareAIAnalyticsData = (
   }
 
   const velocity = reviews.reviews_in_range / reviews.months_scraped;
-  return velocity;
+  return velocity?.toFixed(2);
 }
 
 
@@ -2192,230 +2514,66 @@ const prepareAIAnalyticsData = (
           </select>
         </div>
 
-        {/* Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-gray-500 font-medium">Total Reviews</span>
-              <MessageSquare className="w-5 h-5 text-blue-500" />
+        {
+          dateRangeDataLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-2">{dateRangeData?.total_reviews_on_profile}</div>
-            <p className="text-xs text-gray-500">No previous data</p>
-          </div>
-
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-gray-500 font-medium">Average Rating</span>
-              <Star className="w-5 h-5 text-blue-500" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-2">{dateRangeData?.statistics?.average_rating}</div>
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`w-4 h-4 ${i < Math.round(dateRangeData?.statistics?.average_rating) ? 'text-blue-500 fill-blue-500' : 'text-gray-300'}`}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-gray-500 font-medium">Response Rate</span>
-              <Reply className="w-5 h-5 text-blue-500" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-2">{dateRangeData?.statistics?.owner_response_rate}%</div>
-            <p className="text-xs text-gray-500">{dateRangeData?.statistics?.reviews_with_response} total responses</p>
-          </div>
-
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-gray-500 font-medium">Review Velocity</span>
-              <TrendingUp className="w-5 h-5 text-blue-500" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-2">{getReviewVelocity(dateRangeData)}</div>
-            <p className="text-xs text-gray-500">Avg reviews per month</p>
-          </div>
-        </div>
-
-        {/* Charts Row */}
-        {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-lg p-6 border border-gray-200">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Review trends</h3>
-                <p className="text-sm text-gray-500">Past {timeRange} months</p>
-              </div>
-              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setChartMode('single')}
-                  className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${chartMode === 'single' ? 'bg-blue-600 text-white' : 'bg-white text-black'
-                    }`}
-                >
-                  {selectedBusiness?.place_name}
-                </button>
-                <button
-                  onClick={() => setChartMode('comparison')}
-                  className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${chartMode === 'comparison' ? 'bg-blue-600 text-white' : 'bg-white text-black'
-                    }`}
-                >
-                  Comparison
-                </button>
-              </div>
-            </div>
-            <div className="h-64 relative">
-              {chartMode === 'single' ? (
-                <svg className="w-full h-full" viewBox="0 0 800 250">
-                  {[0, 2, 4, 6, 8, 10].map((val, i) => (
-                    <g key={i}>
-                      <line x1="60" y1={230 - (val * 23)} x2="780" y2={230 - (val * 23)} stroke="#e5e7eb" strokeDasharray="3,3" />
-                      <text x="40" y={235 - (val * 23)} fill="#6b7280" fontSize="12" textAnchor="end">{val}</text>
-                    </g>
-                  ))}
-                  {['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'].map((month, i) => (
-                    <text key={month} x={100 + (i * 120)} y="245" fill="#6b7280" fontSize="12" textAnchor="middle">{month}</text>
-                  ))}
-                  <polyline points="100,207 220,207 340,207 460,207 580,115 700,161" fill="none" stroke="#3b82f6" strokeWidth="3" />
-                  {[1, 1, 1, 1, 5, 3].map((value, i) => {
-                    const x = 100 + (i * 120);
-                    const y = 230 - (value * 23);
-                    const month = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'][i];
-                    return (
-                      <g key={i}>
-                        <circle cx={x} cy={y} r="15" fill="transparent" style={{ cursor: 'pointer' }}
-                          onMouseEnter={() => setHoveredDataPoint({ month, value, x, y, label: selectedCompetitor.place_name })}
-                          onMouseLeave={() => setHoveredDataPoint(null)} />
-                        <circle cx={x} cy={y} r="5" fill="#3b82f6" style={{ pointerEvents: 'none' }} />
-                        {hoveredDataPoint?.month === month && hoveredDataPoint?.label === selectedCompetitor.place_name && (
-                          <circle cx={x} cy={y} r="8" fill="#3b82f6" opacity="0.5" />
-                        )}
-                      </g>
-                    );
-                  })}
-                </svg>
-              ) : (
-                <svg className="w-full h-full" viewBox="0 0 800 250">
-                  {[0, 2, 4, 6, 8, 10].map((val, i) => (
-                    <g key={i}>
-                      <line x1="60" y1={230 - (val * 23)} x2="780" y2={230 - (val * 23)} stroke="#e5e7eb" strokeDasharray="3,3" />
-                      <text x="40" y={235 - (val * 23)} fill="#6b7280" fontSize="12" textAnchor="end">{val}</text>
-                    </g>
-                  ))}
-                  {['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'].map((month, i) => (
-                    <text key={month} x={100 + (i * 120)} y="245" fill="#6b7280" fontSize="12" textAnchor="middle">{month}</text>
-                  ))}
-                  <polyline points="100,207 220,207 340,207 460,207 580,161 700,161" fill="none" stroke="#3b82f6" strokeWidth="3" />
-                  {[1, 1, 1, 1, 3, 3].map((value, i) => {
-                    const x = 100 + (i * 120);
-                    const y = 230 - (value * 23);
-                    const month = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'][i];
-                    return (
-                      <g key={`your-${i}`}>
-                        <circle cx={x} cy={y} r="15" fill="transparent" style={{ cursor: 'pointer' }}
-                          onMouseEnter={() => setHoveredDataPoint({ month, value, x, y, label: yourClientData.place_name })}
-                          onMouseLeave={() => setHoveredDataPoint(null)} />
-                        <circle cx={x} cy={y} r="5" fill="#3b82f6" style={{ pointerEvents: 'none' }} />
-                        {hoveredDataPoint?.month === month && hoveredDataPoint?.label === yourClientData.place_name && (
-                          <circle cx={x} cy={y} r="8" fill="#3b82f6" opacity="0.5" />
-                        )}
-                      </g>
-                    );
-                  })}
-                  <polyline points="100,207 220,207 340,207 460,207 580,138 700,161" fill="none" stroke="#10b981" strokeWidth="3" />
-                  {[1, 1, 1, 1, 4, 3].map((value, i) => {
-                    const x = 100 + (i * 120);
-                    const y = 230 - (value * 23);
-                    const month = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'][i];
-                    return (
-                      <g key={`comp-${i}`}>
-                        <circle cx={x} cy={y} r="15" fill="transparent" style={{ cursor: 'pointer' }}
-                          onMouseEnter={() => setHoveredDataPoint({ month, value, x, y, label: selectedCompetitor.place_name })}
-                          onMouseLeave={() => setHoveredDataPoint(null)} />
-                        <circle cx={x} cy={y} r="5" fill="#10b981" style={{ pointerEvents: 'none' }} />
-                        {hoveredDataPoint?.month === month && hoveredDataPoint?.label === selectedCompetitor.place_name && (
-                          <circle cx={x} cy={y} r="8" fill="#10b981" opacity="0.5" />
-                        )}
-                      </g>
-                    );
-                  })}
-                  <polyline points="100,207 220,207 340,207 460,207 580,115 700,161" fill="none" stroke="#f97316" strokeWidth="3" />
-                  {[1, 1, 1, 1, 5, 3].map((value, i) => {
-                    const x = 100 + (i * 120);
-                    const y = 230 - (value * 23);
-                    const month = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'][i];
-                    return (
-                      <g key={`all-${i}`}>
-                        <circle cx={x} cy={y} r="15" fill="transparent" style={{ cursor: 'pointer' }}
-                          onMouseEnter={() => setHoveredDataPoint({ month, value, x, y, label: 'All Competitors' })}
-                          onMouseLeave={() => setHoveredDataPoint(null)} />
-                        <circle cx={x} cy={y} r="5" fill="#f97316" style={{ pointerEvents: 'none' }} />
-                        {hoveredDataPoint?.month === month && hoveredDataPoint?.label === 'All Competitors' && (
-                          <circle cx={x} cy={y} r="8" fill="#f97316" opacity="0.5" />
-                        )}
-                      </g>
-                    );
-                  })}
-                </svg>
-              )}
-              {hoveredDataPoint && (
-                <div
-                  className="absolute bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-sm pointer-events-none z-10"
-                  style={{
-                    left: `${(hoveredDataPoint.x / 800) * 100}%`,
-                    top: `${(hoveredDataPoint.y / 250) * 100}%`,
-                    transform: 'translate(-50%, -120%)'
-                  }}
-                >
-                  <div className="font-semibold">{hoveredDataPoint.label}</div>
-                  <div className="text-gray-300">{hoveredDataPoint.month}</div>
-                  <div className="font-bold text-lg">{hoveredDataPoint.value} reviews</div>
-                </div>
-              )}
-            </div>
-            {chartMode === 'comparison' && (
-              <div className="flex items-center justify-center gap-6 mt-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-gray-600">{yourClientData.place_name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-gray-600">{selectedBusiness.place_name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                  <span className="text-gray-600">All Competitors</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Rating distribution</h3>
-            <div className="space-y-4">
-              {selectedAnalytics.ratingDistribution.map((item) => (
-                <div key={item.rating}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm font-medium text-gray-700">{item.rating} star</span>
-                      <Star className="w-4 h-4 text-blue-500 fill-blue-500" />
-                    </div>
-                    <span className="text-sm text-gray-600">
-                      {item.count} ({Math.round(item.percentage)}%)
-                    </span>
+          ) : (
+            <>
+              {/* Metrics Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white rounded-lg p-6 border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm text-gray-500 font-medium">Total Reviews</span>
+                    <MessageSquare className="w-5 h-5 text-blue-500" />
                   </div>
-                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                      style={{ width: `${item.percentage}%` }}
-                    />
+                  <div className="text-3xl font-bold text-gray-900 mb-2">{dateRangeData?.total_reviews_on_profile}</div>
+                  <p className="text-xs text-gray-500">No previous data</p>
+                </div>
+
+                <div className="bg-white rounded-lg p-6 border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm text-gray-500 font-medium">Average Rating</span>
+                    <Star className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div className="text-3xl font-bold text-gray-900 mb-2">{dateRangeData?.statistics?.average_rating}</div>
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-4 h-4 ${i < Math.round(dateRangeData?.statistics?.average_rating) ? 'text-blue-500 fill-blue-500' : 'text-gray-300'}`}
+                      />
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div> */}
-        <DynamicReviewChart dateRangeData={dateRangeData} />
+
+                <div className="bg-white rounded-lg p-6 border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm text-gray-500 font-medium">Response Rate</span>
+                    <Reply className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div className="text-3xl font-bold text-gray-900 mb-2">{dateRangeData?.statistics?.owner_response_rate}%</div>
+                  <p className="text-xs text-gray-500">{dateRangeData?.statistics?.reviews_with_response} total responses</p>
+                </div>
+
+                <div className="bg-white rounded-lg p-6 border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm text-gray-500 font-medium">Review Velocity</span>
+                    <TrendingUp className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div className="text-3xl font-bold text-gray-900 mb-2">{getReviewVelocity(dateRangeData)}</div>
+                  <p className="text-xs text-gray-500">Avg reviews per month</p>
+                </div>
+              </div>
+
+              {/* Charts Row */}
+              {dateRangeData && selfDateRangeData && (<DynamicReviewChart dateRangeData={dateRangeData} allCompetitorsData={demoAllCompetitors} competitorData={selfDateRangeData} />)}
+            </>
+          )
+        }
+
+
 
         {/* Comparison Dashboard - All Businesses */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -2429,7 +2587,7 @@ const prepareAIAnalyticsData = (
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-500 uppercase sticky left-0 bg-gray-50 z-10">Metric</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-blue-600 uppercase bg-blue-50">{yourClientData.place_name}</th>
-                  {competitors.map((comp) => (
+                  {competitorss.map((comp) => (
                     <th key={comp.place_id} className="px-6 py-4 text-left text-sm font-semibold text-gray-500 uppercase">
                       {comp.place_name}
                     </th>
@@ -2441,7 +2599,7 @@ const prepareAIAnalyticsData = (
                 <tr className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white">Total Reviews</td>
                   <td className="px-6 py-4 text-sm font-semibold text-blue-700 bg-blue-50">{yourAnalytics.totalReviews}</td>
-                  {competitors.map((comp) => {
+                  {competitorss.map((comp) => {
                     const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
@@ -2470,7 +2628,7 @@ const prepareAIAnalyticsData = (
                       </div>
                     </div>
                   </td>
-                  {competitors.map((comp) => {
+                  {competitorss.map((comp) => {
                     const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
@@ -2505,7 +2663,7 @@ const prepareAIAnalyticsData = (
                       </div>
                     </div>
                   </td>
-                  {competitors.map((comp) => {
+                  {competitorss.map((comp) => {
                     const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
@@ -2528,7 +2686,7 @@ const prepareAIAnalyticsData = (
                 <tr className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white">Positive Reviews (4-5★)</td>
                   <td className="px-6 py-4 text-sm font-semibold text-blue-700 bg-blue-50">{yourAnalytics.positivePercentage}%</td>
-                  {competitors.map((comp) => {
+                  {competitorss.map((comp) => {
                     const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
@@ -2545,7 +2703,7 @@ const prepareAIAnalyticsData = (
                 <tr className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white">Negative Reviews (1-2★)</td>
                   <td className="px-6 py-4 text-sm font-semibold text-blue-700 bg-blue-50">{yourAnalytics.negativePercentage}%</td>
-                  {competitors.map((comp) => {
+                  {competitorss.map((comp) => {
                     const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
@@ -2562,7 +2720,7 @@ const prepareAIAnalyticsData = (
                 <tr className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white">5-Star Reviews</td>
                   <td className="px-6 py-4 text-sm font-semibold text-blue-700 bg-blue-50">{yourAnalytics.highestRatingCount}</td>
-                  {competitors.map((comp) => {
+                  {competitorss.map((comp) => {
                     const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
@@ -2579,7 +2737,7 @@ const prepareAIAnalyticsData = (
                 <tr className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white">1-2 Star Reviews</td>
                   <td className="px-6 py-4 text-sm font-semibold text-blue-700 bg-blue-50">{yourAnalytics.lowestRatingCount}</td>
-                  {competitors.map((comp) => {
+                  {competitorss.map((comp) => {
                     const analytics = calculateAnalytics(comp.reviews || []);
                     return (
                       <td key={comp.place_id} className="px-6 py-4">
@@ -2818,7 +2976,7 @@ const prepareAIAnalyticsData = (
         <div className="bg-white rounded-lg p-6 border border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">All Competitors Overview</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {competitors.map((comp) => {
+            {competitorss.map((comp) => {
               const analytics = calculateAnalytics(comp.reviews || []);
               return (
                 <div
