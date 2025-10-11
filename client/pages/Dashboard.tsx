@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { CheckCircle, ArrowUp, ArrowDown, Play, FileText } from "lucide-react";
-import axios from "axios"; // Import Axios
+import axios from "axios";
 import { useBusinesses } from "../hooks/useBusinesses";
 import { SERVER } from "@/constants";
 import { RootState } from "@/redux/store";
 import { useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
-import { id } from "date-fns/locale";
 
 interface MetricCardProps {
   title: string;
@@ -91,7 +90,9 @@ function MetricCard({
 
 export default function Dashboard() {
   const { selectedBusiness } = useBusinesses();
-  const { activeLocation } = useSelector((state: RootState) => state.activeLocation);
+  const { activeLocation } = useSelector(
+    (state: RootState) => state.activeLocation,
+  );
   const [automationTasks] = useState([
     "Upload an image every 4 days",
     "Publish an update every 5 days",
@@ -112,7 +113,7 @@ export default function Dashboard() {
   // Fetch location data using Axios
   useEffect(() => {
     const fetchLocationData = async (id: string) => {
-      const accId = user?.accountId; // Fallback to param if user accountId not available
+      const accId = user?.accountId;
       if (!id) {
         setError("No location ID provided");
         setLoading(false);
@@ -128,10 +129,10 @@ export default function Dashboard() {
 
       try {
         setLoading(true);
-        setError(null); // Clear previous error
+        setError(null);
         const response = await axios.get(
           `${SERVER}/api/v1/locations/${id}/?account_id=${accId}`,
-          { withCredentials: true }
+          { withCredentials: true },
         );
         setLocationData(response.data.location);
         setLoading(false);
@@ -141,12 +142,14 @@ export default function Dashboard() {
       }
     };
 
-    console.log(id, "Selected Business ID:", activeLocation?.locationId);
+    console.log("Selected Business ID:", activeLocation?.locationId);
     console.log(user?.accountId, "Account ID from params:");
 
-    const locId = localStorage.getItem("activeLocation") || activeLocation?.locationId?.split("/")[1] || locationName; // Fallback to param if activeLocation.locationId not available
+    const locId =
+      activeLocation?.locationId || localStorage.getItem("activeLocation")  ||
+      locationName;
     fetchLocationData(locId);
-  }, [activeLocation?.locationId, user?.accountId, locationName, accountId]); // Dependencies to refetch on changes
+  }, [activeLocation?.locationId, user?.accountId]);
 
   if (loading) {
     return <div className="p-6 text-gray-600">Loading...</div>;
@@ -188,7 +191,7 @@ export default function Dashboard() {
                   {locationData.title}
                 </h2>
                 <p className="text-gray-600 text-sm">
-                  {locationData.info.businessCategory}
+                  {locationData.primaryCategoryName}
                 </p>
                 <div className="flex items-center space-x-2 mt-1">
                   <div className="flex items-center">
@@ -243,17 +246,17 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <MetricCard
           title="Optimization Score"
-          value={`${locationData?.stats.optimisationScore}%`}
+          value={`${locationData?.stats.optimisationScore || 0}%`}
           subtitle="Profile optimization level"
           trend="up"
-          trendValue="15%" // Note: API doesn't provide trend data, keeping static for now
+          trendValue="15%"
           color="orange"
           actionLabel="See Optimizations"
           onAction={() => console.log("View optimizations")}
         />
         <MetricCard
           title="Automation Score"
-          value={`${locationData?.stats.automationScore}%`}
+          value={`${locationData?.stats.automationScore || 0}%`}
           subtitle="Automation efficiency"
           color="blue"
           actionLabel="See Automations"
@@ -261,7 +264,7 @@ export default function Dashboard() {
         />
         <MetricCard
           title="Google Reviews"
-          value={`${locationData?.stats.averageRating}/5`}
+          value={`${locationData?.stats.averageRating || 0}/5`}
           subtitle="Average rating"
           color="green"
           actionLabel="See Reviews"

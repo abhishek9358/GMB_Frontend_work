@@ -36,7 +36,7 @@ export default function Reviews() {
   const locationId = localStorage.getItem("activeLocation");
 
   // API endpoint
-  const API_URL = `${SERVER}/api/v1/location/${ locationId || activeLocation?.locationId?.split("/")?.[1] || ""}/reviews?place_id=${activeLocation?.placeId || ""}`;
+  const API_URL = `${SERVER}/api/v1/location/${ locationId || activeLocation?.locationId || ""}/reviews?place_id=${activeLocation?.placeId || ""}`;
 
   useEffect(() => {
     const fetchReviews = async () => {

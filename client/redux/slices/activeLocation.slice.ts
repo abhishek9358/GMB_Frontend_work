@@ -64,6 +64,8 @@ const initialState: LocationInitialState = {
 export function normalizeLocation(apiLocation: any): Location {
   const loc = apiLocation;
 
+  console.log("Harshu", loc)
+
   // Extract category info from rawGoogleData
   const primaryCategory = loc.rawGoogleData?.categories?.primaryCategory || {};
   const category = {
@@ -110,10 +112,14 @@ export function normalizeLocation(apiLocation: any): Location {
   const canDelete = metadata.canDelete || false;
   const canModifyServiceList = metadata.canModifyServiceList || false;
   const hasVoiceOfMerchant = metadata.hasVoiceOfMerchant || false;
+  
 
   return {
     id: loc._id || loc.locationId || "",
-    locationId: loc.name || loc.locationId?.split("/")?.[1] || "",
+    locationId:
+      loc.locationId?.split("/")?.length > 1
+        ? loc.locationId?.split("/")?.[1]
+        : loc.locationId || loc.name || "",
     title: loc.title || "",
     address,
     phone: null, // Not provided in either API — you may need to add it later

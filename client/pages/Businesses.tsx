@@ -7,6 +7,7 @@ import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
 import { formatAddress } from "@/utils";
 
+
 export interface UserBusiness {
   id: string;
   name: string;
@@ -348,11 +349,11 @@ export default function Businesses() {
                     <div className="flex-shrink-0 ml-4">
                       <button
                         onClick={() =>
-                          // console.log("Manage",business?.location?.locationId?.split("/")?.[1])
+                          // console.log("Manage",business)
                           
                           navigate(
                             `/businesses/${encodeURIComponent(
-                              business?.location?.locationId?.split("/")?.[1] || ""
+                              business?.location?.locationId || ""
                             )}/manage`
                           )
                         }

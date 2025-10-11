@@ -155,7 +155,9 @@ function App() {
         const apiLocation = res.data?.location;
         if (apiLocation) {
           const normalizedLocation = normalizeLocation(apiLocation);
-          dispatch(setActiveLocation(normalizedLocation));
+          if(normalizedLocation.locationId){
+            dispatch(setActiveLocation(normalizedLocation));
+          }
         }
       } catch (error) {
         console.error("Failed to fetch location details:", error);
@@ -176,10 +178,12 @@ function App() {
           const businesses = res.data.businesses;
           if (businesses.length > 0) {
             const firstBusiness = businesses[0];
-            localStorage.setItem("activeLocation", firstBusiness.locationId?.split("/")?.[1] || "");
+            localStorage.setItem("activeLocation", firstBusiness.locationId || "");
 
             const normalized = normalizeLocation(firstBusiness);
-            dispatch(setActiveLocation(normalized));
+            if(normalized.locationId){
+              dispatch(setActiveLocation(normalized));
+            }
           }
         }
       } catch (error) {
