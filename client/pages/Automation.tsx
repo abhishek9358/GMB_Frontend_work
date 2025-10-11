@@ -16,6 +16,13 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 
+// Replace your existing lucide-react import with this
+import {
+  Bookmark,  ChevronDown, Clock, Copy, Eye, Image as ImageIcon, Link as LinkIcon, 
+  MoreVertical, Pencil, Plus, Search, Send,Sparkles, Settings as  ThumbsUp, Trash2,
+  
+} from "lucide-react";
+
 interface AutomationModule {
   id: string;
   name: string;
@@ -1719,7 +1726,533 @@ function SummaryAutomation() {
   );
 }
 
+// Replace your old DefaultAutomation function with this new version
+
+// function DefaultAutomation({ module }: { module: AutomationModule }) {
+//   // Check if the selected module is "Automate Posting"
+//   if (module.id === 'automate-posting') {
+//     // --- STATE AND HELPER COMPONENTS FOR THE POSTING UI ---
+//     const [activeTab, setActiveTab] = useState("create");
+
+//     const tabs = [
+//       { id: "create", name: "Create New Post", icon: Plus },
+//       { id: "draft", name: "Draft Posts", icon: Bookmark },
+//       { id: "past", name: "Past Posts", icon: Send },
+//     ];
+
+//     const DraftPostCard = ({ post }) => (
+//       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+//         <div className="relative">
+//           <img src={post.imageUrl} alt={post.title} className="w-full h-32 object-cover" />
+//           {post.type === 'video' && (
+//             <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+//                <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center">
+//                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"></path></svg>
+//                </div>
+//              </div>
+//           )}
+//         </div>
+//         <div className="p-4">
+//           <h3 className="font-semibold text-gray-800 truncate">{post.title}</h3>
+//           <p className="text-sm text-gray-500 mb-2">{post.date}</p>
+//           <div className="flex items-center justify-between mb-4">
+//             <span className="inline-flex items-center bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-0.5 rounded-full">
+//               <Clock className="w-3 h-3 mr-1.5" />
+//               Status: Draft
+//             </span>
+//             <MoreVertical className="w-5 h-5 text-gray-400 cursor-pointer" />
+//           </div>
+//           <div className="flex items-center gap-2">
+//             <button className="w-full text-sm bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50">Edit</button>
+//             <button className="w-full text-sm bg-gbp-blue-600 text-white py-2 px-4 rounded-md hover:bg-gbp-blue-700">Post Now</button>
+//           </div>
+//         </div>
+//       </div>
+//     );
+
+//     const PastPostCard = ({ post, showStats = false }) => {
+//         const statusColors = {
+//           Published: "bg-green-100 text-green-800",
+//           Offer: "bg-orange-100 text-orange-800",
+//           Draft: "bg-gray-100 text-gray-700"
+//         };
+//         return (
+//           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+//               <img src={post.imageUrl} alt={post.title} className="w-full h-32 object-cover" />
+//               <div className="p-4">
+//                   <h3 className="font-semibold text-gray-800 truncate">{post.title}</h3>
+//                   <p className="text-sm text-gray-500 mb-2">{post.date}</p>
+//                    <div className="flex items-center justify-between mb-3">
+//                       <span className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full ${statusColors[post.status] || statusColors.Draft}`}>
+//                           {post.status}
+//                       </span>
+//                       <span className="text-sm font-medium text-gbp-blue-600">{post.cta}</span>
+//                    </div>
+//                   {showStats && post.views && post.clicks && (
+//                      <div className="flex items-center text-sm text-gray-500 space-x-4 mb-4">
+//                         <div className="flex items-center">
+//                             <Eye className="w-4 h-4 mr-1"/> {post.views} Views
+//                         </div>
+//                         <div className="flex items-center">
+//                             <ThumbsUp className="w-4 h-4 mr-1"/> {post.clicks} Clicks
+//                         </div>
+//                      </div>
+//                   )}
+//                    <div className="flex items-center gap-2">
+//                        <button className="w-full text-sm bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50">View Post</button>
+//                        <button className="w-full text-sm bg-gray-100 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-200">Duplicate Post</button>
+//                    </div>
+//               </div>
+//           </div>
+//         )
+//     };
+    
+//     // --- Tab Content Components ---
+//     const CreateNewPost = () => {
+//         const recentPosts = [
+//             { id: 1, title: 'Insit Image', date: 'Oite 20 - 201M', status: 'Published', cta: 'Order Online', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
+//             { id: 2, title: 'Fcst Waturton', date: 'Bupi More 18:00', status: 'Published', cta: 'Buy More', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/b49d7d13-1b91-447b-83c0-302a64c489c6' },
+//             { id: 3, title: 'Ffuf Uruatiee', date: 'Tite-201 - 20M', status: 'Published', cta: 'Call Now', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/a2d325e0-84c1-4b13-8d00-478670c51152' },
+//         ];
+//         return (
+//             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+//                 <div className="lg:col-span-2">
+//                     <div className="relative">
+//                         <textarea className="w-full h-36 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gbp-blue-500 focus:border-gbp-blue-500 resize-none" placeholder="Describe your post (0-1500 chars)"></textarea>
+//                         <span className="absolute bottom-3 right-3 text-sm text-gray-500">0/1500 chars</span>
+//                     </div>
+//                     <div className="mt-4 flex items-center justify-center w-full p-8 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
+//                         <div className="text-center">
+//                             <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+//                             <p className="mt-2 text-sm text-gray-600"><span className="font-semibold text-gbp-blue-600">Drag & drop images/videos here</span> or click to upload</p>
+//                         </div>
+//                     </div>
+//                     <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+//                         <div className="relative md:col-span-1">
+//                             <select className="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-3 px-4 pr-8 rounded-lg focus:outline-none focus:bg-white focus:border-gray-500">
+//                                 <option>Learn More</option>
+//                                 <option>Call Now</option>
+//                                 <option>Buy More</option>
+//                                 <option>Order Online</option>
+//                             </select>
+//                             <ChevronDown className="w-5 h-5 text-gray-400 absolute top-1/2 right-3 -translate-y-1/2 pointer-events-none"/>
+//                         </div>
+//                         <div className="relative md:col-span-2">
+//                             <LinkIcon className="w-5 h-5 text-gray-400 absolute top-1/2 left-3 -translate-y-1/2"/>
+//                             <input type="text" placeholder="Link" className="w-full border border-gray-300 rounded-lg pl-10 pr-20 py-3 focus:ring-2 focus:ring-gbp-blue-500" />
+//                             <div className="absolute top-1/2 right-3 -translate-y-1/2 flex gap-2">
+//                                 <Pencil className="w-5 h-5 text-gray-500 hover:text-gbp-blue-600 cursor-pointer"/>
+//                                 <Trash2 className="w-5 h-5 text-gray-500 hover:text-red-600 cursor-pointer"/>
+//                             </div>
+//                         </div>
+//                     </div>
+//                     <div className="flex items-center gap-4 mt-8">
+//                         <button className="bg-gbp-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-gbp-blue-700">Post Now</button>
+//                         <button className="bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-6 rounded-lg hover:bg-gray-50">Save as Draft</button>
+//                     </div>
+//                 </div>
+//                 <div className="lg:col-span-1 space-y-4">
+//                     {recentPosts.map(post => <PastPostCard key={post.id} post={post} />)}
+//                 </div>
+//             </div>
+//         );
+//     };
+    
+//     const DraftPosts = () => {
+//       const drafts = [
+//           { id: 1, title: 'Line 2 Tione', date: '223 liae - 201 PMM', type: 'image', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
+//           { id: 2, title: 'Siugrer', date: 'Oireen 126.10 Pam', type: 'video', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/a2d325e0-84c1-4b13-8d00-478670c51152' },
+//       ];
+//       return (
+//         <div>
+//           <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+//             <div className="flex items-center gap-4 w-full md:w-auto">
+//               <div className="relative w-full">
+//                 <Search className="w-5 h-5 text-gray-400 absolute top-1/2 left-3 -translate-y-1/2" />
+//                 <input type="text" placeholder="Search" className="border border-gray-300 rounded-lg pl-10 py-2 w-full" />
+//               </div>
+//               <button className="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 whitespace-nowrap">
+//                 <Calendar className="w-5 h-5 text-gray-500" /> Date Range
+//               </button>
+//             </div>
+//             <div className="flex items-center gap-2 w-full md:w-auto">
+//               <span className="text-sm text-gray-600">Sort by:</span>
+//               <select className="border border-gray-300 rounded-lg px-4 py-2 text-sm">
+//                 <option>Newest Ditee</option>
+//                 <option>Oldest Date</option>
+//               </select>
+//             </div>
+//           </div>
+//           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+//             {drafts.map(post => <DraftPostCard key={post.id} post={post} />)}
+//             {drafts.length === 0 && (
+//               <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4 text-center py-16">
+//                   <Copy className="mx-auto h-16 w-16 text-gray-300" />
+//                   <h3 className="mt-4 text-lg font-semibold text-gray-900">No drafts yet, create your first post!</h3>
+//               </div>
+//             )}
+//           </div>
+//         </div>
+//       );
+//     };
+    
+//     const PastPosts = () => {
+//       const posts = [
+//           { id: 1, title: 'Home 2 Drait Qpusnd', date: 'Oite 20 - 201M', status: 'Published', cta: 'Order Online', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/b49d7d13-1b91-447b-83c0-302a64c489c6' },
+//           { id: 2, title: 'Insit Image', date: 'Oite 20 - 201M', status: 'Published', cta: 'Buy More', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
+//           { id: 3, title: 'Foy Offer', date: 'Tite-201 - 201M', status: 'Offer', cta: 'Buy More', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/b49d7d13-1b91-447b-83c0-302a64c489c6' },
+//           { id: 4, title: 'Fubieistron', date: 'Rain ID 110 Vesi', status: 'Published', cta: 'Call Now', views: '129', clicks: '11', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
+//           { id: 5, title: 'Fult Waterton', date: 'Tite-201 20 im 28', status: 'Published', cta: 'Call Now', views: '25', clicks: 'N/A', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/a2d325e0-84c1-4b13-8d00-478670c51152' },
+//       ];
+//       return (
+//         <div>
+//           <div className="flex flex-col md:flex-row justify-end items-center gap-4 mb-6">
+//             <div className="flex items-center gap-2 w-full md:w-auto">
+//               <span className="text-sm text-gray-600">Sort by:</span>
+//               <select className="border border-gray-300 rounded-lg px-4 py-2 text-sm">
+//                 <option>Newest - Oldest</option>
+//                 <option>Oldest - Newest</option>
+//               </select>
+//             </div>
+//           </div>
+//           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+//             {posts.map(post => <PastPostCard key={post.id} post={post} showStats={true} />)}
+//           </div>
+//         </div>
+//       );
+//     };
+
+//     // --- RENDER THE MAIN POSTING UI ---
+//     return (
+//       <div className="bg-white rounded-lg p-6 border border-gray-200">
+//         <h2 className="text-xl font-semibold text-gray-900">Automate Posting</h2>
+//         <p className="text-gray-600 mt-1 mb-6">Create, schedule and manage your Business posts automatically.</p>
+  
+//         {/* Tab Navigation */}
+//         <div className="border-b border-gray-200">
+//           <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+//             {tabs.map((tab) => (
+//               <button
+//                 key={tab.id}
+//                 onClick={() => setActiveTab(tab.id)}
+//                 className={`
+//                   ${activeTab === tab.id
+//                     ? "border-gbp-blue-500 text-gbp-blue-600"
+//                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+//                   } group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+//               >
+//                 <tab.icon className={`-ml-0.5 mr-2 h-5 w-5 ${activeTab === tab.id ? "text-gbp-blue-500" : "text-gray-400 group-hover:text-gray-500"}`} />
+//                 <span>{tab.name}</span>
+//               </button>
+//             ))}
+//           </nav>
+//         </div>
+  
+//         {/* Tab Content */}
+//         <div className="mt-6">
+//           {activeTab === "create" && <CreateNewPost />}
+//           {activeTab === "draft" && <DraftPosts />}
+//           {activeTab === "past" && <PastPosts />}
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   // Fallback for any other module that doesn't have a specific UI yet
+//   return (
+//     <div className="max-w-4xl">
+//       <div className="bg-white rounded-lg p-6 border border-gray-200">
+//         <div className="flex items-center space-x-3 mb-4">
+//           <module.icon className="w-8 h-8 text-gbp-blue-500" />
+//           <h2 className="text-xl font-semibold text-gray-900">{module.name}</h2>
+//         </div>
+//         <p className="text-gray-600 mb-6">{module.description}</p>
+
+//         <div className="bg-gray-50 rounded-lg p-8 text-center">
+//           <module.icon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+//           <h3 className="text-lg font-medium text-gray-900 mb-2">
+//             Coming Soon
+//           </h3>
+//           <p className="text-gray-500">
+//             This automation module is currently under development.
+//           </p>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+
 function DefaultAutomation({ module }: { module: AutomationModule }) {
+  // Check if the selected module is "Automate Posting"
+  if (module.id === 'automate-posting') {
+    // --- STATE AND HELPER COMPONENTS FOR THE POSTING UI ---
+    const [activeTab, setActiveTab] = useState("create");
+
+    const tabs = [
+      { id: "create", name: "Create New Post", icon: Plus },
+      { id: "draft", name: "Draft Posts", icon: Bookmark },
+      { id: "past", name: "Past Posts", icon: Send },
+    ];
+
+    const DraftPostCard = ({ post }) => (
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="relative">
+          <img src={post.imageUrl} alt={post.title} className="w-full h-32 object-cover" />
+          {post.type === 'video' && (
+            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+               <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center">
+                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"></path></svg>
+               </div>
+             </div>
+          )}
+        </div>
+        <div className="p-4">
+          <h3 className="font-semibold text-gray-800 truncate">{post.title}</h3>
+          <p className="text-sm text-gray-500 mb-2">{post.date}</p>
+          <div className="flex items-center justify-between mb-4">
+            <span className="inline-flex items-center bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-0.5 rounded-full">
+              <Clock className="w-3 h-3 mr-1.5" />
+              Status: Draft
+            </span>
+            <MoreVertical className="w-5 h-5 text-gray-400 cursor-pointer" />
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="w-full text-sm bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50">Edit</button>
+            <button className="w-full text-sm bg-gbp-blue-600 text-white py-2 px-4 rounded-md hover:bg-gbp-blue-700">Post Now</button>
+          </div>
+        </div>
+      </div>
+    );
+
+    const PastPostCard = ({ post, showStats = false }) => {
+        const statusColors = {
+          Published: "bg-green-100 text-green-800",
+          Offer: "bg-orange-100 text-orange-800",
+          Draft: "bg-gray-100 text-gray-700"
+        };
+        return (
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <img src={post.imageUrl} alt={post.title} className="w-full h-32 object-cover" />
+              <div className="p-4">
+                  <h3 className="font-semibold text-gray-800 truncate">{post.title}</h3>
+                  <p className="text-sm text-gray-500 mb-2">{post.date}</p>
+                   <div className="flex items-center justify-between mb-3">
+                      <span className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full ${statusColors[post.status] || statusColors.Draft}`}>
+                          {post.status}
+                      </span>
+                      <span className="text-sm font-medium text-gbp-blue-600">{post.cta}</span>
+                   </div>
+                  {showStats && post.views && post.clicks && (
+                     <div className="flex items-center text-sm text-gray-500 space-x-4 mb-4">
+                        <div className="flex items-center">
+                            <Eye className="w-4 h-4 mr-1"/> {post.views} Views
+                        </div>
+                        <div className="flex items-center">
+                            <ThumbsUp className="w-4 h-4 mr-1"/> {post.clicks} Clicks
+                        </div>
+                     </div>
+                  )}
+                   <div className="flex items-center gap-2">
+                       <button className="w-full text-sm bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50">View Post</button>
+                       <button className="w-full text-sm bg-gray-100 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-200">Duplicate Post</button>
+                   </div>
+              </div>
+          </div>
+        )
+    };
+    
+    // --- Tab Content Components ---
+    const CreateNewPost = () => {
+        // --- NEW: State for description and AI loading state ---
+        const [postDescription, setPostDescription] = useState("");
+        const [isGenerating, setIsGenerating] = useState(false);
+        
+        // --- NEW: Handler for AI description generation ---
+        const handleGenerateAIDescription = () => {
+            setIsGenerating(true);
+            // Simulate an API call to a generative AI
+            setTimeout(() => {
+                const aiGeneratedText = "Discover our latest seasonal offers! 🍂 From cozy autumn decor to delicious pumpkin-spice treats, we have everything you need to celebrate the season. Visit us today and get 20% off your entire purchase. Don't miss out! #AutumnVibes #SeasonalSale #ShopLocal";
+                setPostDescription(aiGeneratedText.slice(0, 1500)); // Ensure it doesn't exceed max length
+                setIsGenerating(false);
+            }, 1500); // 1.5 second delay to simulate network request
+        };
+
+        const recentPosts = [
+            { id: 1, title: 'Insit Image', date: 'Oite 20 - 201M', status: 'Published', cta: 'Order Online', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
+            { id: 2, title: 'Fcst Waturton', date: 'Bupi More 18:00', status: 'Published', cta: 'Buy More', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/b49d7d13-1b91-447b-83c0-302a64c489c6' },
+            { id: 3, title: 'Ffuf Uruatiee', date: 'Tite-201 - 20M', status: 'Published', cta: 'Call Now', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/a2d325e0-84c1-4b13-8d00-478670c51152' },
+        ];
+        
+        return (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2">
+                    <div className="relative">
+                        {/* UPDATED: Textarea with value and onChange handler */}
+                        <textarea 
+                            value={postDescription}
+                            onChange={(e) => setPostDescription(e.target.value)}
+                            maxLength={1500}
+                            className="w-full h-36 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gbp-blue-500 focus:border-gbp-blue-500 resize-none" 
+                            placeholder="Describe your post (0-1500 chars)"
+                        />
+                        {/* UPDATED: Dynamic character count */}
+                        <span className="absolute bottom-3 right-3 text-sm text-gray-500">
+                            {postDescription.length}/1500 chars
+                        </span>
+                    </div>
+
+                    {/* NEW: AI Generate Button */}
+                    <div className="flex justify-end mt-2">
+                        <button
+                            onClick={handleGenerateAIDescription}
+                            disabled={isGenerating}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gbp-blue-600 bg-gbp-blue-50 rounded-lg hover:bg-gbp-blue-100 disabled:opacity-50 disabled:cursor-wait"
+                        >
+                            <Sparkles className="w-4 h-4" />
+                            {isGenerating ? "Generating..." : "Generate AI Description"}
+                        </button>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-center w-full p-8 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
+                        <div className="text-center">
+                            <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                            <p className="mt-2 text-sm text-gray-600"><span className="font-semibold text-gbp-blue-600">Drag & drop images/videos here</span> or click to upload</p>
+                        </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="relative md:col-span-1">
+                            <select className="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-3 px-4 pr-8 rounded-lg focus:outline-none focus:bg-white focus:border-gray-500">
+                                <option>Learn More</option>
+                                <option>Call Now</option>
+                                <option>Buy More</option>
+                                <option>Order Online</option>
+                            </select>
+                            <ChevronDown className="w-5 h-5 text-gray-400 absolute top-1/2 right-3 -translate-y-1/2 pointer-events-none"/>
+                        </div>
+                        <div className="relative md:col-span-2">
+                            <LinkIcon className="w-5 h-5 text-gray-400 absolute top-1/2 left-3 -translate-y-1/2"/>
+                            <input type="text" placeholder="Link" className="w-full border border-gray-300 rounded-lg pl-10 pr-20 py-3 focus:ring-2 focus:ring-gbp-blue-500" />
+                            <div className="absolute top-1/2 right-3 -translate-y-1/2 flex gap-2">
+                                <Pencil className="w-5 h-5 text-gray-500 hover:text-gbp-blue-600 cursor-pointer"/>
+                                <Trash2 className="w-5 h-5 text-gray-500 hover:text-red-600 cursor-pointer"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4 mt-8">
+                        <button className="bg-gbp-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-gbp-blue-700">Post Now</button>
+                        <button className="bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-6 rounded-lg hover:bg-gray-50">Save as Draft</button>
+                    </div>
+                </div>
+                <div className="lg:col-span-1 space-y-4">
+                    {recentPosts.map(post => <PastPostCard key={post.id} post={post} />)}
+                </div>
+            </div>
+        );
+    };
+    
+    const DraftPosts = () => {
+      const drafts = [
+          { id: 1, title: 'Line 2 Tione', date: '223 liae - 201 PMM', type: 'image', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
+          { id: 2, title: 'Siugrer', date: 'Oireen 126.10 Pam', type: 'video', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/a2d325e0-84c1-4b13-8d00-478670c51152' },
+      ];
+      return (
+        <div>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <div className="relative w-full">
+                <Search className="w-5 h-5 text-gray-400 absolute top-1/2 left-3 -translate-y-1/2" />
+                <input type="text" placeholder="Search" className="border border-gray-300 rounded-lg pl-10 py-2 w-full" />
+              </div>
+              <button className="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 whitespace-nowrap">
+                <Calendar className="w-5 h-5 text-gray-500" /> Date Range
+              </button>
+            </div>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <span className="text-sm text-gray-600">Sort by:</span>
+              <select className="border border-gray-300 rounded-lg px-4 py-2 text-sm">
+                <option>Newest Ditee</option>
+                <option>Oldest Date</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {drafts.map(post => <DraftPostCard key={post.id} post={post} />)}
+            {drafts.length === 0 && (
+              <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4 text-center py-16">
+                  <Copy className="mx-auto h-16 w-16 text-gray-300" />
+                  <h3 className="mt-4 text-lg font-semibold text-gray-900">No drafts yet, create your first post!</h3>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+    
+    const PastPosts = () => {
+      const posts = [
+          { id: 1, title: 'Home 2 Drait Qpusnd', date: 'Oite 20 - 201M', status: 'Published', cta: 'Order Online', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/b49d7d13-1b91-447b-83c0-302a64c489c6' },
+          { id: 2, title: 'Insit Image', date: 'Oite 20 - 201M', status: 'Published', cta: 'Buy More', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
+          { id: 3, title: 'Foy Offer', date: 'Tite-201 - 201M', status: 'Offer', cta: 'Buy More', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/b49d7d13-1b91-447b-83c0-302a64c489c6' },
+          { id: 4, title: 'Fubieistron', date: 'Rain ID 110 Vesi', status: 'Published', cta: 'Call Now', views: '129', clicks: '11', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
+          { id: 5, title: 'Fult Waterton', date: 'Tite-201 20 im 28', status: 'Published', cta: 'Call Now', views: '25', clicks: 'N/A', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/a2d325e0-84c1-4b13-8d00-478670c51152' },
+      ];
+      return (
+        <div>
+          <div className="flex flex-col md:flex-row justify-end items-center gap-4 mb-6">
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <span className="text-sm text-gray-600">Sort by:</span>
+              <select className="border border-gray-300 rounded-lg px-4 py-2 text-sm">
+                <option>Newest - Oldest</option>
+                <option>Oldest - Newest</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {posts.map(post => <PastPostCard key={post.id} post={post} showStats={true} />)}
+          </div>
+        </div>
+      );
+    };
+
+    // --- RENDER THE MAIN POSTING UI ---
+    return (
+      <div className="bg-white rounded-lg p-6 border border-gray-200">
+        <h2 className="text-xl font-semibold text-gray-900">Automate Posting</h2>
+        <p className="text-gray-600 mt-1 mb-6">Create, schedule and manage your Business posts automatically.</p>
+  
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
+                  ${activeTab === tab.id
+                    ? "border-gbp-blue-500 text-gbp-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  } group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+              >
+                <tab.icon className={`-ml-0.5 mr-2 h-5 w-5 ${activeTab === tab.id ? "text-gbp-blue-500" : "text-gray-400 group-hover:text-gray-500"}`} />
+                <span>{tab.name}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+  
+        {/* Tab Content */}
+        <div className="mt-6">
+          {activeTab === "create" && <CreateNewPost />}
+          {activeTab === "draft" && <DraftPosts />}
+          {activeTab === "past" && <PastPosts />}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback for any other module that doesn't have a specific UI yet
   return (
     <div className="max-w-4xl">
       <div className="bg-white rounded-lg p-6 border border-gray-200">
