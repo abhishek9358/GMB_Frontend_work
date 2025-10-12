@@ -5,7 +5,7 @@ import { SERVER } from '@/constants';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 import DynamicReviewChart from '@/components/dynamicCompatitorReviewChart';
-import CompetitorComparisonDashboard from '@/components/competitorComparisionDashboard';
+import CompetitorComparisonDashboard from '@/components/CompetitorComparisionDashboard';
 
 // =============================================
 // TYPE DEFINITIONS
