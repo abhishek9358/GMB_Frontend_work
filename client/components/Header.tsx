@@ -1,5 +1,6 @@
 import { Search, Bell, ChevronDown, Menu, X } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../contexts/AuthContext";
 import { SERVER } from "@/constants";
@@ -9,6 +10,16 @@ import { UserBusiness } from "@/pages/Businesses";
 import { RootState } from "@/redux/store";
 import { useDispatch, useSelector } from "react-redux";
 import { setActiveLocation } from "@/redux/slices/activeLocation.slice";
+import {
+  setAllSites,
+  switchActiveSite,
+  setSitesLoading,
+} from "@/redux/slices/activeSite.slice";
+import {
+  selectActiveSite,
+  selectAllSites,
+  selectSitesLoading,
+} from "@/redux/slices/activeSite.selectors";
 
 interface HeaderProps {
   title?: string;
@@ -30,14 +41,28 @@ interface Business {
 
 export default function Header({ title, subtitle }: HeaderProps) {
   const { logout } = useAuth();
+  const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showBusinessSelector, setShowBusinessSelector] = useState(false);
+  const [showSiteSelector, setShowSiteSelector] = useState(false);
   const [businesses, setBusinesses] = useState<Business[]>([]);
 
   const dispatch = useDispatch();
 
-  const {activeLocation} = useSelector((state: RootState) => state.activeLocation)
+  // Redux selectors
+  const { activeLocation } = useSelector(
+    (state: RootState) => state.activeLocation,
+  );
+  const activeSite = useSelector(selectActiveSite);
+  const allSites = useSelector(selectAllSites);
+  const sitesLoading = useSelector(selectSitesLoading);
+
+  // Check if current page is Search Console
+  const isSearchConsolePage = useMemo(() => {
+    const path = location.pathname;
+    return path.startsWith("/analytics/search-console");
+  }, [location.pathname]);
 
   const activeSelectedBusiness: Business | null = useMemo(() => {
     if (!activeLocation) return null;
@@ -56,6 +81,32 @@ export default function Header({ title, subtitle }: HeaderProps) {
     };
   }, [activeLocation]);
 
+  // Fetch Search Console sites
+  const fetchSearchConsoleSites = async () => {
+    try {
+      dispatch(setSitesLoading(true));
+
+      const response = await axios.get(`${SERVER}/api/v1/seo/sites`, {
+        withCredentials: true,
+      });
+
+      if (response.data.success && response.data.sites) {
+        dispatch(setAllSites(response.data.sites));
+      }
+    } catch (error) {
+      console.error("Error fetching Search Console sites:", error);
+    } finally {
+      dispatch(setSitesLoading(false));
+    }
+  };
+
+  // Fetch sites when on Search Console pages
+  useEffect(() => {
+    if (isSearchConsolePage && allSites.length === 0) {
+      fetchSearchConsoleSites();
+    }
+  }, [isSearchConsolePage]);
+
   async function fetchMyBusinesses() {
     try {
       const res = await axios.get(`${SERVER}/api/v1/account/mybusinesses`, {
@@ -68,8 +119,8 @@ export default function Header({ title, subtitle }: HeaderProps) {
           (business: any) => ({
             id: business.id,
             name: business.title,
-            rating: business?.rating || 0, // default if missing
-            reviewCount: business?.reviewCount || 0, // default if missing
+            rating: business?.rating || 0,
+            reviewCount: business?.reviewCount || 0,
             address: formatAddress(business.address),
             category:
               business.category?.primaryCategory?.displayName ||
@@ -80,14 +131,13 @@ export default function Header({ title, subtitle }: HeaderProps) {
           }),
         );
 
-        // Save to state + localStorage
         setBusinesses(transformedBusinesses);
         localStorage.setItem(
           "userBusinesses",
           JSON.stringify(transformedBusinesses),
         );
 
-        return transformedBusinesses; // ✅ return businesses
+        return transformedBusinesses;
       }
 
       return [];
@@ -102,7 +152,6 @@ export default function Header({ title, subtitle }: HeaderProps) {
     const loadBusinesses = async () => {
       const defaultBusinesses: UserBusiness[] = [];
 
-      // Try localStorage first
       const storedSelected = localStorage.getItem("selectedBusiness");
       let allBusinesses = [...defaultBusinesses];
 
@@ -110,18 +159,13 @@ export default function Header({ title, subtitle }: HeaderProps) {
         try {
           const parsed: Business = JSON.parse(storedSelected);
           const found = allBusinesses.find((b) => b.id === parsed.id);
-          // if (found) {
-          //   setActiveSelectedBusiness(found);
-          // }
         } catch (err) {
           console.error("Failed to parse selectedBusiness:", err);
         }
       }
 
-      // Always fetch fresh from API
       const fetchedBusinesses = await fetchMyBusinesses();
       if (fetchedBusinesses.length > 0) {
-        // merge without duplicates
         fetchedBusinesses.forEach((b) => {
           if (!allBusinesses.find((x) => x.id === b.id)) {
             allBusinesses.push(b);
@@ -130,16 +174,10 @@ export default function Header({ title, subtitle }: HeaderProps) {
       }
 
       setBusinesses(allBusinesses);
-
-      // Select default business
-      // if (allBusinesses.length > 0 && !activeSelectedBusiness) {
-      //   setActiveSelectedBusiness(allBusinesses[0]);
-      // }
     };
 
     loadBusinesses();
 
-    // Listen for storage/focus changes
     const handleStorageChange = () => loadBusinesses();
 
     window.addEventListener("storage", handleStorageChange);
@@ -154,64 +192,65 @@ export default function Header({ title, subtitle }: HeaderProps) {
   const handleBusinessSelect = (business: Business) => {
     setShowBusinessSelector(false);
 
-    // Update Redux with normalized location
-    if(business.locationId){
-          dispatch(
-            setActiveLocation({
-              ...business,
-              // minimal adapter so it fits Location type
-              id: business.id,
-              locationId: business.locationId || "",
-              title: business.name,
-              address: {
-                regionCode: "IN",
-                languageCode: "en",
-                postalCode: "",
-                administrativeArea: "",
-                locality: "",
-                addressLines: [business.address],
-              },
-              phone: business.phone || null,
-              websiteUri: business.website || null,
-              category: {
-                primaryCategory: {
-                  name: business.category,
-                  displayName: business.category,
-                },
-              },
-              status: "ACTIVE",
-              verification: "verified",
-              metadata: {
-                hasGoogleUpdated: false,
-                hasPendingEdits: false,
-                canDelete: true,
-                canModifyServiceList: true,
-                placeId: business.locationId || "",
-                mapsUri: "",
-                newReviewUri: "",
-                hasVoiceOfMerchant: false,
-              },
-              stats: {
-                averageRating: business.rating,
-                reviewCount: business.reviewCount,
-              },
-              isActive: true,
-              rating: business.rating,
-              reviewCount: business.reviewCount,
-              placeId: business.locationId || "",
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }),
-          );
+    if (business.locationId) {
+      dispatch(
+        setActiveLocation({
+          ...business,
+          id: business.id,
+          locationId: business.locationId || "",
+          title: business.name,
+          address: {
+            regionCode: "IN",
+            languageCode: "en",
+            postalCode: "",
+            administrativeArea: "",
+            locality: "",
+            addressLines: [business.address],
+          },
+          phone: business.phone || null,
+          websiteUri: business.website || null,
+          category: {
+            primaryCategory: {
+              name: business.category,
+              displayName: business.category,
+            },
+          },
+          status: "ACTIVE",
+          verification: "verified",
+          metadata: {
+            hasGoogleUpdated: false,
+            hasPendingEdits: false,
+            canDelete: true,
+            canModifyServiceList: true,
+            placeId: business.locationId || "",
+            mapsUri: "",
+            newReviewUri: "",
+            hasVoiceOfMerchant: false,
+          },
+          stats: {
+            averageRating: business.rating,
+            reviewCount: business.reviewCount,
+          },
+          isActive: true,
+          rating: business.rating,
+          reviewCount: business.reviewCount,
+          placeId: business.locationId || "",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }),
+      );
     }
 
-
-    // Also persist for reload safety
     localStorage.setItem("selectedBusiness", JSON.stringify(business));
     localStorage.setItem(
       "selectedBusinessLocationId",
       business.locationId || "",
     );
+  };
+
+  const handleSiteSelect = (siteUrl: string) => {
+    dispatch(switchActiveSite(siteUrl));
+    setShowSiteSelector(false);
   };
 
   // Close dropdowns when clicking outside
@@ -220,6 +259,9 @@ export default function Header({ title, subtitle }: HeaderProps) {
       const target = event.target as Element;
       if (!target.closest(".business-selector")) {
         setShowBusinessSelector(false);
+      }
+      if (!target.closest(".site-selector")) {
+        setShowSiteSelector(false);
       }
       if (!target.closest(".profile-dropdown")) {
         setShowProfile(false);
@@ -260,72 +302,152 @@ export default function Header({ title, subtitle }: HeaderProps) {
             />
           </div>
 
-          {/* Business Selector */}
-          <div className="relative business-selector">
-            <button
-              onClick={() => setShowBusinessSelector(!showBusinessSelector)}
-              className="flex items-center space-x-2 px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
-            >
-              <div className="w-6 h-6 bg-gbp-blue-100 rounded flex items-center justify-center">
-                <span className="text-gbp-blue-600 text-xs font-medium">
-                  {activeSelectedBusiness ? activeSelectedBusiness?.name?.charAt(0) : "B"}
-                </span>
-              </div>
-              <span className="text-sm font-medium text-gray-700 max-w-40 truncate">
-                {activeSelectedBusiness ? activeSelectedBusiness.name : "Select Business"}
-              </span>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            </button>
-
-            {/* Business Selector Dropdown */}
-            {showBusinessSelector && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 max-h-96 overflow-y-auto">
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <h3 className="text-sm font-medium text-gray-900">
-                    Select Business
-                  </h3>
+          {/* Conditional Selector: Business or Site */}
+          {isSearchConsolePage ? (
+            /* Site Selector for Search Console Pages */
+            <div className="relative site-selector">
+              <button
+                onClick={() => setShowSiteSelector(!showSiteSelector)}
+                className="flex items-center space-x-2 px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
+                  <span className="text-blue-600 text-xs font-medium">
+                    {activeSite ? activeSite.siteUrl.charAt(8) : "S"}
+                  </span>
                 </div>
-                {businesses.map((business) => (
-                  <button
-                    key={business.id}
-                    onClick={() => handleBusinessSelect(business)}
-                    className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                      activeSelectedBusiness?.id === business.id
-                        ? "bg-gbp-blue-50 border-r-2 border-gbp-blue-500"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gbp-blue-100 rounded flex items-center justify-center">
-                        <span className="text-gbp-blue-600 text-sm font-medium">
-                          {business?.name?.charAt(0)}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {business.name}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">
-                          {business.category}
-                        </p>
-                      </div>
-                      {activeSelectedBusiness?.id === business.id && (
-                        <div className="w-2 h-2 bg-gbp-blue-500 rounded-full"></div>
-                      )}
-                    </div>
-                  </button>
-                ))}
-                {businesses.length === 0 && (
-                  <div className="px-4 py-6 text-center text-gray-500">
-                    <p className="text-sm">No businesses found</p>
-                    <p className="text-xs mt-1">
-                      Add a business to get started
-                    </p>
+                <span className="text-sm font-medium text-gray-700 max-w-40 truncate">
+                  {activeSite ? activeSite.siteUrl : "Select Site"}
+                </span>
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              </button>
+
+              {/* Site Selector Dropdown */}
+              {showSiteSelector && (
+                <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 max-h-96 overflow-y-auto">
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <h3 className="text-sm font-medium text-gray-900">
+                      Select Search Console Site
+                    </h3>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+
+                  {sitesLoading ? (
+                    <div className="px-4 py-6 text-center text-gray-500">
+                      <p className="text-sm">Loading sites...</p>
+                    </div>
+                  ) : allSites.length > 0 ? (
+                    allSites.map((site) => (
+                      <button
+                        key={site.siteUrl}
+                        onClick={() => handleSiteSelect(site.siteUrl)}
+                        className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                          activeSite?.siteUrl === site.siteUrl
+                            ? "bg-blue-50 border-r-2 border-blue-500"
+                            : ""
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                            <span className="text-blue-600 text-sm font-medium">
+                              {site.siteUrl.charAt(8)}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {site.siteUrl}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {site.permissionLevel}
+                            </p>
+                          </div>
+                          {activeSite?.siteUrl === site.siteUrl && (
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-6 text-center text-gray-500">
+                      <p className="text-sm">No sites found</p>
+                      <p className="text-xs mt-1">
+                        Please connect your Search Console account
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Business Selector for other pages */
+            <div className="relative business-selector">
+              <button
+                onClick={() => setShowBusinessSelector(!showBusinessSelector)}
+                className="flex items-center space-x-2 px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                <div className="w-6 h-6 bg-gbp-blue-100 rounded flex items-center justify-center">
+                  <span className="text-gbp-blue-600 text-xs font-medium">
+                    {activeSelectedBusiness
+                      ? activeSelectedBusiness?.name?.charAt(0)
+                      : "B"}
+                  </span>
+                </div>
+                <span className="text-sm font-medium text-gray-700 max-w-40 truncate">
+                  {activeSelectedBusiness
+                    ? activeSelectedBusiness.name
+                    : "Select Business"}
+                </span>
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              </button>
+
+              {/* Business Selector Dropdown */}
+              {showBusinessSelector && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 max-h-96 overflow-y-auto">
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <h3 className="text-sm font-medium text-gray-900">
+                      Select Business
+                    </h3>
+                  </div>
+                  {businesses.map((business) => (
+                    <button
+                      key={business.id}
+                      onClick={() => handleBusinessSelect(business)}
+                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                        activeSelectedBusiness?.id === business.id
+                          ? "bg-gbp-blue-50 border-r-2 border-gbp-blue-500"
+                          : ""
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-gbp-blue-100 rounded flex items-center justify-center">
+                          <span className="text-gbp-blue-600 text-sm font-medium">
+                            {business?.name?.charAt(0)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {business.name}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {business.category}
+                          </p>
+                        </div>
+                        {activeSelectedBusiness?.id === business.id && (
+                          <div className="w-2 h-2 bg-gbp-blue-500 rounded-full"></div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                  {businesses.length === 0 && (
+                    <div className="px-4 py-6 text-center text-gray-500">
+                      <p className="text-sm">No businesses found</p>
+                      <p className="text-xs mt-1">
+                        Add a business to get started
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Notifications */}
           <div className="relative notifications-dropdown">

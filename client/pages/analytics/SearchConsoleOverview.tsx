@@ -1,17 +1,46 @@
-import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, CheckCircle2, Info, AlertCircle, TrendingUp, TrendingDown, Zap } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend, BarChart, Bar } from "recharts";
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { BarChart3, CheckCircle2, Info, AlertCircle, Zap } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import axios from "axios";
 import { SERVER } from "@/constants";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { selectActiveSite } from "@/redux/slices/activeSite.selectors";
 
-function Stat({ label, value, postfix, hint }: { label: string; value: number | string; postfix?: string; hint?: string }) {
+function Stat({
+  label,
+  value,
+  postfix,
+  hint,
+}: {
+  label: string;
+  value: number | string;
+  postfix?: string;
+  hint?: string;
+}) {
   return (
     <div className="p-4 rounded-lg bg-white border border-blue-100">
       <p className="text-xs text-blue-600">{label}</p>
-      <p className="text-2xl font-semibold text-blue-900">{value}{postfix ?? ""}</p>
+      <p className="text-2xl font-semibold text-blue-900">
+        {value}
+        {postfix ?? ""}
+      </p>
       {hint && <p className="text-xs text-blue-500 mt-1">{hint}</p>}
     </div>
   );
@@ -20,9 +49,9 @@ function Stat({ label, value, postfix, hint }: { label: string; value: number | 
 function MetricCard({ label, mobile, desktop, unit, threshold }: any) {
   const getColor = (value: number, isMobile: boolean) => {
     const mobileMultiplier = isMobile ? 1.2 : 1;
-    if (value <= threshold.good * mobileMultiplier) return 'text-green-700';
-    if (value <= threshold.poor * mobileMultiplier) return 'text-orange-700';
-    return 'text-red-700';
+    if (value <= threshold.good * mobileMultiplier) return "text-green-700";
+    if (value <= threshold.poor * mobileMultiplier) return "text-orange-700";
+    return "text-red-700";
   };
 
   return (
@@ -32,13 +61,15 @@ function MetricCard({ label, mobile, desktop, unit, threshold }: any) {
         <div>
           <p className="text-xs text-gray-500">Mobile</p>
           <p className={`text-lg font-bold ${getColor(mobile, true)}`}>
-            {mobile}{unit}
+            {mobile}
+            {unit}
           </p>
         </div>
         <div>
           <p className="text-xs text-gray-500">Desktop</p>
           <p className={`text-lg font-bold ${getColor(desktop, false)}`}>
-            {desktop}{unit}
+            {desktop}
+            {unit}
           </p>
         </div>
       </div>
@@ -49,12 +80,13 @@ function MetricCard({ label, mobile, desktop, unit, threshold }: any) {
 export default function SearchConsoleOverview() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [sites, setSites] = useState<any[]>([]);
-  const [selectedSite, setSelectedSite] = useState<string>("");
   const [overviewData, setOverviewData] = useState<any>(null);
   const [indexingData, setIndexingData] = useState<any>(null);
   const [coreWebVitals, setCoreWebVitals] = useState<any>(null);
   const [error, setError] = useState<string>("");
+
+  // Get active site from Redux
+  const activeSite = useSelector(selectActiveSite);
 
   // Check authentication status
   async function getGSCAuthStatus() {
@@ -66,7 +98,6 @@ export default function SearchConsoleOverview() {
 
       if (res.data?.authenticated) {
         setIsAuthenticated(true);
-        await fetchSites();
       } else {
         setIsAuthenticated(false);
       }
@@ -75,26 +106,6 @@ export default function SearchConsoleOverview() {
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
-    }
-  }
-
-  // Fetch all sites
-  async function fetchSites() {
-    try {
-      const res = await axios.get(`${SERVER}/api/v1/seo/sites`, {
-        withCredentials: true,
-      });
-      console.log("Sites response:", res.data);
-
-      if (res.data?.success && res.data?.sites) {
-        setSites(res.data.sites);
-        if (res.data.sites.length > 0) {
-          setSelectedSite(res.data.sites[0].siteUrl);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching sites:", error);
-      setError("Failed to fetch sites");
     }
   }
 
@@ -180,24 +191,19 @@ export default function SearchConsoleOverview() {
     }
   };
 
-  // Handle site selection
-  const handleSiteChange = (siteUrl: string) => {
-    setSelectedSite(siteUrl);
-  };
-
-  // Initial load
+  // Initial load - check auth
   useEffect(() => {
     getGSCAuthStatus();
   }, []);
 
-  // Fetch data when site is selected
+  // Fetch data when active site changes
   useEffect(() => {
-    if (selectedSite) {
-      fetchOverviewData(selectedSite);
-      fetchIndexingData(selectedSite);
-      fetchCoreWebVitals(selectedSite);
+    if (activeSite?.siteUrl && isAuthenticated) {
+      fetchOverviewData(activeSite.siteUrl);
+      fetchIndexingData(activeSite.siteUrl);
+      fetchCoreWebVitals(activeSite.siteUrl);
     }
-  }, [selectedSite]);
+  }, [activeSite?.siteUrl, isAuthenticated]);
 
   // Show login button if not authenticated
   if (!isAuthenticated && !isLoading) {
@@ -242,7 +248,29 @@ export default function SearchConsoleOverview() {
             Error Loading Data
           </h2>
           <p className="text-gray-600 text-center max-w-md">{error}</p>
-          <Button onClick={() => fetchOverviewData(selectedSite)}>Retry</Button>
+          <Button
+            onClick={() => activeSite && fetchOverviewData(activeSite.siteUrl)}
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if no site selected
+  if (!activeSite) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+          <Info className="w-16 h-16 text-blue-500" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            No Site Selected
+          </h2>
+          <p className="text-gray-600 text-center max-w-md">
+            Please select a site from the header dropdown to view analytics
+            data.
+          </p>
         </div>
       </div>
     );
@@ -250,31 +278,16 @@ export default function SearchConsoleOverview() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header with Site Selector */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <BarChart3 className="w-6 h-6" />
           Search Console • Overview
         </h1>
 
-        <div className="flex items-center gap-4">
-          <Select value={selectedSite} onValueChange={handleSiteChange}>
-            <SelectTrigger className="w-[300px]">
-              <SelectValue placeholder="Select a website" />
-            </SelectTrigger>
-            <SelectContent>
-              {sites.map((site) => (
-                <SelectItem key={site.siteUrl} value={site.siteUrl}>
-                  {site.siteUrl}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button onClick={handleGSCLogin} variant="outline" size="sm">
-            Reconnect
-          </Button>
-        </div>
+        <Button onClick={handleGSCLogin} variant="outline" size="sm">
+          Reconnect
+        </Button>
       </div>
 
       {overviewData && (
@@ -320,7 +333,7 @@ export default function SearchConsoleOverview() {
               </CardContent>
             </Card>
 
-            {/* Indexing Card - Enhanced */}
+            {/* Indexing Card */}
             <Card>
               <CardHeader>
                 <CardTitle>Indexing Status</CardTitle>
@@ -372,7 +385,7 @@ export default function SearchConsoleOverview() {
               </CardContent>
             </Card>
 
-            {/* Core Web Vitals Card - FULLY INTEGRATED */}
+            {/* Core Web Vitals Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -631,66 +644,6 @@ export default function SearchConsoleOverview() {
                 </CardContent>
               </Card>
 
-              {/* Sitemaps Info */}
-              {/* <Card>
-                <CardHeader>
-                  <CardTitle>Sitemaps</CardTitle>
-                  <CardDescription>Submitted sitemaps status</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {indexingData.sitemaps && indexingData.sitemaps.count > 0 ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-center">
-                          <p className="text-xs text-blue-700">Total</p>
-                          <p className="text-xl font-semibold text-blue-800">
-                            {indexingData.sitemaps.count}
-                          </p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-center">
-                          <p className="text-xs text-red-700">Errors</p>
-                          <p className="text-xl font-semibold text-red-800">
-                            {indexingData.sitemaps.totalErrors}
-                          </p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-100 text-center">
-                          <p className="text-xs text-yellow-700">Warnings</p>
-                          <p className="text-xl font-semibold text-yellow-800">
-                            {indexingData.sitemaps.totalWarnings}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {indexingData.sitemaps.data.map(
-                          (sitemap: any, index: number) => (
-                            <div
-                              key={index}
-                              className="p-3 rounded-lg bg-gray-50 border border-gray-200"
-                            >
-                              <p className="text-xs font-medium text-gray-800 truncate">
-                                {sitemap.path}
-                              </p>
-                              <div className="flex justify-between items-center mt-2 text-xs text-gray-600">
-                                <span>Submitted: {sitemap.submitted}</span>
-                                <span className="text-green-700">
-                                  Indexed: {sitemap.indexed}
-                                </span>
-                              </div>
-                            </div>
-                          ),
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Info className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No sitemaps found</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card> */}
-
               {/* Indexing Timeline */}
               {indexingData?.timeline && indexingData.timeline.length > 0 && (
                 <Card className="lg:col-span-2">
@@ -738,7 +691,7 @@ export default function SearchConsoleOverview() {
             <CardHeader>
               <CardTitle>Traffic trend (last 30 days)</CardTitle>
               <CardDescription>
-                Clicks and impressions trend for {overviewData.business?.name}
+                Clicks and impressions trend for {activeSite.siteUrl}
               </CardDescription>
             </CardHeader>
             <CardContent>

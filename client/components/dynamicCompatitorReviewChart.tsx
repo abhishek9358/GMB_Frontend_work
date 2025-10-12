@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Star } from "lucide-react";
 
-
-
 // Helper function to parse relative dates and get month/year
 const parseRelativeDate = (dateStr: string, cutoffDate: string) => {
   const cutoff = new Date(cutoffDate);
@@ -301,9 +299,7 @@ const DynamicReviewChart = ({
                   </>
                 ) : (
                   <>
-                    {/* Comparison mode - three lines with REAL DATA */}
-
-                    {/* Line 1: Your Client (Blue) */}
+                    {/* Comparison mode - Show current selected business line */}
                     {allMonths.length > 1 && (
                       <polyline
                         points={allMonths
@@ -332,7 +328,7 @@ const DynamicReviewChart = ({
                       const y = 230 - count * yScale;
 
                       return (
-                        <g key={`client-${i}`}>
+                        <g key={`selected-${i}`}>
                           <circle
                             cx={x}
                             cy={y}
@@ -372,7 +368,7 @@ const DynamicReviewChart = ({
                       );
                     })}
 
-                    {/* Line 2: Main Competitor (Green) - REAL DATA */}
+                    {/* Line 2: Your Business (Green) - Only show if different from selected */}
                     {competitorData && allMonths.length > 1 && (
                       <polyline
                         points={allMonths
@@ -402,7 +398,7 @@ const DynamicReviewChart = ({
                         const y = 230 - count * yScale;
 
                         return (
-                          <g key={`comp-${i}`}>
+                          <g key={`your-biz-${i}`}>
                             <circle
                               cx={x}
                               cy={y}
@@ -442,7 +438,7 @@ const DynamicReviewChart = ({
                         );
                       })}
 
-                    {/* Line 3: All Competitors (Orange) - REAL DATA */}
+                    {/* Line 3: All Competitors (Orange) */}
                     {allCompetitorsData && allMonths.length > 1 && (
                       <polyline
                         points={allMonths

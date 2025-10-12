@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import {
   Card,
   CardContent,
@@ -6,7 +7,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BarChart3, AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
+import {
+  BarChart3,
+  AlertCircle,
+  TrendingUp,
+  TrendingDown,
+  Info,
+} from "lucide-react";
 import {
   LineChart,
   Line,
@@ -28,15 +35,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { selectActiveSite } from "@/redux/slices/activeSite.selectors";
 
 export default function SearchConsolePerformance() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [sites, setSites] = useState<any[]>([]);
-  const [selectedSite, setSelectedSite] = useState<string>("");
   const [performanceData, setPerformanceData] = useState<any>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<number>(90);
   const [error, setError] = useState<string>("");
+
+  // Get active site from Redux
+  const activeSite = useSelector(selectActiveSite);
 
   // Check authentication status
   async function getGSCAuthStatus() {
@@ -48,7 +57,6 @@ export default function SearchConsolePerformance() {
 
       if (res.data?.authenticated) {
         setIsAuthenticated(true);
-        await fetchSites();
       } else {
         setIsAuthenticated(false);
       }
@@ -57,26 +65,6 @@ export default function SearchConsolePerformance() {
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
-    }
-  }
-
-  // Fetch all sites
-  async function fetchSites() {
-    try {
-      const res = await axios.get(`${SERVER}/api/v1/seo/sites`, {
-        withCredentials: true,
-      });
-      console.log("Sites response:", res.data);
-
-      if (res.data?.success && res.data?.sites) {
-        setSites(res.data.sites);
-        if (res.data.sites.length > 0) {
-          setSelectedSite(res.data.sites[0].siteUrl);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching sites:", error);
-      setError("Failed to fetch sites");
     }
   }
 
@@ -127,31 +115,26 @@ export default function SearchConsolePerformance() {
     }
   };
 
-  // Handle site selection
-  const handleSiteChange = (siteUrl: string) => {
-    setSelectedSite(siteUrl);
-  };
-
   // Handle period change
   const handlePeriodChange = (period: string) => {
     const days = parseInt(period);
     setSelectedPeriod(days);
-    if (selectedSite) {
-      fetchPerformanceData(selectedSite, days);
+    if (activeSite?.siteUrl) {
+      fetchPerformanceData(activeSite.siteUrl, days);
     }
   };
 
-  // Initial load
+  // Initial load - check auth
   useEffect(() => {
     getGSCAuthStatus();
   }, []);
 
-  // Fetch data when site is selected
+  // Fetch data when active site or period changes
   useEffect(() => {
-    if (selectedSite) {
-      fetchPerformanceData(selectedSite, selectedPeriod);
+    if (activeSite?.siteUrl && isAuthenticated) {
+      fetchPerformanceData(activeSite.siteUrl, selectedPeriod);
     }
-  }, [selectedSite]);
+  }, [activeSite?.siteUrl, isAuthenticated]);
 
   // Calculate summary stats
   const summaryStats = performanceData
@@ -207,10 +190,31 @@ export default function SearchConsolePerformance() {
           </h2>
           <p className="text-gray-600 text-center max-w-md">{error}</p>
           <Button
-            onClick={() => fetchPerformanceData(selectedSite, selectedPeriod)}
+            onClick={() =>
+              activeSite &&
+              fetchPerformanceData(activeSite.siteUrl, selectedPeriod)
+            }
           >
             Retry
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if no site selected
+  if (!activeSite) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+          <Info className="w-16 h-16 text-blue-500" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            No Site Selected
+          </h2>
+          <p className="text-gray-600 text-center max-w-md">
+            Please select a site from the header dropdown to view performance
+            data.
+          </p>
         </div>
       </div>
     );
@@ -240,20 +244,6 @@ export default function SearchConsolePerformance() {
               <SelectItem value="90">Last 90 days</SelectItem>
               <SelectItem value="180">Last 6 months</SelectItem>
               <SelectItem value="365">Last year</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Site Selector */}
-          <Select value={selectedSite} onValueChange={handleSiteChange}>
-            <SelectTrigger className="w-[300px]">
-              <SelectValue placeholder="Select a website" />
-            </SelectTrigger>
-            <SelectContent>
-              {sites.map((site) => (
-                <SelectItem key={site.siteUrl} value={site.siteUrl}>
-                  {site.siteUrl}
-                </SelectItem>
-              ))}
             </SelectContent>
           </Select>
 
@@ -337,7 +327,8 @@ export default function SearchConsolePerformance() {
             <CardHeader>
               <CardTitle>Timeline (last {performanceData.period})</CardTitle>
               <CardDescription>
-                Clicks, impressions, CTR and position over time.
+                Clicks, impressions, CTR and position over time for{" "}
+                {activeSite.siteUrl}
               </CardDescription>
             </CardHeader>
             <CardContent>
