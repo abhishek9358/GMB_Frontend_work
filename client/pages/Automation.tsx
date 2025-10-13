@@ -7,6 +7,7 @@ import {
   Bell,
   Calendar,
   MessageSquare,
+  RefreshCw,
   Settings as SettingsIcon,
   Star,
   Upload,
@@ -15,6 +16,8 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
+import { Calendar as CalendarIcon } from "lucide-react";
+import {SERVER} from "@/constants/index"
 
 // Replace your existing lucide-react import with this
 import {
@@ -328,324 +331,18 @@ const FileImportDialog = ({ open, onClose, onImport, files, setFiles }) => {
 
 
 
-// function ImageUploadAutomation() {
-//   const [dialogOpen, setDialogOpen] = useState(false);
-//   const [files, setFiles] = useState<File[]>([]);
-//   const [loading, setLoading] = useState(false);
-//   const [message, setMessage] = useState<{
-//     type: "success" | "error";
-//     text: string;
-//   } | null>(null);
-//   const [url, setUrl] = useState("");
-//   const [urlError, setUrlError] = useState("");
-//   const { user } = useSelector((state: RootState) => state.user);
-//   const { activeLocation } = useSelector(
-//     (state: RootState) => state.activeLocation,
-//   );
 
-//   // --- Placeholder IDs (MUST BE REPLACED WITH REAL VALUES FROM CONTEXT/STATE) ---
-//   const ACCOUNT_ID = user?.accountId || "";
-//   const LOCATION_ID =
-//     localStorage.getItem("activeLocation") ||
-//     activeLocation.locationId?.[1]?.[0];
-//   // ------------------------------------------------------------------------------
-
-//   const handleUrlUpload = async () => {
-//     const trimmedUrl = url.trim();
-//     if (!trimmedUrl) {
-//       setUrlError("Please enter a valid image URL.");
-//       return;
-//     }
-
-//     // Basic URL validation
-//     try {
-//       new URL(trimmedUrl);
-//     } catch {
-//       setUrlError("Invalid URL format.");
-//       return;
-//     }
-
-//     setLoading(true);
-//     setUrlError("");
-//     setMessage(null);
-
-//     try {
-//       // Skip client-side image validation for URL uploads
-//       // Let the server and Google API handle validation
-//       console.log("Uploading image from URL:", trimmedUrl);
-
-//       // Upload directly using source_url
-//       await uploadFromSourceUrl(trimmedUrl);
-
-//       // Success
-//       setMessage({
-//         type: "success",
-//         text: "Image uploaded successfully from URL!",
-//       });
-//       setUrl(""); // Clear input
-//     } catch (error: any) {
-//       console.error("URL upload failed:", error);
-//       setMessage({
-//         type: "error",
-//         text: `Failed to upload from URL: ${error.message || "Invalid image or network issue."}`,
-//       });
-//       setUrlError(error.message || "Upload failed");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const uploadFromSourceUrl = useCallback(
-//     async (sourceUrl: string) => {
-//       const uploadUrl = `${API_BASE_URL}/accounts/${ACCOUNT_ID}/locations/${LOCATION_ID}/media`;
-
-//       const formData = new FormData();
-//       formData.append("source_url", sourceUrl); // Use source_url for direct URLs
-//       formData.append("media_format", "PHOTO");
-//       formData.append("category", "ADDITIONAL");
-
-//       const response = await fetch(uploadUrl, {
-//         method: "POST",
-//         body: formData,
-//         credentials: "include",
-//       });
-
-//       if (!response.ok) {
-//         const errorData = await response.json();
-//         throw new Error(
-//           errorData.detail || `Upload failed with status ${response.status}`,
-//         );
-//       }
-
-//       return response.json();
-//     },
-//     [ACCOUNT_ID, LOCATION_ID],
-//   );
-
-//   const uploadToTempServer = useCallback(
-//     async (file: File): Promise<{ temp_url: string; file_id: string }> => {
-//       const formData = new FormData();
-//       formData.append("file", file);
-
-//       const response = await fetch(`${API_BASE_URL}/upload-temp-file`, {
-//         method: "POST",
-//         body: formData,
-//         credentials: "include",
-//       });
-
-//       if (!response.ok) {
-//         const errorData = await response.json();
-//         throw new Error(
-//           `Temporary upload failed: ${errorData.detail || response.statusText}`,
-//         );
-//       }
-
-//       return response.json();
-//     },
-//     [],
-//   );
-
-//   const uploadFinalMedia = useCallback(
-//     async (tempUrl: string) => {
-//       const uploadUrl = `${API_BASE_URL}/accounts/${ACCOUNT_ID}/locations/${LOCATION_ID}/media`;
-
-//       const formData = new FormData();
-//       formData.append("temp_host_url", tempUrl);
-//       formData.append("media_format", "PHOTO");
-//       formData.append("category", "ADDITIONAL");
-
-//       const response = await fetch(uploadUrl, {
-//         method: "POST",
-//         body: formData,
-//         credentials: "include",
-//       });
-
-//       if (!response.ok) {
-//         const errorData = await response.json();
-//         throw new Error(
-//           `Final media upload failed: ${errorData.detail || response.statusText}`,
-//         );
-//       }
-
-//       return response.json();
-//     },
-//     [ACCOUNT_ID, LOCATION_ID],
-//   );
-
-//   const handleImport = useCallback(
-//     async ({ files: importedFiles }: { files: File[] }) => {
-//       if (importedFiles.length === 0) return;
-
-//       setLoading(true);
-//       setMessage(null);
-//       setFiles(importedFiles);
-
-//       let successCount = 0;
-//       let errorCount = 0;
-
-//       for (const file of importedFiles) {
-//         console.log(`Processing file: ${file.name}`);
-//         try {
-//           // 1. Upload to Temporary Server
-//           const tempResult = await uploadToTempServer(file);
-//           console.log(`Got temp URL: ${tempResult.temp_url}`);
-
-//           // 2. Submit Final Media Request using the temporary URL
-//           await uploadFinalMedia(tempResult.temp_url);
-
-//           successCount++;
-//           console.log(`Successfully posted media for ${file.name}`);
-//         } catch (error: any) {
-//           errorCount++;
-//           console.error(`Failed to process ${file.name}:`, error);
-//         }
-//       }
-
-//       setLoading(false);
-//       if (errorCount === 0 && successCount > 0) {
-//         setMessage({
-//           type: "success",
-//           text: `Successfully uploaded ${successCount} image(s)!`,
-//         });
-//       } else if (errorCount > 0) {
-//         setMessage({
-//           type: "error",
-//           text: `Finished with ${errorCount} errors and ${successCount} successes.`,
-//         });
-//       }
-
-//       setFiles([]);
-//     },
-//     [uploadToTempServer, uploadFinalMedia],
-//   );
-
-//   return (
-//     <div className="max-w-4xl">
-//       <div className="bg-gbp-blue-500 text-white p-6 rounded-lg mb-6">
-//         <div className="flex items-center space-x-3 mb-3">
-//           <Upload className="w-6 h-6" />
-//           <h2 className="text-xl font-semibold">
-//             How often do you want to drip images onto your profile?
-//           </h2>
-//         </div>
-//         <div className="flex items-center space-x-2 text-gbp-blue-100">
-//           <span>✓ Trust Paige</span>
-//         </div>
-//         <p className="text-gbp-blue-100 text-sm mt-2">
-//           Paige analyses this frequency automatically based on an analysis of
-//           over 1,000+ data points weekly. Trusting Paige will help you rank
-//           higher faster.
-//         </p>
-//         <button className="bg-white text-gbp-blue-600 px-4 py-2 rounded-lg mt-3 text-sm font-medium">
-//           Set custom timing
-//         </button>
-//       </div>
-
-//       {message && (
-//         <div
-//           className={`p-3 rounded-lg mb-4 ${message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-//         >
-//           {message.text}
-//         </div>
-//       )}
-
-//       <div className="bg-white rounded-lg p-6 border border-gray-200">
-//         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-//           You have 3 options to upload images:
-//         </h3>
-
-//         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-//           {/* Option 1: URL Upload */}
-//           <div className="border border-gray-200 rounded-lg p-4">
-//             <h4 className="font-medium text-gray-900 mb-2">
-//               Upload using link
-//             </h4>
-//             <p className="text-sm text-gray-600 mb-4">
-//               Upload from the via direct link upload box.
-//             </p>
-//             <div className="space-y-2">
-//               <input
-//                 type="url"
-//                 value={url}
-//                 onChange={(e) => {
-//                   setUrl(e.target.value);
-//                   setUrlError(""); // Clear error on change
-//                 }}
-//                 placeholder="https://example.com/image.jpg"
-//                 className={`w-full border rounded px-3 py-2 text-sm ${
-//                   urlError ? "border-red-500" : "border-gray-200"
-//                 }`}
-//                 disabled={loading}
-//               />
-//               {urlError && <p className="text-red-500 text-xs">{urlError}</p>}
-
-//               <button
-//                 onClick={handleUrlUpload}
-//                 disabled={loading || !url.trim()}
-//                 className="w-full bg-gbp-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-gbp-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-//               >
-//                 {loading ? "Uploading..." : "Upload from URL"}
-//               </button>
-//             </div>
-//           </div>
-
-//           {/* Option 2: Drag and Drop */}
-//           <div className="border border-gray-200 rounded-lg p-4">
-//             <h4 className="font-medium text-gray-900 mb-2">Drag and Drop</h4>
-//             <p className="text-sm text-gray-600 mb-4">
-//               Click to upload images or drag and drop them.
-//             </p>
-//             <Dialog>
-//               <DialogTrigger asChild>
-//                 <div
-//                   className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${loading ? "bg-gray-100 text-gray-400" : "hover:bg-gray-50 border-gray-200"}`}
-//                   onClick={() => !loading && setDialogOpen(true)}
-//                 >
-//                   <Upload className="w-8 h-8 mx-auto mb-2" />
-//                   <p className="text-sm">
-//                     {loading ? "Processing..." : "Click or drop images here"}
-//                   </p>
-//                 </div>
-//               </DialogTrigger>
-//             </Dialog>
-//             <FileImportDialog
-//               open={dialogOpen}
-//               onClose={() => setDialogOpen(false)}
-//               onImport={handleImport}
-//               files={files}
-//               setFiles={setFiles}
-//             />
-//           </div>
-
-//           {/* Option 3: Integrations */}
-//           <div className="border border-gray-200 rounded-lg p-4">
-//             <h4 className="font-medium text-gray-900 mb-2">Integrations</h4>
-//             <p className="text-sm text-gray-600 mb-4">
-//               Integrate your asset library/photo gallery
-//             </p>
-//             <button
-//               disabled
-//               className="w-full border border-gray-200 rounded px-3 py-2 text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
-//             >
-//               Coming soon
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
 
 
 
 function ImageUploadAutomation() {
   const [dialogOpen, setDialogOpen] = useState(false);
   // This 'files' state is now primarily for the dialog
-  const [files, setFiles] = useState<File[]>([]); 
-  
+  const [files, setFiles] = useState<File[]>([]);
+
   // --- NEW: State for managing images in the draft/staging area ---
   const [draftImages, setDraftImages] = useState<DraftImage[]>([]);
-  
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -653,111 +350,513 @@ function ImageUploadAutomation() {
   } | null>(null);
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
+
+  const [scheduledDate, setScheduledDate] = useState<string>("");
+  const [automationSettings, setAutomationSettings] = useState({
+    isActive: false,
+    frequency: "daily",
+    intervalDays: 1,
+    maxPerMonth: null as number | null,
+  });
+  const [fetchingDrafts, setFetchingDrafts] = useState(false);
+  const [automationLoading, setAutomationLoading] = useState(false);
+
+  const [uploadedImages, setUploadedImages] = useState<any[]>([]);
+  const [fetchingUploaded, setFetchingUploaded] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  const [gmbImages, setGmbImages] = useState<any[]>([]); // GMB se aane wali real images
+  const [fetchingGMB, setFetchingGMB] = useState(false);
+
   const { user } = useSelector((state: RootState) => state.user);
   const { activeLocation } = useSelector(
     (state: RootState) => state.activeLocation,
   );
 
   const ACCOUNT_ID = user?.accountId || "";
-  const LOCATION_ID =
-    localStorage.getItem("activeLocation") ||
-    activeLocation.locationId?.[1]?.[0];
+  const LOCATION_ID = activeLocation?.locationId || "";
 
   // --- API upload functions (unchanged) ---
-  const uploadFromSourceUrl = useCallback(async (sourceUrl: string) => { /* ...your existing code... */ return Promise.resolve(); }, [ACCOUNT_ID, LOCATION_ID]);
-  const uploadToTempServer = useCallback(async (file: File): Promise<{ temp_url: string; file_id: string }> => { /* ...your existing code... */ return Promise.resolve({ temp_url: '', file_id: '' }); }, []);
-  const uploadFinalMedia = useCallback(async (tempUrl: string) => { /* ...your existing code... */ return Promise.resolve(); }, [ACCOUNT_ID, LOCATION_ID]);
+  const uploadFromSourceUrl = useCallback(
+    async (sourceUrl: string) => {
+      /* ...your existing code... */ return Promise.resolve();
+    },
+    [ACCOUNT_ID, LOCATION_ID],
+  );
+  const uploadToTempServer = useCallback(
+    async (file: File): Promise<{ temp_url: string; file_id: string }> => {
+      /* ...your existing code... */ return Promise.resolve({
+        temp_url: "",
+        file_id: "",
+      });
+    },
+    [],
+  );
+  const uploadFinalMedia = useCallback(
+    async (tempUrl: string) => {
+      /* ...your existing code... */ return Promise.resolve();
+    },
+    [ACCOUNT_ID, LOCATION_ID],
+  );
 
-  
-  // --- UPDATED: URL handler now adds image to drafts instead of posting directly ---
-  const handleAddUrlToDrafts = () => {
+  // Fetch previously uploaded images from GMB
+  const fetchUploadedImages = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `${SERVER}/api/media-drafts?locationId=${LOCATION_ID}&status=uploaded`,
+        { credentials: "include" },
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch uploaded images");
+
+      const result = await response.json();
+
+      // Convert to UI format
+      const uploadedImages = result.data.map((img: any) => ({
+        id: img.googleMediaId || img.id,
+        url: img.fileUrl,
+        category: img.category,
+        uploadedAt: new Date(img.uploadedAt).toLocaleDateString(),
+        title: img.title,
+        description: img.description,
+      }));
+
+      return uploadedImages;
+    } catch (error) {
+      console.error("Error fetching uploaded images:", error);
+      return [];
+    }
+  }, [LOCATION_ID]);
+
+  const fetchDraftsFromBackend = useCallback(async () => {
+    setFetchingDrafts(true);
+    try {
+      const response = await fetch(
+        `${SERVER}/api/media-drafts?locationId=${LOCATION_ID}&status=draft`,
+        { credentials: "include" },
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch drafts");
+
+      const result = await response.json();
+
+      // Convert backend drafts to UI format
+      const backendDrafts: DraftImage[] = result.data.map((draft: any) => ({
+        id: draft.id,
+        type: "file",
+        value: draft.fileName,
+        previewUrl: draft.fileUrl,
+      }));
+
+      setDraftImages(backendDrafts);
+    } catch (error) {
+      console.error("Error fetching drafts:", error);
+    } finally {
+      setFetchingDrafts(false);
+    }
+  }, [LOCATION_ID]);
+
+  // Upload file to draft (backend)
+  const uploadToDraft = async (file: File, scheduleDate?: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("locationId", LOCATION_ID);
+    formData.append("category", "ADDITIONAL");
+
+    if (scheduleDate) {
+      formData.append("scheduledFor", scheduleDate);
+    }
+
+    const response = await fetch(`${SERVER}/api/media-drafts`, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || "Draft upload failed");
+    }
+
+    return response.json();
+  };
+
+  // Upload URL to draft
+  const uploadUrlToDraft = async (imageUrl: string, scheduleDate?: string) => {
+    const formData = new FormData();
+    formData.append("fileUrl", imageUrl);
+    formData.append("locationId", LOCATION_ID);
+    formData.append("category", "ADDITIONAL");
+
+    if (scheduleDate) {
+      formData.append("scheduledFor", scheduleDate);
+    }
+
+    const response = await fetch(`${SERVER}/api/media-drafts`, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+
+    if (!response.ok) throw new Error("URL draft failed");
+    return response.json();
+  };
+
+  // Post draft to GMB
+  const postDraftToGMB = async (draftId: string) => {
+    const formData = new FormData();
+    formData.append("acct_id", ACCOUNT_ID);
+    formData.append("loc_id", LOCATION_ID);
+
+    const response = await fetch(
+      `${SERVER}/api/media-drafts/${draftId}/upload-to-google`,
+      {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || "GMB upload failed");
+    }
+
+    return response.json();
+  };
+
+  // Delete draft
+  const deleteDraft = async (draftId: string) => {
+    const response = await fetch(`${SERVER}/api/media-drafts/${draftId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    if (!response.ok) throw new Error("Delete failed");
+    return response.json();
+  };
+
+  // Save automation settings
+  const saveAutomationSettings = async () => {
+    setAutomationLoading(true);
+    try {
+      const response = await fetch(`${SERVER}/api/media-automation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locationId: LOCATION_ID,
+          isActive: automationSettings.isActive,
+          frequency: automationSettings.frequency,
+          intervalDays: automationSettings.intervalDays,
+          maxPerMonth: automationSettings.maxPerMonth,
+        }),
+        credentials: "include",
+      });
+
+      if (!response.ok) throw new Error("Failed to save automation");
+
+      setMessage({ type: "success", text: "Automation settings saved!" });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error: any) {
+      setMessage({ type: "error", text: error.message });
+    } finally {
+      setAutomationLoading(false);
+    }
+  };
+
+  // Fetch automation settings
+  const fetchAutomationSettings = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `${SERVER}/api/media-automation?locationId=${LOCATION_ID}`,
+        { credentials: "include" },
+      );
+
+      if (!response.ok) return;
+
+      const result = await response.json();
+      if (result.data && result.data.length > 0) {
+        const settings = result.data[0];
+        setAutomationSettings({
+          isActive: settings.isActive,
+          frequency: settings.frequency,
+          intervalDays: settings.intervalDays || 1,
+          maxPerMonth: settings.maxPerMonth,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching automation:", error);
+    }
+  }, [LOCATION_ID]);
+
+  // REPLACE EXISTING handleAddUrlToDrafts with:
+  const handleAddUrlToDrafts = async () => {
     const trimmedUrl = url.trim();
     if (!trimmedUrl) {
       setUrlError("Please enter a valid image URL.");
       return;
     }
+
     try {
       new URL(trimmedUrl);
     } catch {
       setUrlError("Invalid URL format.");
       return;
     }
-    
-    const newDraft: DraftImage = {
-        id: Date.now(),
-        type: 'url',
-        value: trimmedUrl,
-        previewUrl: trimmedUrl, // For URLs, the preview is the URL itself
-    };
 
-    setDraftImages(prev => [...prev, newDraft]);
-    setUrl(""); // Clear input field
-    setMessage({type: 'success', text: 'Image added to drafts!'});
-    setTimeout(() => setMessage(null), 3000); // Clear message after 3s
-  };
-
-  // --- UPDATED: File import handler adds files to drafts ---
-  const handleAddFilesToDrafts = useCallback(({ files: importedFiles }: { files: File[] }) => {
-    if (importedFiles.length === 0) return;
-
-    const newDrafts: DraftImage[] = importedFiles.map(file => ({
-        id: `${file.name}-${file.lastModified}`,
-        type: 'file',
-        value: file,
-        previewUrl: URL.createObjectURL(file)
-    }));
-
-    setDraftImages(prev => [...prev, ...newDrafts]);
-    setDialogOpen(false); // Close the dialog
-    setMessage({type: 'success', text: `${importedFiles.length} image(s) added to drafts!`});
-    setTimeout(() => setMessage(null), 3000);
-  }, []);
-
-  // --- NEW: Function to remove an image from the draft list ---
-  const handleRemoveDraft = (idToRemove: string | number) => {
-      setDraftImages(prev => prev.filter(draft => {
-        // If it's a file, revoke its object URL to prevent memory leaks
-        if (draft.id === idToRemove && draft.type === 'file') {
-            URL.revokeObjectURL(draft.previewUrl);
-        }
-        return draft.id !== idToRemove;
-      }));
-  };
-
-  // --- NEW: Function to post all images from the draft section ---
-  const handlePostAllDrafts = async () => {
-    if(draftImages.length === 0) return;
-    
     setLoading(true);
-    setMessage({type: 'success', text: `Posting ${draftImages.length} image(s)...`});
+    setUrlError("");
+
+    try {
+      // Upload to backend
+      const result = await uploadUrlToDraft(trimmedUrl, scheduledDate);
+
+      // Add to local state
+      const newDraft: DraftImage = {
+        id: result.data.id,
+        type: "url",
+        value: trimmedUrl,
+        previewUrl: trimmedUrl,
+      };
+
+      setDraftImages((prev) => [...prev, newDraft]);
+      setUrl("");
+      setScheduledDate("");
+      setMessage({ type: "success", text: "Image added to drafts!" });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error: any) {
+      setMessage({ type: "error", text: error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // REPLACE EXISTING handleAddFilesToDrafts with:
+  const handleAddFilesToDrafts = useCallback(
+    async ({ files: importedFiles }: { files: File[] }) => {
+      if (importedFiles.length === 0) return;
+
+      setLoading(true);
+      let successCount = 0;
+
+      for (const file of importedFiles) {
+        try {
+          // Upload to backend
+          const result = await uploadToDraft(file, scheduledDate);
+
+          // Add to local state
+          const newDraft: DraftImage = {
+            id: result.data.id,
+            type: "file",
+            value: file,
+            previewUrl: URL.createObjectURL(file),
+          };
+
+          setDraftImages((prev) => [...prev, newDraft]);
+          successCount++;
+        } catch (error) {
+          console.error("Draft upload failed:", file.name, error);
+          alert(error);
+          setMessage({ type: "error", text: JSON.stringify(error) });
+        }
+      }
+
+      setLoading(false);
+      setDialogOpen(false);
+      setScheduledDate("");
+      setMessage({
+        type: "success",
+        text: `${successCount} image(s) added to drafts!`,
+      });
+      setTimeout(() => setMessage(null), 3000);
+    },
+    [scheduledDate],
+  );
+
+  // REPLACE EXISTING handleRemoveDraft with:
+  const handleRemoveDraft = async (idToRemove: string | number) => {
+    try {
+      // Delete from backend
+      await deleteDraft(idToRemove as string);
+
+      // Remove from local state
+      setDraftImages((prev) =>
+        prev.filter((draft) => {
+          if (
+            draft.id === idToRemove &&
+            draft.type === "file" &&
+            typeof draft.value !== "string"
+          ) {
+            URL.revokeObjectURL(draft.previewUrl);
+          }
+          return draft.id !== idToRemove;
+        }),
+      );
+
+      setMessage({ type: "success", text: "Draft removed!" });
+      setTimeout(() => setMessage(null), 2000);
+    } catch (error: any) {
+      setMessage({ type: "error", text: "Failed to remove draft" });
+    }
+  };
+
+  // REPLACE EXISTING handlePostAllDrafts with:
+  const handlePostAllDrafts = async () => {
+    if (draftImages.length === 0) return;
+
+    setLoading(true);
+    setMessage({
+      type: "success",
+      text: `Posting ${draftImages.length} image(s)...`,
+    });
 
     let successCount = 0;
     let errorCount = 0;
 
     for (const draft of draftImages) {
-        try {
-            if (draft.type === 'url') {
-                await uploadFromSourceUrl(draft.value as string);
-            } else {
-                const tempResult = await uploadToTempServer(draft.value as File);
-                await uploadFinalMedia(tempResult.temp_url);
-            }
-            successCount++;
-        } catch (error) {
-            console.error("Failed to post image:", draft, error);
-            errorCount++;
-        }
+      try {
+        await postDraftToGMB(draft.id as string);
+        successCount++;
+      } catch (error) {
+        console.error("Failed to post:", draft, error);
+        errorCount++;
+      }
     }
 
     setLoading(false);
-    setDraftImages([]); // Clear drafts after posting
-    setMessage({type: 'success', text: `Posted ${successCount} images. ${errorCount > 0 ? `${errorCount} failed.` : ''}`});
+
+    // Refresh drafts from backend
+    await fetchDraftsFromBackend();
+
+    setFetchingGMB(true);
+    const updatedGMBImages = await fetchGMBMedia();
+    setGmbImages(updatedGMBImages);
+    setFetchingGMB(false);
+
+    setMessage({
+      type: successCount > 0 ? "success" : "error",
+      text: `Posted ${successCount} images${errorCount > 0 ? `. ${errorCount} failed.` : "!"}`,
+    });
   };
 
-  
-  // --- Mock data and helper components (unchanged) ---
-  const previouslyUploadedImages = [ /* ...your existing data... */ ];
-  const CategoryTag = ({ category }) => { /* ...your existing component... */ };
+  const deleteUploadedImage = async (googleMediaId: string) => {
+    try {
+      const response = await fetch(`${SERVER}/api/media/${googleMediaId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) throw new Error("Delete failed");
+
+      // Refresh list
+      const updatedImages = await fetchUploadedImages();
+      setUploadedImages(updatedImages);
+
+      setMessage({ type: "success", text: "Image deleted!" });
+    } catch (error: any) {
+      setMessage({ type: "error", text: error.message });
+    }
+  };
+
+  // Fetch actual GMB media (real images from Google)
+  // const fetchGMBMedia = useCallback(async () => {
+  //   if (!ACCOUNT_ID || !LOCATION_ID) return [];
+
+  //   try {
+  //     const response = await fetch(
+  //       `${SERVER}/api/v1/accounts/${ACCOUNT_ID}/locations/${LOCATION_ID}/media`,
+  //       { credentials: "include" },
+  //     );
+
+  //     if (!response.ok) throw new Error("Failed to fetch GMB media");
+
+  //     const result = await response.json();
+
+  //     // Google's response format: mediaItems array
+  //     const gmbImages = result.data.map((item: any) => ({
+  //       id: item.name?.split("/").pop() || item.mediaItemId,
+  //       url: item.googleUrl || item.sourceUrl,
+  //       category: item.locationAssociation?.category || "ADDITIONAL",
+  //       uploadedAt: item.createTime
+  //         ? new Date(item.createTime).toLocaleDateString()
+  //         : "Unknown",
+  //       title: item.description || null,
+  //       description: item.description || null,
+  //       mediaFormat: item.mediaFormat,
+  //       dimensions: item.dimensions,
+  //       isGMBImage: true, // flag to distinguish from drafts
+  //     }));
+
+  //     return gmbImages;
+  //   } catch (error) {
+  //     console.error("Error fetching GMB media:", error);
+  //     return [];
+  //   }
+  // }, [ACCOUNT_ID, LOCATION_ID]);
+
+  const fetchGMBMedia = useCallback(async () => {
+    if (!ACCOUNT_ID || !LOCATION_ID) return [];
+
+    try {
+      const response = await fetch(
+        `${SERVER}/api/v1/accounts/${ACCOUNT_ID}/locations/${LOCATION_ID}/media`,
+        { credentials: "include" },
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch GMB media");
+
+      const result = await response.json();
+
+      console.log("gmb images result", result);
+
+      // 🔥 FIX: result.data ki jagah result.mediaItems use karo
+      const gmbImages = (result.mediaItems || []).map((item: any) => ({
+        id: item.name?.split("/").pop() || item.mediaItemId,
+        url: item.thumbnailUrl || item.googleUrl, 
+        fullUrl: item.googleUrl, 
+        category: item.locationAssociation?.category || "ADDITIONAL",
+        uploadedAt: item.createTime
+          ? new Date(item.createTime).toLocaleDateString()
+          : "Unknown",
+        title: item.description || null,
+        description: item.description || null,
+        mediaFormat: item.mediaFormat,
+        dimensions: item.dimensions,
+        thumbnailUrl: item.thumbnailUrl, // 👈 ye bhi add kar lo
+        isGMBImage: true,
+      }));
+
+      console.log("Gmbimages", gmbImages)
+
+      return gmbImages;
+    } catch (error) {
+      console.error("Error fetching GMB media:", error);
+      return [];
+    }
+  }, [ACCOUNT_ID, LOCATION_ID]);
+
+
+
+  useEffect(() => {
+    if (LOCATION_ID && ACCOUNT_ID) {
+      fetchDraftsFromBackend();
+      fetchAutomationSettings();
+
+      // 🔥 Fetch real GMB images
+      setFetchingGMB(true);
+      fetchGMBMedia().then((images) => {
+        setGmbImages(images);
+        setFetchingGMB(false);
+      });
+    }
+  }, [
+    LOCATION_ID,
+    ACCOUNT_ID,
+    fetchDraftsFromBackend,
+    fetchAutomationSettings,
+    fetchGMBMedia,
+  ]);
+
 
 
   // --- JSX RENDER ---
@@ -766,29 +865,50 @@ function ImageUploadAutomation() {
       {/* Header and Upload Options (mostly unchanged) */}
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Image Upload Automation</h1>
-          <p className="text-gray-600 mt-1">Easily upload images, trust AI to manage frequency, and keep your profile fresh automatically.</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Image Upload Automation
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Easily upload images, trust AI to manage frequency, and keep your
+            profile fresh automatically.
+          </p>
         </div>
-        
       </div>
-      
+
       <div>
-        <h2 className="text-xl font-semibold text-gray-800 mb-1">You have 3 options to upload images:</h2>
-        <p className="text-gray-500 mb-4">Pro Tip: Try to add at least 5 images.</p>
-        {message && <div className={`p-3 rounded-lg mb-4 text-sm ${message.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{message.text}</div>}
+        <h2 className="text-xl font-semibold text-gray-800 mb-1">
+          You have 3 options to upload images:
+        </h2>
+        <p className="text-gray-500 mb-4">
+          Pro Tip: Try to add at least 5 images.
+        </p>
+        {message && (
+          <div
+            className={`p-3 rounded-lg mb-4 text-sm ${message.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+          >
+            {message.text}
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Option 1: URL Upload - Button now adds to draft */}
           <div className="bg-white rounded-lg p-4 shadow-sm">
-            <h4 className="font-semibold text-gray-900 mb-2">Upload Using Link</h4>
+            <h4 className="font-semibold text-gray-900 mb-2">
+              Upload Using Link
+            </h4>
             <input
               type="url"
               value={url}
-              onChange={(e) => { setUrl(e.target.value); setUrlError(""); }}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                setUrlError("");
+              }}
               placeholder="https://example.com/image.jpg"
               className={`w-full border rounded px-3 py-2 text-sm mb-2 ${urlError ? "border-red-500" : "border-gray-300"}`}
               disabled={loading}
             />
-             {urlError && <p className="text-red-500 text-xs mb-2">{urlError}</p>}
+            {urlError && (
+              <p className="text-red-500 text-xs mb-2">{urlError}</p>
+            )}
             <button
               onClick={handleAddUrlToDrafts} // UPDATED
               disabled={loading || !url.trim()}
@@ -799,70 +919,352 @@ function ImageUploadAutomation() {
           </div>
           {/* Other upload options ... */}
           <div className="bg-white rounded-lg p-4 shadow-sm flex flex-col items-center justify-center border-2 border-dashed border-blue-300">
-             <h4 className="font-semibold text-gray-900 mb-2">Drag and Drop Upload</h4>
-              <div className="text-center cursor-pointer" onClick={() => !loading && setDialogOpen(true)}>
-                  <Cloud className="w-10 h-10 mx-auto mb-2 text-gbp-blue-500" />
-                  <p className="text-sm text-gray-500">Click or drop images here</p>
-              </div>
+            <h4 className="font-semibold text-gray-900 mb-2">
+              Drag and Drop Upload
+            </h4>
+            <div
+              className="text-center cursor-pointer"
+              onClick={() => !loading && setDialogOpen(true)}
+            >
+              <Cloud className="w-10 h-10 mx-auto mb-2 text-gbp-blue-500" />
+              <p className="text-sm text-gray-500">Click or drop images here</p>
+            </div>
           </div>
-          
         </div>
       </div>
-      
-      <FileImportDialog open={dialogOpen} onClose={() => setDialogOpen(false)} onImport={handleAddFilesToDrafts} files={files} setFiles={setFiles} />
+
+      <FileImportDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onImport={handleAddFilesToDrafts}
+        files={files}
+        setFiles={setFiles}
+      />
+
+      {/* 🔥 ADD THIS SECTION - After the 3 upload options grid */}
+
+      {/* Automation Settings Section */}
+      <div className="mt-8 bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">
+              Automation Settings
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Set up automatic image posting to your GMB profile
+            </p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={automationSettings.isActive}
+              onChange={(e) =>
+                setAutomationSettings({
+                  ...automationSettings,
+                  isActive: e.target.checked,
+                })
+              }
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gbp-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gbp-blue-600"></div>
+            <span className="ml-3 text-sm font-medium text-gray-700">
+              {automationSettings.isActive ? "Active" : "Inactive"}
+            </span>
+          </label>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Frequency Select */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Upload Frequency
+            </label>
+            <select
+              value={automationSettings.frequency}
+              onChange={(e) =>
+                setAutomationSettings({
+                  ...automationSettings,
+                  frequency: e.target.value,
+                })
+              }
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gbp-blue-500"
+              disabled={!automationSettings.isActive}
+            >
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="custom">Custom Interval</option>
+            </select>
+          </div>
+
+          {/* Custom Interval Days */}
+          {automationSettings.frequency === "custom" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Every X Days
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="30"
+                value={automationSettings.intervalDays}
+                onChange={(e) =>
+                  setAutomationSettings({
+                    ...automationSettings,
+                    intervalDays: parseInt(e.target.value) || 1,
+                  })
+                }
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gbp-blue-500"
+                disabled={!automationSettings.isActive}
+              />
+            </div>
+          )}
+
+          {/* Monthly Limit */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Max Uploads Per Month (Optional)
+            </label>
+            <input
+              type="number"
+              min="1"
+              placeholder="No limit"
+              value={automationSettings.maxPerMonth || ""}
+              onChange={(e) =>
+                setAutomationSettings({
+                  ...automationSettings,
+                  maxPerMonth: e.target.value ? parseInt(e.target.value) : null,
+                })
+              }
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gbp-blue-500"
+              disabled={!automationSettings.isActive}
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-between items-center">
+          <p className="text-sm text-gray-500">
+            {automationSettings.isActive
+              ? `🤖 Automation will post images ${automationSettings.frequency === "custom" ? `every ${automationSettings.intervalDays} days` : automationSettings.frequency}`
+              : "⏸️ Automation is currently paused"}
+          </p>
+          <button
+            onClick={saveAutomationSettings}
+            disabled={automationLoading || !automationSettings.isActive}
+            className="flex items-center gap-2 bg-gbp-blue-600 text-white font-semibold px-5 py-2 rounded-lg hover:bg-gbp-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {automationLoading ? "Saving..." : "Save Automation Settings"}
+          </button>
+        </div>
+      </div>
 
       {/* --- NEW/UPDATED Draft Images Section --- */}
+      {/* REPLACE existing "Images to Post (Drafts)" section with: */}
+
       {draftImages.length > 0 && (
         <div className="mt-8">
-            <div className="flex justify-between items-center mb-4">
-                <div>
-                    <h2 className="text-xl font-semibold text-gray-800">Images to Post (Drafts)</h2>
-                    <p className="text-gray-500">These images are ready to be posted to your GMB profile.</p>
-                </div>
-                <button 
-                    onClick={handlePostAllDrafts}
-                    disabled={loading}
-                    className="flex items-center gap-2 bg-gbp-blue-600 text-white font-semibold px-5 py-2 rounded-lg hover:bg-gbp-blue-700 disabled:opacity-60"
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800">
+                Images to Post ({draftImages.length} Drafts)
+              </h2>
+              <p className="text-gray-500">
+                {fetchingDrafts
+                  ? "Loading drafts..."
+                  : "These images are ready to be posted to your GMB profile."}
+              </p>
+            </div>
+            <button
+              onClick={handlePostAllDrafts}
+              disabled={loading || fetchingDrafts}
+              className="flex items-center gap-2 bg-gbp-blue-600 text-white font-semibold px-5 py-2 rounded-lg hover:bg-gbp-blue-700 disabled:opacity-60"
+            >
+              <Send className="w-4 h-4" />
+              {loading
+                ? "Posting..."
+                : `Post ${draftImages.length} Image(s) to GMB`}
+            </button>
+          </div>
+
+          {/* Horizontal Scrollable Row */}
+          <div className="flex overflow-x-auto space-x-4 p-2 -m-2">
+            {draftImages.map((draft) => (
+              <div
+                key={draft.id}
+                className="relative flex-shrink-0 w-48 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+              >
+                <img
+                  src={draft.previewUrl}
+                  alt="Draft preview"
+                  className="w-full h-32 object-cover rounded-t-lg"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null; // 👈 Critical!
+                    e.currentTarget.style.display = "none"; // Hide broken image
+                    // Or show a div instead
+                  }}
+                />
+                <button
+                  onClick={() => handleRemoveDraft(draft.id)}
+                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 shadow-lg"
+                  aria-label="Remove from drafts"
                 >
-                    <Send className="w-4 h-4" />
-                    {loading ? 'Posting...' : `Post ${draftImages.length} Image(s) to GMB`}
+                  <X className="w-4 h-4" />
                 </button>
-            </div>
-            {/* Horizontal Scrollable Row */}
-            <div className="flex overflow-x-auto space-x-4 p-2 -m-2">
-                {draftImages.map(draft => (
-                    <div key={draft.id} className="relative flex-shrink-0 w-48 bg-white rounded-lg shadow-sm border border-gray-200">
-                        <img src={draft.previewUrl} alt="Draft preview" className="w-full h-32 object-cover rounded-t-lg"/>
-                        <button 
-                            onClick={() => handleRemoveDraft(draft.id)}
-                            className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
-                            aria-label="Remove from drafts"
-                        >
-                            <X className="w-3 h-3"/>
-                        </button>
-                        <div className="p-2 text-xs text-gray-600 truncate">
-                            {draft.type === 'file' ? (draft.value as File).name : 'Image from URL'}
-                        </div>
-                    </div>
-                ))}
-            </div>
+                <div className="p-3">
+                  <p className="text-xs text-gray-600 truncate">
+                    {draft.type === "file" && typeof draft.value !== "string"
+                      ? draft.value.name
+                      : "Image from URL"}
+                  </p>
+                  <div className="mt-2 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-green-500" />
+                    <span className="text-xs text-green-600">
+                      Ready to post
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
+      {/* Show empty state when no drafts */}
+      {draftImages.length === 0 && !fetchingDrafts && (
+        <div className="mt-8 bg-gray-50 rounded-lg p-12 text-center">
+          <ImageOff className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+            No drafts yet
+          </h3>
+          <p className="text-gray-500">
+            Upload images using any of the options above to get started!
+          </p>
+        </div>
+      )}
 
-      {/* Previously Uploaded to GMB Section (This will now be below the drafts) */}
+      {/* Previously Uploaded to GMB Section */}
       <div className="grid grid-cols-1 mt-8">
         <div>
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800">Previously Uploaded to GMB</h2>
-                <p className="text-gray-500">View all existing images on your My Business profile.</p>
-              </div>
-              {/* ... Filters ... */}
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800">
+                GMB Profile Images ({gmbImages.length})
+              </h2>
+              <p className="text-gray-500">
+                {fetchingGMB
+                  ? "Loading images from Google My Business..."
+                  : "All images currently on your Google My Business profile."}
+              </p>
             </div>
+
+            {/* Category Filter */}
+            <div className="flex gap-3 items-center">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="all">All Categories</option>
+                <option value="ADDITIONAL">Additional</option>
+                <option value="COVER">Cover</option>
+                <option value="PROFILE">Profile</option>
+                <option value="LOGO">Logo</option>
+              </select>
+
+              {/* Refresh Button */}
+              <button
+                onClick={async () => {
+                  setFetchingGMB(true);
+                  const images = await fetchGMBMedia();
+                  setGmbImages(images);
+                  setFetchingGMB(false);
+                }}
+                disabled={fetchingGMB}
+                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                title="Refresh images"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${fetchingGMB ? "animate-spin" : ""}`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {fetchingGMB ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gbp-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading images from GMB...</p>
+            </div>
+          ) : gmbImages.length === 0 ? (
+            <div className="bg-gray-50 rounded-lg p-12 text-center">
+              <ImageOff className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                No images found
+              </h3>
+              <p className="text-gray-500">
+                Upload and post your first images to see them here!
+              </p>
+            </div>
+          ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {/* Your existing map over previouslyUploadedImages goes here */}
+              {gmbImages
+                .filter(
+                  (img) =>
+                    categoryFilter === "all" || img.category === categoryFilter,
+                )
+                .map((image) => (
+                  <div
+                    key={image.id}
+                    className="relative bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
+                  >
+                    <img
+                      src={image.url}
+                      alt={image.title || "GMB Image"}
+                      className="w-full h-40 object-cover"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        target.onerror = null; 
+                        target.src =
+                          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150'%3E%3Crect fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='%236b7280' font-size='14'%3ENo Image%3C/text%3E%3C/svg%3E";
+                      }}
+                    />
+
+                    {/* Category Badge */}
+                    <div className="absolute top-2 left-2">
+                      <CategoryTag category={image.category} />
+                    </div>
+
+                    {/* GMB Badge */}
+                    <div className="absolute top-2 right-2">
+                      <span className="bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded">
+                        Live on GMB
+                      </span>
+                    </div>
+
+                    {/* Image Info */}
+                    <div className="p-3 bg-white">
+                      <p className="text-xs text-gray-500">
+                        {image.uploadedAt}
+                      </p>
+                      {image.mediaFormat && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          {image.mediaFormat}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Hover Actions */}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <button
+                        className="bg-white text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100"
+                        onClick={() => window.open(image.url, "_blank")}
+                      >
+                        View Full
+                      </button>
+                    </div>
+                  </div>
+                ))}
             </div>
+          )}
         </div>
       </div>
 
@@ -870,7 +1272,6 @@ function ImageUploadAutomation() {
       <div className="mt-8 bg-white/80 backdrop-blur-sm shadow-sm rounded-lg p-4 flex justify-between items-center">
         {/* ... your existing footer code ... */}
       </div>
-
     </div>
   );
 }
@@ -1465,262 +1866,6 @@ function SummaryAutomation() {
   );
 }
 
-// Replace your old DefaultAutomation function with this new version
-
-// function DefaultAutomation({ module }: { module: AutomationModule }) {
-//   // Check if the selected module is "Automate Posting"
-//   if (module.id === 'automate-posting') {
-//     // --- STATE AND HELPER COMPONENTS FOR THE POSTING UI ---
-//     const [activeTab, setActiveTab] = useState("create");
-
-//     const tabs = [
-//       { id: "create", name: "Create New Post", icon: Plus },
-//       { id: "draft", name: "Draft Posts", icon: Bookmark },
-//       { id: "past", name: "Past Posts", icon: Send },
-//     ];
-
-//     const DraftPostCard = ({ post }) => (
-//       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-//         <div className="relative">
-//           <img src={post.imageUrl} alt={post.title} className="w-full h-32 object-cover" />
-//           {post.type === 'video' && (
-//             <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-//                <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center">
-//                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"></path></svg>
-//                </div>
-//              </div>
-//           )}
-//         </div>
-//         <div className="p-4">
-//           <h3 className="font-semibold text-gray-800 truncate">{post.title}</h3>
-//           <p className="text-sm text-gray-500 mb-2">{post.date}</p>
-//           <div className="flex items-center justify-between mb-4">
-//             <span className="inline-flex items-center bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-0.5 rounded-full">
-//               <Clock className="w-3 h-3 mr-1.5" />
-//               Status: Draft
-//             </span>
-//             <MoreVertical className="w-5 h-5 text-gray-400 cursor-pointer" />
-//           </div>
-//           <div className="flex items-center gap-2">
-//             <button className="w-full text-sm bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50">Edit</button>
-//             <button className="w-full text-sm bg-gbp-blue-600 text-white py-2 px-4 rounded-md hover:bg-gbp-blue-700">Post Now</button>
-//           </div>
-//         </div>
-//       </div>
-//     );
-
-//     const PastPostCard = ({ post, showStats = false }) => {
-//         const statusColors = {
-//           Published: "bg-green-100 text-green-800",
-//           Offer: "bg-orange-100 text-orange-800",
-//           Draft: "bg-gray-100 text-gray-700"
-//         };
-//         return (
-//           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-//               <img src={post.imageUrl} alt={post.title} className="w-full h-32 object-cover" />
-//               <div className="p-4">
-//                   <h3 className="font-semibold text-gray-800 truncate">{post.title}</h3>
-//                   <p className="text-sm text-gray-500 mb-2">{post.date}</p>
-//                    <div className="flex items-center justify-between mb-3">
-//                       <span className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full ${statusColors[post.status] || statusColors.Draft}`}>
-//                           {post.status}
-//                       </span>
-//                       <span className="text-sm font-medium text-gbp-blue-600">{post.cta}</span>
-//                    </div>
-//                   {showStats && post.views && post.clicks && (
-//                      <div className="flex items-center text-sm text-gray-500 space-x-4 mb-4">
-//                         <div className="flex items-center">
-//                             <Eye className="w-4 h-4 mr-1"/> {post.views} Views
-//                         </div>
-//                         <div className="flex items-center">
-//                             <ThumbsUp className="w-4 h-4 mr-1"/> {post.clicks} Clicks
-//                         </div>
-//                      </div>
-//                   )}
-//                    <div className="flex items-center gap-2">
-//                        <button className="w-full text-sm bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50">View Post</button>
-//                        <button className="w-full text-sm bg-gray-100 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-200">Duplicate Post</button>
-//                    </div>
-//               </div>
-//           </div>
-//         )
-//     };
-    
-//     // --- Tab Content Components ---
-//     const CreateNewPost = () => {
-//         const recentPosts = [
-//             { id: 1, title: 'Insit Image', date: 'Oite 20 - 201M', status: 'Published', cta: 'Order Online', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
-//             { id: 2, title: 'Fcst Waturton', date: 'Bupi More 18:00', status: 'Published', cta: 'Buy More', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/b49d7d13-1b91-447b-83c0-302a64c489c6' },
-//             { id: 3, title: 'Ffuf Uruatiee', date: 'Tite-201 - 20M', status: 'Published', cta: 'Call Now', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/a2d325e0-84c1-4b13-8d00-478670c51152' },
-//         ];
-//         return (
-//             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-//                 <div className="lg:col-span-2">
-//                     <div className="relative">
-//                         <textarea className="w-full h-36 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gbp-blue-500 focus:border-gbp-blue-500 resize-none" placeholder="Describe your post (0-1500 chars)"></textarea>
-//                         <span className="absolute bottom-3 right-3 text-sm text-gray-500">0/1500 chars</span>
-//                     </div>
-//                     <div className="mt-4 flex items-center justify-center w-full p-8 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
-//                         <div className="text-center">
-//                             <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-//                             <p className="mt-2 text-sm text-gray-600"><span className="font-semibold text-gbp-blue-600">Drag & drop images/videos here</span> or click to upload</p>
-//                         </div>
-//                     </div>
-//                     <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-//                         <div className="relative md:col-span-1">
-//                             <select className="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-3 px-4 pr-8 rounded-lg focus:outline-none focus:bg-white focus:border-gray-500">
-//                                 <option>Learn More</option>
-//                                 <option>Call Now</option>
-//                                 <option>Buy More</option>
-//                                 <option>Order Online</option>
-//                             </select>
-//                             <ChevronDown className="w-5 h-5 text-gray-400 absolute top-1/2 right-3 -translate-y-1/2 pointer-events-none"/>
-//                         </div>
-//                         <div className="relative md:col-span-2">
-//                             <LinkIcon className="w-5 h-5 text-gray-400 absolute top-1/2 left-3 -translate-y-1/2"/>
-//                             <input type="text" placeholder="Link" className="w-full border border-gray-300 rounded-lg pl-10 pr-20 py-3 focus:ring-2 focus:ring-gbp-blue-500" />
-//                             <div className="absolute top-1/2 right-3 -translate-y-1/2 flex gap-2">
-//                                 <Pencil className="w-5 h-5 text-gray-500 hover:text-gbp-blue-600 cursor-pointer"/>
-//                                 <Trash2 className="w-5 h-5 text-gray-500 hover:text-red-600 cursor-pointer"/>
-//                             </div>
-//                         </div>
-//                     </div>
-//                     <div className="flex items-center gap-4 mt-8">
-//                         <button className="bg-gbp-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-gbp-blue-700">Post Now</button>
-//                         <button className="bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-6 rounded-lg hover:bg-gray-50">Save as Draft</button>
-//                     </div>
-//                 </div>
-//                 <div className="lg:col-span-1 space-y-4">
-//                     {recentPosts.map(post => <PastPostCard key={post.id} post={post} />)}
-//                 </div>
-//             </div>
-//         );
-//     };
-    
-//     const DraftPosts = () => {
-//       const drafts = [
-//           { id: 1, title: 'Line 2 Tione', date: '223 liae - 201 PMM', type: 'image', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
-//           { id: 2, title: 'Siugrer', date: 'Oireen 126.10 Pam', type: 'video', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/a2d325e0-84c1-4b13-8d00-478670c51152' },
-//       ];
-//       return (
-//         <div>
-//           <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-//             <div className="flex items-center gap-4 w-full md:w-auto">
-//               <div className="relative w-full">
-//                 <Search className="w-5 h-5 text-gray-400 absolute top-1/2 left-3 -translate-y-1/2" />
-//                 <input type="text" placeholder="Search" className="border border-gray-300 rounded-lg pl-10 py-2 w-full" />
-//               </div>
-//               <button className="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 whitespace-nowrap">
-//                 <Calendar className="w-5 h-5 text-gray-500" /> Date Range
-//               </button>
-//             </div>
-//             <div className="flex items-center gap-2 w-full md:w-auto">
-//               <span className="text-sm text-gray-600">Sort by:</span>
-//               <select className="border border-gray-300 rounded-lg px-4 py-2 text-sm">
-//                 <option>Newest Ditee</option>
-//                 <option>Oldest Date</option>
-//               </select>
-//             </div>
-//           </div>
-//           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-//             {drafts.map(post => <DraftPostCard key={post.id} post={post} />)}
-//             {drafts.length === 0 && (
-//               <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4 text-center py-16">
-//                   <Copy className="mx-auto h-16 w-16 text-gray-300" />
-//                   <h3 className="mt-4 text-lg font-semibold text-gray-900">No drafts yet, create your first post!</h3>
-//               </div>
-//             )}
-//           </div>
-//         </div>
-//       );
-//     };
-    
-//     const PastPosts = () => {
-//       const posts = [
-//           { id: 1, title: 'Home 2 Drait Qpusnd', date: 'Oite 20 - 201M', status: 'Published', cta: 'Order Online', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/b49d7d13-1b91-447b-83c0-302a64c489c6' },
-//           { id: 2, title: 'Insit Image', date: 'Oite 20 - 201M', status: 'Published', cta: 'Buy More', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
-//           { id: 3, title: 'Foy Offer', date: 'Tite-201 - 201M', status: 'Offer', cta: 'Buy More', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/b49d7d13-1b91-447b-83c0-302a64c489c6' },
-//           { id: 4, title: 'Fubieistron', date: 'Rain ID 110 Vesi', status: 'Published', cta: 'Call Now', views: '129', clicks: '11', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
-//           { id: 5, title: 'Fult Waterton', date: 'Tite-201 20 im 28', status: 'Published', cta: 'Call Now', views: '25', clicks: 'N/A', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/a2d325e0-84c1-4b13-8d00-478670c51152' },
-//       ];
-//       return (
-//         <div>
-//           <div className="flex flex-col md:flex-row justify-end items-center gap-4 mb-6">
-//             <div className="flex items-center gap-2 w-full md:w-auto">
-//               <span className="text-sm text-gray-600">Sort by:</span>
-//               <select className="border border-gray-300 rounded-lg px-4 py-2 text-sm">
-//                 <option>Newest - Oldest</option>
-//                 <option>Oldest - Newest</option>
-//               </select>
-//             </div>
-//           </div>
-//           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-//             {posts.map(post => <PastPostCard key={post.id} post={post} showStats={true} />)}
-//           </div>
-//         </div>
-//       );
-//     };
-
-//     // --- RENDER THE MAIN POSTING UI ---
-//     return (
-//       <div className="bg-white rounded-lg p-6 border border-gray-200">
-//         <h2 className="text-xl font-semibold text-gray-900">Automate Posting</h2>
-//         <p className="text-gray-600 mt-1 mb-6">Create, schedule and manage your Business posts automatically.</p>
-  
-//         {/* Tab Navigation */}
-//         <div className="border-b border-gray-200">
-//           <nav className="-mb-px flex space-x-6" aria-label="Tabs">
-//             {tabs.map((tab) => (
-//               <button
-//                 key={tab.id}
-//                 onClick={() => setActiveTab(tab.id)}
-//                 className={`
-//                   ${activeTab === tab.id
-//                     ? "border-gbp-blue-500 text-gbp-blue-600"
-//                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-//                   } group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
-//               >
-//                 <tab.icon className={`-ml-0.5 mr-2 h-5 w-5 ${activeTab === tab.id ? "text-gbp-blue-500" : "text-gray-400 group-hover:text-gray-500"}`} />
-//                 <span>{tab.name}</span>
-//               </button>
-//             ))}
-//           </nav>
-//         </div>
-  
-//         {/* Tab Content */}
-//         <div className="mt-6">
-//           {activeTab === "create" && <CreateNewPost />}
-//           {activeTab === "draft" && <DraftPosts />}
-//           {activeTab === "past" && <PastPosts />}
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   // Fallback for any other module that doesn't have a specific UI yet
-//   return (
-//     <div className="max-w-4xl">
-//       <div className="bg-white rounded-lg p-6 border border-gray-200">
-//         <div className="flex items-center space-x-3 mb-4">
-//           <module.icon className="w-8 h-8 text-gbp-blue-500" />
-//           <h2 className="text-xl font-semibold text-gray-900">{module.name}</h2>
-//         </div>
-//         <p className="text-gray-600 mb-6">{module.description}</p>
-
-//         <div className="bg-gray-50 rounded-lg p-8 text-center">
-//           <module.icon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-//           <h3 className="text-lg font-medium text-gray-900 mb-2">
-//             Coming Soon
-//           </h3>
-//           <p className="text-gray-500">
-//             This automation module is currently under development.
-//           </p>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
 
 function DefaultAutomation({ module }: { module: AutomationModule }) {
   // Check if the selected module is "Automate Posting"
@@ -2017,3 +2162,38 @@ function DefaultAutomation({ module }: { module: AutomationModule }) {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// CategoryTag component ko fix karo
+const CategoryTag = ({ category }: { category: string }) => {
+  const categoryColors: Record<string, string> = {
+    ADDITIONAL: "bg-blue-100 text-blue-700",
+    COVER: "bg-purple-100 text-purple-700",
+    PROFILE: "bg-green-100 text-green-700",
+    LOGO: "bg-orange-100 text-orange-700",
+  };
+
+  const bgColor = categoryColors[category] || "bg-gray-100 text-gray-700";
+
+  return (  // 🔥 ADD THIS RETURN
+    <span
+      className={`text-xs font-semibold px-2 py-1 rounded ${bgColor}`}
+    >
+      {category}
+    </span>
+  );
+};
