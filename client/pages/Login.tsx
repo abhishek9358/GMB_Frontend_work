@@ -50,7 +50,7 @@ export default function Login() {
       setError(null);
       
       // Call your backend to get the Google OAuth URL
-      const response = await fetch('/auth/google');
+      const response = await fetch('http://localhost:3000/auth/google');
       
       if (!response.ok) {
         throw new Error('Failed to initiate authentication');

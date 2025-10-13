@@ -35,6 +35,8 @@
     "formik": "^2.4.6",
     "googleapis": "^158.0.0",
     "node-fetch": "^3.3.2",
+    "qrcode.react": "^4.2.0",
+    "react-qr-code": "^2.0.18",
     "react-redux": "^9.2.0",
     "xlsx": "^0.18.5",
     "yup": "^1.7.0",
