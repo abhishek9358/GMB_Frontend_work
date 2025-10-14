@@ -16,22 +16,22 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { Calendar as CalendarIcon } from "lucide-react";
 import {SERVER} from "@/constants/index"
 
 // Replace your existing lucide-react import with this
 import {
   Bookmark,  ChevronDown, Clock, Copy, Eye, Image as ImageIcon, Link as LinkIcon, 
-  MoreVertical, Pencil, Plus, Search, Send,Sparkles, Settings as  ThumbsUp, Trash2,CheckCircle2,ImageOff,Cloud,
-     
-  
+  MoreVertical, Pencil, Plus, Search, Send,Sparkles, Settings as  ThumbsUp, Trash2,CheckCircle2,ImageOff,Cloud,  Save, 
+  Play 
 } from "lucide-react";
+import PostAutomation from "@/components/PostAutomation";
 
 type DraftImage = {
   id: string | number;
   type: 'file' | 'url';
   value: File | string;
   previewUrl: string;
+  category: string;
 };
 
 
@@ -329,13 +329,50 @@ const FileImportDialog = ({ open, onClose, onImport, files, setFiles }) => {
 
 
 
+  const CATEGORY_OPTIONS = [
+    { value: "ADDITIONAL", label: "Additional" },
+    { value: "COVER", label: "Cover" },
+    { value: "LOGO", label: "Logo" },
+    { value: "PROFILE", label: "Profile" },
+    { value: "INTERIOR", label: "Interior" },
+    { value: "EXTERIOR", label: "Exterior" },
+    
+  ];
 
 
+type CategorySelectorProps = {
+  selected: string;
+  onChange: (cat: string) => void;
+};
+
+function CategorySelector({ selected, onChange }: CategorySelectorProps) {
+  return (
+    <div className="flex flex-wrap gap-2 mb-3">
+      {CATEGORY_OPTIONS.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={`px-3 py-1 rounded-md border transition-all ${
+            selected === opt.value
+              ? "bg-blue-600 text-white border-blue-600"
+              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 
 
 
 function ImageUploadAutomation() {
+
+
+
   const [dialogOpen, setDialogOpen] = useState(false);
   // This 'files' state is now primarily for the dialog
   const [files, setFiles] = useState<File[]>([]);
@@ -367,6 +404,10 @@ function ImageUploadAutomation() {
 
   const [gmbImages, setGmbImages] = useState<any[]>([]); // GMB se aane wali real images
   const [fetchingGMB, setFetchingGMB] = useState(false);
+
+  // 🔥 NEW: Category state for uploads
+  const [urlCategory, setUrlCategory] = useState("ADDITIONAL");
+  const [fileCategory, setFileCategory] = useState("ADDITIONAL");
 
   const { user } = useSelector((state: RootState) => state.user);
   const { activeLocation } = useSelector(
@@ -446,6 +487,7 @@ function ImageUploadAutomation() {
         type: "file",
         value: draft.fileName,
         previewUrl: draft.fileUrl,
+        category: draft.category, 
       }));
 
       setDraftImages(backendDrafts);
@@ -457,11 +499,11 @@ function ImageUploadAutomation() {
   }, [LOCATION_ID]);
 
   // Upload file to draft (backend)
-  const uploadToDraft = async (file: File, scheduleDate?: string) => {
+  const uploadToDraft = async (file: File, scheduleDate?: string, category: string = "ADDITIONAL") => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("locationId", LOCATION_ID);
-    formData.append("category", "ADDITIONAL");
+    formData.append("category", category);
 
     if (scheduleDate) {
       formData.append("scheduledFor", scheduleDate);
@@ -482,23 +524,28 @@ function ImageUploadAutomation() {
   };
 
   // Upload URL to draft
-  const uploadUrlToDraft = async (imageUrl: string, scheduleDate?: string) => {
+  const uploadUrlToDraft = async (imageUrl: string, scheduleDate?: string, category: string = "ADDITIONAL") => {
     const formData = new FormData();
-    formData.append("fileUrl", imageUrl);
+    formData.append("source_url", imageUrl); // 🔥 BACKEND expects 'source_url' not 'fileUrl'
     formData.append("locationId", LOCATION_ID);
-    formData.append("category", "ADDITIONAL");
+    formData.append("category", category);
 
     if (scheduleDate) {
       formData.append("scheduledFor", scheduleDate);
     }
 
-    const response = await fetch(`${SERVER}/api/media-drafts`, {
+    const response = await fetch(`${SERVER}/api/media-drafts/url`, {
+      // 🔥 Correct endpoint
       method: "POST",
       body: formData,
       credentials: "include",
     });
 
-    if (!response.ok) throw new Error("URL draft failed");
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || "URL draft failed");
+    }
+
     return response.json();
   };
 
@@ -608,24 +655,85 @@ function ImageUploadAutomation() {
     setUrlError("");
 
     try {
-      // Upload to backend
-      const result = await uploadUrlToDraft(trimmedUrl, scheduledDate);
+
+       const img = new Image();
+    img.src = url;
+    await new Promise((resolve, reject) => {
+      img.onload = () => resolve("");
+      img.onerror = reject;
+    });
+
+    const width = img.width;
+    const height = img.height;
+
+    if (urlCategory === "COVER" && (width / height < 1.7 || width / height > 1.8)) {
+      setMessage({
+        type: "error",
+        text: "Cover photo must have a 16:9 aspect ratio (e.g., 1280×720).",
+      });
+      return;
+    }
+
+      // 🔥 Upload to backend using correct function
+      const result = await uploadUrlToDraft(trimmedUrl, scheduledDate, urlCategory);
 
       // Add to local state
       const newDraft: DraftImage = {
         id: result.data.id,
         type: "url",
         value: trimmedUrl,
-        previewUrl: trimmedUrl,
+        previewUrl: trimmedUrl, // URL itself is the preview
+        category: urlCategory,
       };
 
       setDraftImages((prev) => [...prev, newDraft]);
       setUrl("");
       setScheduledDate("");
-      setMessage({ type: "success", text: "Image added to drafts!" });
+      setUrlCategory("ADDITIONAL")
+      setMessage({ type: "success", text: "Image from URL added to drafts!" });
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
-      setMessage({ type: "error", text: error.message });
+      console.error("URL upload error:", error);
+      setMessage({
+        type: "error",
+        text: error.message || "Failed to add URL to drafts",
+      });
+      setUrlError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestRun = async () => {
+    if (draftImages.length === 0) {
+      setMessage({ type: "error", text: "No drafts available to test!" });
+      return;
+    }
+
+    setLoading(true);
+    setMessage({ type: "success", text: "Running test post..." });
+
+    try {
+      // Pick first draft
+      const testDraft = draftImages[0];
+
+      // Post to GMB
+      await postDraftToGMB(testDraft.id as string);
+
+      // Refresh lists
+      await fetchDraftsFromBackend();
+      const updatedGMBImages = await fetchGMBMedia();
+      setGmbImages(updatedGMBImages);
+
+      setMessage({
+        type: "success",
+        text: "✅ Test successful! 1 image posted to GMB.",
+      });
+    } catch (error: any) {
+      setMessage({
+        type: "error",
+        text: `❌ Test failed: ${error.message}`,
+      });
     } finally {
       setLoading(false);
     }
@@ -641,8 +749,33 @@ function ImageUploadAutomation() {
 
       for (const file of importedFiles) {
         try {
+          const objectUrl = URL.createObjectURL(file);
+           const img = new Image();
+           img.src = objectUrl;
+
+           await new Promise((resolve, reject) => {
+             img.onload = () => resolve("");
+             img.onerror = reject;
+           });
+
+           const width = img.width;
+           const height = img.height;
+
+           if (
+             fileCategory === "COVER" &&
+             (width / height < 1.7 || width / height > 1.8)
+           ) {
+             setMessage({
+               type: "error",
+               text: `Cover photo "${file.name}" must have a 16:9 aspect ratio (e.g., 1280×720).`,
+             });
+             URL.revokeObjectURL(objectUrl);
+            //  continue; // skip invalid cover images
+           }
+
+
           // Upload to backend
-          const result = await uploadToDraft(file, scheduledDate);
+          const result = await uploadToDraft(file, scheduledDate, fileCategory);
 
           // Add to local state
           const newDraft: DraftImage = {
@@ -650,6 +783,7 @@ function ImageUploadAutomation() {
             type: "file",
             value: file,
             previewUrl: URL.createObjectURL(file),
+            category: fileCategory
           };
 
           setDraftImages((prev) => [...prev, newDraft]);
@@ -664,13 +798,14 @@ function ImageUploadAutomation() {
       setLoading(false);
       setDialogOpen(false);
       setScheduledDate("");
+      setFileCategory("ADDITIONAL"); 
       setMessage({
         type: "success",
         text: `${successCount} image(s) added to drafts!`,
       });
       setTimeout(() => setMessage(null), 3000);
     },
-    [scheduledDate],
+    [scheduledDate, fileCategory],
   );
 
   // REPLACE EXISTING handleRemoveDraft with:
@@ -812,8 +947,8 @@ function ImageUploadAutomation() {
       // 🔥 FIX: result.data ki jagah result.mediaItems use karo
       const gmbImages = (result.mediaItems || []).map((item: any) => ({
         id: item.name?.split("/").pop() || item.mediaItemId,
-        url: item.thumbnailUrl || item.googleUrl, 
-        fullUrl: item.googleUrl, 
+        url: item.thumbnailUrl || item.googleUrl,
+        fullUrl: item.googleUrl,
         category: item.locationAssociation?.category || "ADDITIONAL",
         uploadedAt: item.createTime
           ? new Date(item.createTime).toLocaleDateString()
@@ -826,7 +961,7 @@ function ImageUploadAutomation() {
         isGMBImage: true,
       }));
 
-      console.log("Gmbimages", gmbImages)
+      console.log("Gmbimages", gmbImages);
 
       return gmbImages;
     } catch (error) {
@@ -834,8 +969,6 @@ function ImageUploadAutomation() {
       return [];
     }
   }, [ACCOUNT_ID, LOCATION_ID]);
-
-
 
   useEffect(() => {
     if (LOCATION_ID && ACCOUNT_ID) {
@@ -856,8 +989,6 @@ function ImageUploadAutomation() {
     fetchAutomationSettings,
     fetchGMBMedia,
   ]);
-
-
 
   // --- JSX RENDER ---
   return (
@@ -891,10 +1022,23 @@ function ImageUploadAutomation() {
         )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Option 1: URL Upload - Button now adds to draft */}
+
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <h4 className="font-semibold text-gray-900 mb-2">
               Upload Using Link
             </h4>
+            <p className="text-xs text-gray-500 mb-3">
+              Paste image URL (JPG, PNG, GIF, WEBP)
+            </p>
+            {/* Category Selector */}
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select Category
+            </label>
+            <CategorySelector
+              selected={urlCategory}
+              onChange={(cat) => setUrlCategory(cat)}
+            />
+
             <input
               type="url"
               value={url}
@@ -903,25 +1047,50 @@ function ImageUploadAutomation() {
                 setUrlError("");
               }}
               placeholder="https://example.com/image.jpg"
-              className={`w-full border rounded px-3 py-2 text-sm mb-2 ${urlError ? "border-red-500" : "border-gray-300"}`}
+              className={`w-full border rounded-lg px-3 py-2 text-sm mb-2 focus:ring-2 focus:ring-gbp-blue-500 ${
+                urlError ? "border-red-500" : "border-gray-300"
+              }`}
               disabled={loading}
             />
+
             {urlError && (
-              <p className="text-red-500 text-xs mb-2">{urlError}</p>
+              <div className="flex items-start gap-2 mb-2 p-2 bg-red-50 rounded">
+                <X className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <p className="text-red-600 text-xs">{urlError}</p>
+              </div>
             )}
+
             <button
-              onClick={handleAddUrlToDrafts} // UPDATED
+              onClick={handleAddUrlToDrafts}
               disabled={loading || !url.trim()}
-              className="w-full bg-gbp-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gbp-blue-700 disabled:opacity-60"
+              className="w-full bg-gbp-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gbp-blue-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Add to Drafts
+              {loading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  Add to Drafts
+                </>
+              )}
             </button>
           </div>
+
           {/* Other upload options ... */}
           <div className="bg-white rounded-lg p-4 shadow-sm flex flex-col items-center justify-center border-2 border-dashed border-blue-300">
             <h4 className="font-semibold text-gray-900 mb-2">
               Drag and Drop Upload
             </h4>
+
+              {/* Category selector added for drag-drop uploads too */}
+            <CategorySelector
+              selected={fileCategory}
+              onChange={(cat) => setFileCategory(cat)}
+            />
+
             <div
               className="text-center cursor-pointer"
               onClick={() => !loading && setDialogOpen(true)}
@@ -973,88 +1142,203 @@ function ImageUploadAutomation() {
           </label>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Frequency Select */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Upload Frequency
-            </label>
-            <select
-              value={automationSettings.frequency}
-              onChange={(e) =>
-                setAutomationSettings({
-                  ...automationSettings,
-                  frequency: e.target.value,
-                })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gbp-blue-500"
-              disabled={!automationSettings.isActive}
-            >
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="custom">Custom Interval</option>
-            </select>
-          </div>
-
-          {/* Custom Interval Days */}
-          {automationSettings.frequency === "custom" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left Column - Frequency Settings */}
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Every X Days
+                Upload Frequency
+              </label>
+              <select
+                value={automationSettings.frequency}
+                onChange={(e) =>
+                  setAutomationSettings({
+                    ...automationSettings,
+                    frequency: e.target.value,
+                    // Reset intervalDays when switching from custom
+                    intervalDays:
+                      e.target.value === "custom"
+                        ? automationSettings.intervalDays
+                        : e.target.value === "daily"
+                          ? 1
+                          : 7,
+                  })
+                }
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gbp-blue-500 focus:border-transparent"
+                disabled={!automationSettings.isActive}
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="custom">Custom Interval</option>
+              </select>
+            </div>
+
+            {/* Custom Interval Days - Show only when custom selected */}
+            {automationSettings.frequency === "custom" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Post Every (Days)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  value={automationSettings.intervalDays}
+                  onChange={(e) =>
+                    setAutomationSettings({
+                      ...automationSettings,
+                      intervalDays: parseInt(e.target.value) || 1,
+                    })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gbp-blue-500 focus:border-transparent"
+                  disabled={!automationSettings.isActive}
+                  placeholder="e.g., 3 (every 3 days)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Images will be posted every {automationSettings.intervalDays}{" "}
+                  day(s)
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Limits & Info */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Max Uploads Per Month (Optional)
               </label>
               <input
                 type="number"
                 min="1"
-                max="30"
-                value={automationSettings.intervalDays}
+                max="100"
+                placeholder="No limit"
+                value={automationSettings.maxPerMonth || ""}
                 onChange={(e) =>
                   setAutomationSettings({
                     ...automationSettings,
-                    intervalDays: parseInt(e.target.value) || 1,
+                    maxPerMonth: e.target.value
+                      ? parseInt(e.target.value)
+                      : null,
                   })
                 }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gbp-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gbp-blue-500 focus:border-transparent"
                 disabled={!automationSettings.isActive}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Leave empty for unlimited posts per month
+              </p>
             </div>
-          )}
 
-          {/* Monthly Limit */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Max Uploads Per Month (Optional)
-            </label>
-            <input
-              type="number"
-              min="1"
-              placeholder="No limit"
-              value={automationSettings.maxPerMonth || ""}
-              onChange={(e) =>
-                setAutomationSettings({
-                  ...automationSettings,
-                  maxPerMonth: e.target.value ? parseInt(e.target.value) : null,
-                })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gbp-blue-500"
-              disabled={!automationSettings.isActive}
-            />
+            {/* Automation Summary Box */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-blue-900 mb-2">
+                📋 Automation Summary
+              </h4>
+              {automationSettings.isActive ? (
+                <div className="space-y-1 text-sm text-blue-700">
+                  <p>
+                    • <strong>Status:</strong> Active
+                  </p>
+                  <p>
+                    • <strong>Frequency:</strong>{" "}
+                    {automationSettings.frequency === "custom"
+                      ? `Every ${automationSettings.intervalDays} day(s)`
+                      : automationSettings.frequency === "daily"
+                        ? "Every day"
+                        : "Every week"}
+                  </p>
+                  <p>
+                    • <strong>Monthly Limit:</strong>{" "}
+                    {automationSettings.maxPerMonth || "Unlimited"}
+                  </p>
+                  {automationSettings.maxPerMonth && (
+                    <p className="text-xs text-blue-600 mt-2">
+                      ⚠️ Automation will pause after{" "}
+                      {automationSettings.maxPerMonth} uploads this month
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600">
+                  ⏸️ Automation is currently paused
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="mt-6 flex justify-between items-center">
-          <p className="text-sm text-gray-500">
-            {automationSettings.isActive
-              ? `🤖 Automation will post images ${automationSettings.frequency === "custom" ? `every ${automationSettings.intervalDays} days` : automationSettings.frequency}`
-              : "⏸️ Automation is currently paused"}
-          </p>
-          <button
-            onClick={saveAutomationSettings}
-            disabled={automationLoading || !automationSettings.isActive}
-            className="flex items-center gap-2 bg-gbp-blue-600 text-white font-semibold px-5 py-2 rounded-lg hover:bg-gbp-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {automationLoading ? "Saving..." : "Save Automation Settings"}
-          </button>
+        {/* Action Buttons */}
+        <div className="mt-6 pt-6 border-t border-gray-200 flex justify-between items-center">
+          <div className="flex items-center gap-2 text-sm">
+            {automationSettings.isActive ? (
+              <>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-green-700 font-medium">
+                  Automation is running
+                </span>
+              </>
+            ) : (
+              <>
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                <span className="text-gray-600">Automation is paused</span>
+              </>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            {/* Test Run Button (Optional) */}
+            <button
+              onClick={async () => {
+                // Optional: Test automation by posting 1 draft immediately
+                handleTestRun();
+              }}
+              disabled={
+                automationLoading ||
+                !automationSettings.isActive ||
+                draftImages.length === 0
+              }
+              className="flex items-center gap-2 border border-gbp-blue-600 text-gbp-blue-600 font-semibold px-4 py-2 rounded-lg hover:bg-gbp-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Play className="w-4 h-4" />
+              Test Run
+            </button>
+
+            {/* Save Button */}
+            <button
+              onClick={saveAutomationSettings}
+              disabled={automationLoading}
+              className="flex items-center gap-2 bg-gbp-blue-600 text-white font-semibold px-5 py-2 rounded-lg hover:bg-gbp-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {automationLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save Automation Settings
+                </>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Next Scheduled Post Info (if automation active) */}
+        {automationSettings.isActive && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              <strong>ℹ️ Next scheduled post:</strong>{" "}
+              {/* Calculate based on frequency */}
+              {automationSettings.frequency === "daily"
+                ? "Tomorrow at this time"
+                : automationSettings.frequency === "weekly"
+                  ? "Next week at this time"
+                  : `In ${automationSettings.intervalDays} day(s)`}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* --- NEW/UPDATED Draft Images Section --- */}
@@ -1222,7 +1506,7 @@ function ImageUploadAutomation() {
                       className="w-full h-40 object-cover"
                       onError={(e) => {
                         const target = e.currentTarget;
-                        target.onerror = null; 
+                        target.onerror = null;
                         target.src =
                           "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150'%3E%3Crect fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='%236b7280' font-size='14'%3ENo Image%3C/text%3E%3C/svg%3E";
                       }}
@@ -1870,273 +2154,7 @@ function SummaryAutomation() {
 function DefaultAutomation({ module }: { module: AutomationModule }) {
   // Check if the selected module is "Automate Posting"
   if (module.id === 'automate-posting') {
-    // --- STATE AND HELPER COMPONENTS FOR THE POSTING UI ---
-    const [activeTab, setActiveTab] = useState("create");
-
-    const tabs = [
-      { id: "create", name: "Create New Post", icon: Plus },
-      { id: "draft", name: "Draft Posts", icon: Bookmark },
-      { id: "past", name: "Past Posts", icon: Send },
-    ];
-
-    const DraftPostCard = ({ post }) => (
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div className="relative">
-          <img src={post.imageUrl} alt={post.title} className="w-full h-32 object-cover" />
-          {post.type === 'video' && (
-            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-               <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center">
-                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"></path></svg>
-               </div>
-             </div>
-          )}
-        </div>
-        <div className="p-4">
-          <h3 className="font-semibold text-gray-800 truncate">{post.title}</h3>
-          <p className="text-sm text-gray-500 mb-2">{post.date}</p>
-          <div className="flex items-center justify-between mb-4">
-            <span className="inline-flex items-center bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-0.5 rounded-full">
-              <Clock className="w-3 h-3 mr-1.5" />
-              Status: Draft
-            </span>
-            <MoreVertical className="w-5 h-5 text-gray-400 cursor-pointer" />
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="w-full text-sm bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50">Edit</button>
-            <button className="w-full text-sm bg-gbp-blue-600 text-white py-2 px-4 rounded-md hover:bg-gbp-blue-700">Post Now</button>
-          </div>
-        </div>
-      </div>
-    );
-
-    const PastPostCard = ({ post, showStats = false }) => {
-        const statusColors = {
-          Published: "bg-green-100 text-green-800",
-          Offer: "bg-orange-100 text-orange-800",
-          Draft: "bg-gray-100 text-gray-700"
-        };
-        return (
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-              <img src={post.imageUrl} alt={post.title} className="w-full h-32 object-cover" />
-              <div className="p-4">
-                  <h3 className="font-semibold text-gray-800 truncate">{post.title}</h3>
-                  <p className="text-sm text-gray-500 mb-2">{post.date}</p>
-                   <div className="flex items-center justify-between mb-3">
-                      <span className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full ${statusColors[post.status] || statusColors.Draft}`}>
-                          {post.status}
-                      </span>
-                      <span className="text-sm font-medium text-gbp-blue-600">{post.cta}</span>
-                   </div>
-                  {showStats && post.views && post.clicks && (
-                     <div className="flex items-center text-sm text-gray-500 space-x-4 mb-4">
-                        <div className="flex items-center">
-                            <Eye className="w-4 h-4 mr-1"/> {post.views} Views
-                        </div>
-                        <div className="flex items-center">
-                            <ThumbsUp className="w-4 h-4 mr-1"/> {post.clicks} Clicks
-                        </div>
-                     </div>
-                  )}
-                   <div className="flex items-center gap-2">
-                       <button className="w-full text-sm bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50">View Post</button>
-                       <button className="w-full text-sm bg-gray-100 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-200">Duplicate Post</button>
-                   </div>
-              </div>
-          </div>
-        )
-    };
-    
-    // --- Tab Content Components ---
-    const CreateNewPost = () => {
-        // --- NEW: State for description and AI loading state ---
-        const [postDescription, setPostDescription] = useState("");
-        const [isGenerating, setIsGenerating] = useState(false);
-        
-        // --- NEW: Handler for AI description generation ---
-        const handleGenerateAIDescription = () => {
-            setIsGenerating(true);
-            // Simulate an API call to a generative AI
-            setTimeout(() => {
-                const aiGeneratedText = "Discover our latest seasonal offers! 🍂 From cozy autumn decor to delicious pumpkin-spice treats, we have everything you need to celebrate the season. Visit us today and get 20% off your entire purchase. Don't miss out! #AutumnVibes #SeasonalSale #ShopLocal";
-                setPostDescription(aiGeneratedText.slice(0, 1500)); // Ensure it doesn't exceed max length
-                setIsGenerating(false);
-            }, 1500); // 1.5 second delay to simulate network request
-        };
-
-        const recentPosts = [
-            { id: 1, title: 'Insit Image', date: 'Oite 20 - 201M', status: 'Published', cta: 'Order Online', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
-            { id: 2, title: 'Fcst Waturton', date: 'Bupi More 18:00', status: 'Published', cta: 'Buy More', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/b49d7d13-1b91-447b-83c0-302a64c489c6' },
-            { id: 3, title: 'Ffuf Uruatiee', date: 'Tite-201 - 20M', status: 'Published', cta: 'Call Now', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/a2d325e0-84c1-4b13-8d00-478670c51152' },
-        ];
-        
-        return (
-            // <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="max-w-6xl mx-auto  p-8 rounded-2x2">
-                 
-                <div className="lg:col-span-2">
-                    <div className="relative">
-                        {/* UPDATED: Textarea with value and onChange handler */}
-                        <textarea 
-                            value={postDescription}
-                            onChange={(e) => setPostDescription(e.target.value)}
-                            maxLength={1500}
-                            className="w-full h-36 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gbp-blue-500 focus:border-gbp-blue-500 resize-none" 
-                            placeholder="Describe your post (0-1500 chars)"
-                        />
-                        {/* UPDATED: Dynamic character count */}
-                        <span className="absolute bottom-3 right-3 text-sm text-gray-500">
-                            {postDescription.length}/1500 chars
-                        </span>
-                    </div>
-
-                    {/* NEW: AI Generate Button */}
-                    <div className="flex justify-end mt-2">
-                        <button
-                            onClick={handleGenerateAIDescription}
-                            disabled={isGenerating}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gbp-blue-600 bg-gbp-blue-50 rounded-lg hover:bg-gbp-blue-100 disabled:opacity-50 disabled:cursor-wait"
-                        >
-                            <Sparkles className="w-4 h-4" />
-                            {isGenerating ? "Generating..." : "Generate AI Description"}
-                        </button>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-center w-full p-8 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
-                        <div className="text-center">
-                            <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="mt-2 text-sm text-gray-600"><span className="font-semibold text-gbp-blue-600">Drag & drop images/videos here</span> or click to upload</p>
-                        </div>
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="relative md:col-span-1">
-                            <select className="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-3 px-4 pr-8 rounded-lg focus:outline-none focus:bg-white focus:border-gray-500">
-                                <option>None</option>
-                                <option>Book</option>
-                                <option>Buy</option>
-                                <option>Order Online</option>
-                                <option>Learn More</option>
-                                <option>Sign Up</option>
-                                <option>Call Now</option>
-                            </select>
-                            <ChevronDown className="w-5 h-5 text-gray-400 absolute top-1/2 right-3 -translate-y-1/2 pointer-events-none"/>
-                        </div>
-                        <div className="relative md:col-span-2">
-                            <LinkIcon className="w-5 h-5 text-gray-400 absolute top-1/2 left-3 -translate-y-1/2"/>
-                            <input type="text" placeholder="Link" className="w-full border border-gray-300 rounded-lg pl-10 pr-20 py-3 focus:ring-2 focus:ring-gbp-blue-500" />
-                            <div className="absolute top-1/2 right-3 -translate-y-1/2 flex gap-2">
-                                <Pencil className="w-5 h-5 text-gray-500 hover:text-gbp-blue-600 cursor-pointer"/>
-                                <Trash2 className="w-5 h-5 text-gray-500 hover:text-red-600 cursor-pointer"/>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4 mt-8">
-                        <button className="bg-gbp-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-gbp-blue-700">Post Now</button>
-                        <button className="bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-6 rounded-lg hover:bg-gray-50">Save as Draft</button>
-                    </div>
-                </div>
-                
-            </div>
-        );
-    };
-    
-    const DraftPosts = () => {
-      const drafts = [
-          { id: 1, title: 'Line 2 Tione', date: '223 liae - 201 PMM', type: 'image', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
-          { id: 2, title: 'Siugrer', date: 'Oireen 126.10 Pam', type: 'video', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/a2d325e0-84c1-4b13-8d00-478670c51152' },
-      ];
-      return (
-        <div>
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              <div className="relative w-full">
-                <Search className="w-5 h-5 text-gray-400 absolute top-1/2 left-3 -translate-y-1/2" />
-                <input type="text" placeholder="Search" className="border border-gray-300 rounded-lg pl-10 py-2 w-full" />
-              </div>
-              <button className="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 whitespace-nowrap">
-                <Calendar className="w-5 h-5 text-gray-500" /> Date Range
-              </button>
-            </div>
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <span className="text-sm text-gray-600">Sort by:</span>
-              <select className="border border-gray-300 rounded-lg px-4 py-2 text-sm">
-                <option>Newest Ditee</option>
-                <option>Oldest Date</option>
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {drafts.map(post => <DraftPostCard key={post.id} post={post} />)}
-            {drafts.length === 0 && (
-              <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4 text-center py-16">
-                  <Copy className="mx-auto h-16 w-16 text-gray-300" />
-                  <h3 className="mt-4 text-lg font-semibold text-gray-900">No drafts yet, create your first post!</h3>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    };
-    
-    const PastPosts = () => {
-      const posts = [
-          { id: 1, title: 'Home 2 Drait Qpusnd', date: 'Oite 20 - 201M', status: 'Published', cta: 'Order Online', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/b49d7d13-1b91-447b-83c0-302a64c489c6' },
-          { id: 2, title: 'Insit Image', date: 'Oite 20 - 201M', status: 'Published', cta: 'Buy More', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
-          { id: 3, title: 'Foy Offer', date: 'Tite-201 - 201M', status: 'Offer', cta: 'Buy More', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/b49d7d13-1b91-447b-83c0-302a64c489c6' },
-          { id: 4, title: 'Fubieistron', date: 'Rain ID 110 Vesi', status: 'Published', cta: 'Call Now', views: '129', clicks: '11', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/ac80a0f5-93b5-4148-8120-1b20755a1d7f' },
-          { id: 5, title: 'Fult Waterton', date: 'Tite-201 20 im 28', status: 'Published', cta: 'Call Now', views: '25', clicks: 'N/A', imageUrl: 'https://storage.googleapis.com/gemini-generative-ai-api-prod/v1/files/a2d325e0-84c1-4b13-8d00-478670c51152' },
-      ];
-      return (
-        <div>
-          <div className="flex flex-col md:flex-row justify-end items-center gap-4 mb-6">
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <span className="text-sm text-gray-600">Sort by:</span>
-              <select className="border border-gray-300 rounded-lg px-4 py-2 text-sm">
-                <option>Newest - Oldest</option>
-                <option>Oldest - Newest</option>
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {posts.map(post => <PastPostCard key={post.id} post={post} showStats={true} />)}
-          </div>
-        </div>
-      );
-    };
-
-    // --- RENDER THE MAIN POSTING UI ---
-    return (
-      <div className="bg-white rounded-lg p-6 border border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-900">Automate Posting</h2>
-        <p className="text-gray-600 mt-1 mb-6">Create, schedule and manage your Business posts automatically.</p>
-  
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-6" aria-label="Tabs">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`
-                  ${activeTab === tab.id
-                    ? "border-gbp-blue-500 text-gbp-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  } group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
-              >
-                <tab.icon className={`-ml-0.5 mr-2 h-5 w-5 ${activeTab === tab.id ? "text-gbp-blue-500" : "text-gray-400 group-hover:text-gray-500"}`} />
-                <span>{tab.name}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
-  
-        {/* Tab Content */}
-        <div className="mt-6">
-          {activeTab === "create" && <CreateNewPost />}
-          {activeTab === "draft" && <DraftPosts />}
-          {activeTab === "past" && <PastPosts />}
-        </div>
-      </div>
-    );
+   return <PostAutomation />
   }
 
   // Fallback for any other module that doesn't have a specific UI yet
