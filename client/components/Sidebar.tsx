@@ -12,6 +12,8 @@ import {
   FileText,
   TrendingUp,
   Database,
+  ArrowLeftRight,
+
 } from "lucide-react";
 
 const navigationItems = [
@@ -19,7 +21,7 @@ const navigationItems = [
   { to: "/businesses", label: "Businesses", icon: Building2 },
   { to: "/automation", label: "Automation", icon: Zap },
   { to: "/reviews", label: "Reviews", icon: MessageSquare },
-   { to: "/compatitor", label: "Compatitor Analysis", icon: MessageSquare },
+   { to: "/compatitor", label: "Compatitor Analysis", icon: ArrowLeftRight },
   { to: "/reports", label: "Reports", icon: FileText },
   { to: "/analytics/search-console/overview", label: "GSC Overview", icon: BarChart3 },
   { to: "/analytics/search-console/performance", label: "GSC Performance", icon: TrendingUp },
