@@ -24,6 +24,9 @@ import {
   X,
   AlertCircle,
   Settings,
+  Tag,
+  CalendarDays,
+  Phone,
 } from "lucide-react";
 import { SERVER as ServerBackend } from "@/constants";
 
@@ -35,8 +38,18 @@ interface PostDraft {
   locationId?: string;
   summary: string;
   topicType: string;
-  event?: any;
-  offer?: any;
+  event?: {
+    title: string;
+    schedule: {
+      startDate: { year: number; month: number; day: number };
+      endDate: { year: number; month: number; day: number };
+    };
+  };
+  offer?: {
+    couponCode?: string;
+    redeemOnlineUrl?: string;
+    termsConditions?: string;
+  };
   media?: MediaItem[];
   callToAction?: CallToAction;
   status: string;
@@ -87,6 +100,16 @@ function PostAutomation() {
   const [mediaUrl, setMediaUrl] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // 🔥 Event-specific states
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventStartDate, setEventStartDate] = useState("");
+  const [eventEndDate, setEventEndDate] = useState("");
+
+  // 🔥 Offer-specific states
+  const [couponCode, setCouponCode] = useState("");
+  const [redeemUrl, setRedeemUrl] = useState("");
+  const [termsConditions, setTermsConditions] = useState("");
+
   // Drafts & Published Posts
   const [drafts, setDrafts] = useState<PostDraft[]>([]);
   const [publishedPosts, setPublishedPosts] = useState<PostDraft[]>([]);
@@ -117,15 +140,208 @@ function PostAutomation() {
     text: string;
   } | null>(null);
 
+
+  const [ctaPhone, setCtaPhone] = useState("");
+
   const tabs = [
     { id: "create", name: "Create New Post", icon: Plus },
     { id: "draft", name: "Draft Posts", icon: Bookmark },
     { id: "past", name: "Published Posts", icon: Send },
   ];
 
+  // 🔥 Reset type-specific fields when topic type changes
+  useEffect(() => {
+    if (topicType !== "EVENT" && topicType !== "OFFER") {
+      setEventTitle("");
+      setEventStartDate("");
+      setEventEndDate("");
+    }
+    if (topicType !== "OFFER") {
+      setCouponCode("");
+      setRedeemUrl("");
+      setTermsConditions("");
+    }
+  }, [topicType]);
+
+  // 🔥 Helper to convert date string to GMB format
+  const dateStringToGMBFormat = (dateString: string) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+    };
+  };
+
+  // 🔥 Helper to convert GMB date format to date string
+  const gmbDateToString = (gmbDate: {
+    year: number;
+    month: number;
+    day: number;
+  }) => {
+    const year = gmbDate.year;
+    const month = String(gmbDate.month).padStart(2, "0");
+    const day = String(gmbDate.day).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // 🔥 Validation function
+  const validatePostData = () => {
+    if (!postDescription.trim()) {
+      showMessage("error", "Please add a post description");
+      return false;
+    }
+
+    if (!LOCATION_ID) {
+      showMessage("error", "Please select a location first");
+      return false;
+    }
+
+    if (ctaType === "CALL" && !ctaPhone.trim()) {
+    showMessage("error", "Phone number is required for Call Now action");
+    return false;
+  }
+
+    // EVENT validation
+    if (topicType === "EVENT") {
+      if (!eventTitle.trim()) {
+        showMessage("error", "Event title is required for EVENT posts");
+        return false;
+      }
+      if (!eventStartDate) {
+        showMessage("error", "Event start date is required");
+        return false;
+      }
+      if (!eventEndDate) {
+        showMessage("error", "Event end date is required");
+        return false;
+      }
+      if (new Date(eventEndDate) < new Date(eventStartDate)) {
+        showMessage("error", "Event end date must be after start date");
+        return false;
+      }
+    }
+
+    // OFFER validation
+    if (topicType === "OFFER") {
+      if (!couponCode.trim() && !redeemUrl.trim()) {
+        showMessage(
+          "error",
+          "Either coupon code or redeem URL is required for OFFER posts"
+        );
+        return false;
+      }
+      if (!eventStartDate || !eventEndDate) {
+        showMessage(
+          "error",
+          "Offer validity period (start & end date) is required"
+        );
+        return false;
+      }
+      if (new Date(eventEndDate) < new Date(eventStartDate)) {
+        showMessage("error", "Offer end date must be after start date");
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // 🔥 Build post data with proper structure
+  const buildPostData = () => {
+    const postData: any = {
+      locationId: LOCATION_ID,
+      summary: postDescription,
+      topicType: topicType,
+    };
+
+    // Add media if provided
+    if (mediaUrl.trim()) {
+      postData.media = [
+        {
+          mediaFormat: "PHOTO",
+          sourceUrl: mediaUrl.trim(),
+        },
+      ];
+    }
+
+    // Add CTA if provided
+     if (ctaType !== "NONE") {
+    if (ctaType === "CALL") {
+      // For CALL, use phone number with tel: prefix
+      if (ctaPhone.trim()) {
+        postData.callToAction = {
+          actionType: ctaType,
+          url: `tel:${ctaPhone.trim().replace(/[^0-9+]/g, "")}`, // Clean and format phone
+        };
+      }
+    } else {
+      // For other CTAs, use URL
+      if (ctaUrl.trim()) {
+        postData.callToAction = {
+          actionType: ctaType,
+          url: ctaUrl.trim(),
+        };
+      }
+    }
+  }
+
+    // Add EVENT details
+    if (topicType === "EVENT") {
+      postData.event = {
+        title: eventTitle.trim(),
+        schedule: {
+          startDate: dateStringToGMBFormat(eventStartDate),
+          endDate: dateStringToGMBFormat(eventEndDate),
+        },
+      };
+    }
+
+    // Add OFFER details (with required EVENT for validity)
+    if (topicType === "OFFER") {
+      postData.offer = {};
+
+      if (couponCode.trim()) {
+        postData.offer.couponCode = couponCode.trim();
+      }
+      if (redeemUrl.trim()) {
+        postData.offer.redeemOnlineUrl = redeemUrl.trim();
+      }
+      if (termsConditions.trim()) {
+        postData.offer.termsConditions = termsConditions.trim();
+      }
+
+      // OFFER requires event for validity period
+      postData.event = {
+        title: "Limited Time Offer",
+        schedule: {
+          startDate: dateStringToGMBFormat(eventStartDate),
+          endDate: dateStringToGMBFormat(eventEndDate),
+        },
+      };
+    }
+
+    return postData;
+  };
+
+  // 🔥 Reset form function
+  const resetForm = () => {
+    setPostDescription("");
+    setMediaUrl("");
+    setCtaUrl("");
+    setCtaType("NONE");
+    setEventTitle("");
+    setEventStartDate("");
+    setEventEndDate("");
+    setCouponCode("");
+    setRedeemUrl("");
+    setTermsConditions("");
+    setCtaPhone("");  
+  };
+
   // ==================== API FUNCTIONS ====================
 
-  // Fetch Drafts
   const fetchDrafts = useCallback(async () => {
     if (!LOCATION_ID) return;
 
@@ -133,7 +349,7 @@ function PostAutomation() {
     try {
       const response = await fetch(
         `${SERVER}/api/post-drafts?locationId=${LOCATION_ID}&status=draft&limit=50`,
-        { credentials: "include" },
+        { credentials: "include" }
       );
 
       if (!response.ok) throw new Error("Failed to fetch drafts");
@@ -148,14 +364,13 @@ function PostAutomation() {
     }
   }, [LOCATION_ID]);
 
-  // Fetch Published Posts
   const fetchPublishedPosts = useCallback(async () => {
     if (!LOCATION_ID) return;
 
     try {
       const response = await fetch(
         `${SERVER}/api/post-drafts?locationId=${LOCATION_ID}&status=published&limit=50`,
-        { credentials: "include" },
+        { credentials: "include" }
       );
 
       if (!response.ok) throw new Error("Failed to fetch published posts");
@@ -167,7 +382,6 @@ function PostAutomation() {
     }
   }, [LOCATION_ID]);
 
-  // Create Draft
   const createDraft = async (postData: any) => {
     const payload = {
       ...postData,
@@ -189,7 +403,6 @@ function PostAutomation() {
     return response.json();
   };
 
-  // Update Draft/Post
   const updatePost = async (postId: string, postData: any) => {
     const payload = {
       ...postData,
@@ -211,7 +424,6 @@ function PostAutomation() {
     return response.json();
   };
 
-  // Publish Draft to GMB
   const publishDraft = async (draftId: string) => {
     const formData = new FormData();
     formData.append("acct_id", ACCOUNT_ID);
@@ -223,7 +435,7 @@ function PostAutomation() {
         method: "POST",
         body: formData,
         credentials: "include",
-      },
+      }
     );
 
     if (!response.ok) {
@@ -234,7 +446,6 @@ function PostAutomation() {
     return response.json();
   };
 
-  // Delete Draft
   const deleteDraft = async (draftId: string) => {
     const response = await fetch(`${SERVER}/api/post-drafts/${draftId}`, {
       method: "DELETE",
@@ -245,12 +456,11 @@ function PostAutomation() {
     return response.json();
   };
 
-  // 🔥 Delete Published Post from GMB and Database
   const deletePublishedPost = async (
     draftId: string,
     googlePostId: string,
     accountId: string,
-    locationId: string,
+    locationId: string
   ) => {
     const formData = new FormData();
     formData.append("acct_id", accountId);
@@ -263,7 +473,7 @@ function PostAutomation() {
         method: "DELETE",
         body: formData,
         credentials: "include",
-      },
+      }
     );
 
     if (!response.ok) {
@@ -274,14 +484,13 @@ function PostAutomation() {
     return response.json();
   };
 
-  // Fetch Automation Settings
   const fetchAutomationSettings = useCallback(async () => {
     if (!LOCATION_ID) return;
 
     try {
       const response = await fetch(
         `${SERVER}/api/post-automation?locationId=${LOCATION_ID}`,
-        { credentials: "include" },
+        { credentials: "include" }
       );
 
       if (!response.ok) return;
@@ -305,7 +514,6 @@ function PostAutomation() {
     }
   }, [LOCATION_ID]);
 
-  // Save Automation Settings
   const saveAutomationSettings = async () => {
     if (!LOCATION_ID) return;
 
@@ -349,48 +557,16 @@ function PostAutomation() {
     }, 1500);
   };
 
+  // 🔥 UPDATED: Save as Draft handler
   const handleSaveAsDraft = async () => {
-    if (!postDescription.trim()) {
-      showMessage("error", "Please add a post description");
-      return;
-    }
-
-    if (!LOCATION_ID) {
-      showMessage("error", "Please select a location first");
-      return;
-    }
+    if (!validatePostData()) return;
 
     setLoading(true);
     try {
-      const postData: any = {
-        locationId: LOCATION_ID,
-        summary: postDescription,
-        topicType: topicType,
-      };
-
-      if (mediaUrl.trim()) {
-        postData.media = [
-          {
-            mediaFormat: "PHOTO",
-            sourceUrl: mediaUrl.trim(),
-          },
-        ];
-      }
-
-      if (ctaType !== "NONE" && ctaUrl.trim()) {
-        postData.callToAction = {
-          actionType: ctaType,
-          url: ctaUrl.trim(),
-        };
-      }
-
+      const postData = buildPostData();
       await createDraft(postData);
 
-      setPostDescription("");
-      setMediaUrl("");
-      setCtaUrl("");
-      setCtaType("NONE");
-
+      resetForm();
       await fetchDrafts();
 
       showMessage("success", "Post saved as draft!");
@@ -403,44 +579,17 @@ function PostAutomation() {
     }
   };
 
+  // 🔥 UPDATED: Post Now handler
   const handlePostNow = async () => {
-    if (!postDescription.trim()) {
-      showMessage("error", "Please add a post description");
-      return;
-    }
+    if (!validatePostData()) return;
 
     setLoading(true);
     try {
-      const postData: any = {
-        locationId: LOCATION_ID,
-        summary: postDescription,
-        topicType: topicType,
-      };
-
-      if (mediaUrl.trim()) {
-        postData.media = [
-          {
-            mediaFormat: "PHOTO",
-            sourceUrl: mediaUrl.trim(),
-          },
-        ];
-      }
-
-      if (ctaType !== "NONE" && ctaUrl.trim()) {
-        postData.callToAction = {
-          actionType: ctaType,
-          url: ctaUrl.trim(),
-        };
-      }
-
+      const postData = buildPostData();
       const draftResult = await createDraft(postData);
       await publishDraft(draftResult.data.id);
 
-      setPostDescription("");
-      setMediaUrl("");
-      setCtaUrl("");
-      setCtaType("NONE");
-
+      resetForm();
       await fetchDrafts();
       await fetchPublishedPosts();
 
@@ -479,81 +628,20 @@ function PostAutomation() {
     }
   };
 
-  // 🔥 NEW: Handle Edit Published Post
   const handleEditPublishedPost = (post: PostDraft) => {
     setEditingPost(post);
     setShowEditModal(true);
   };
 
-  // 🔥 NEW: Handle Edit Draft
   const handleEditDraft = (post: PostDraft) => {
     setEditingPost(post);
     setShowEditModal(true);
   };
 
-  // 🔥 MODIFY: Save Edited Post function ko update karo
-  const handleSaveEditedPost = async () => {
-    if (!editingPost) return;
-
-    setLoading(true);
-    try {
-      const postData: any = {
-        summary: editingPost.summary,
-        topicType: editingPost.topicType,
-        media: editingPost.media || null,
-        callToAction: editingPost.callToAction || null,
-      };
-
-      await updatePost(editingPost.id, postData);
-
-      // 🔥 Check if draft or published
-      if (editingPost.status === "draft") {
-        await fetchDrafts(); // Refresh drafts
-      } else {
-        await fetchPublishedPosts(); // Refresh published
-      }
-
-      setShowEditModal(false);
-      setEditingPost(null);
-      showMessage("success", "Post updated successfully!");
-    } catch (error: any) {
-      showMessage("error", error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🔥 NEW: Save Edited Post
-  //   const handleSaveEditedPost = async () => {
-  //     if (!editingPost) return;
-
-  //     setLoading(true);
-  //     try {
-  //       const postData: any = {
-  //         summary: editingPost.summary,
-  //         topicType: editingPost.topicType,
-  //         media: editingPost.media || null,
-  //         callToAction: editingPost.callToAction || null,
-  //       };
-
-  //       await updatePost(editingPost.id, postData);
-  //       await fetchPublishedPosts();
-
-  //       setShowEditModal(false);
-  //       setEditingPost(null);
-  //       showMessage("success", "Post updated successfully!");
-  //     } catch (error: any) {
-  //       showMessage("error", error.message);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  // 🔥 NEW: Handle Delete Published Post
   const handleDeletePublishedPost = async (post: PostDraft) => {
     if (
       !window.confirm(
-        "Are you sure you want to delete this post from Google My Business? This action cannot be undone.",
+        "Are you sure you want to delete this post from Google My Business? This action cannot be undone."
       )
     )
       return;
@@ -569,7 +657,7 @@ function PostAutomation() {
         post.id,
         post.googlePostId,
         ACCOUNT_ID,
-        LOCATION_ID,
+        LOCATION_ID
       );
       await fetchPublishedPosts();
       showMessage("success", "Post deleted from GMB successfully!");
@@ -598,6 +686,52 @@ function PostAutomation() {
       showMessage("error", `❌ Test failed: ${error.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleAutomation = async (isActive: boolean) => {
+    setAutomationSettings({
+      ...automationSettings,
+      isActive: isActive,
+    });
+
+    if (!LOCATION_ID) {
+      showMessage("error", "Please select a location first");
+      return;
+    }
+
+    setAutomationLoading(true);
+    try {
+      const response = await fetch(`${SERVER}/api/post-automation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locationId: LOCATION_ID,
+          ...automationSettings,
+          isActive: isActive,
+        }),
+        credentials: "include",
+      });
+
+      if (!response.ok) throw new Error("Failed to update automation");
+      window.dispatchEvent(
+        new CustomEvent("automation-toggled", {
+          detail: { isActive },
+        })
+      );
+      showMessage(
+        "success",
+        isActive ? "Automation activated! ✅" : "Automation paused ⏸️"
+      );
+      await fetchAutomationSettings();
+    } catch (error: any) {
+      showMessage("error", error.message);
+      setAutomationSettings({
+        ...automationSettings,
+        isActive: !isActive,
+      });
+    } finally {
+      setAutomationLoading(false);
     }
   };
 
@@ -650,7 +784,6 @@ function PostAutomation() {
           </span>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* 🔥 NEW: Edit Button */}
           <button
             onClick={() => handleEditDraft(post)}
             className="flex-1 text-sm bg-white border border-blue-300 text-blue-600 py-2 px-4 rounded-md hover:bg-blue-50 flex items-center justify-center gap-1"
@@ -676,7 +809,6 @@ function PostAutomation() {
     </div>
   );
 
-  // 🔥 UPDATED: Published Post Card with Edit & Delete
   const PublishedPostCard = ({ post }: { post: PostDraft }) => (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
       {post.media && post.media.length > 0 && (
@@ -710,7 +842,6 @@ function PostAutomation() {
           )}
         </div>
 
-        {/* Action Buttons */}
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => handleEditPublishedPost(post)}
@@ -736,22 +867,95 @@ function PostAutomation() {
     </div>
   );
 
-  // 🔥 NEW: Edit Post Modal
+  // 🔥 UPDATED: Edit Post Modal with EVENT & OFFER fields
   const EditPostModal = () => {
     if (!showEditModal || !editingPost) return null;
 
-    // 🔥 Local state for editing
     const [localPost, setLocalPost] = useState<PostDraft>(editingPost);
 
-    // 🔥 Update local state when editingPost changes
+    const [localCtaPhone, setLocalCtaPhone] = useState(
+  editingPost.callToAction?.url?.startsWith("tel:")
+    ? editingPost.callToAction.url.replace("tel:", "")
+    : ""
+);
+    
+    // 🔥 Local states for EVENT fields
+    const [localEventTitle, setLocalEventTitle] = useState(
+      editingPost.event?.title || ""
+    );
+    const [localEventStart, setLocalEventStart] = useState(
+      editingPost.event?.schedule?.startDate
+        ? gmbDateToString(editingPost.event.schedule.startDate)
+        : ""
+    );
+    const [localEventEnd, setLocalEventEnd] = useState(
+      editingPost.event?.schedule?.endDate
+        ? gmbDateToString(editingPost.event.schedule.endDate)
+        : ""
+    );
+
+    // 🔥 Local states for OFFER fields
+    const [localCouponCode, setLocalCouponCode] = useState(
+      editingPost.offer?.couponCode || ""
+    );
+    const [localRedeemUrl, setLocalRedeemUrl] = useState(
+      editingPost.offer?.redeemOnlineUrl || ""
+    );
+    const [localTerms, setLocalTerms] = useState(
+      editingPost.offer?.termsConditions || ""
+    );
+
     useEffect(() => {
       if (editingPost) {
+        
         setLocalPost(editingPost);
+        setLocalEventTitle(editingPost.event?.title || "");
+        setLocalEventStart(
+          editingPost.event?.schedule?.startDate
+            ? gmbDateToString(editingPost.event.schedule.startDate)
+            : ""
+        );
+        setLocalEventEnd(
+          editingPost.event?.schedule?.endDate
+            ? gmbDateToString(editingPost.event.schedule.endDate)
+            : ""
+        );
+        setLocalCouponCode(editingPost.offer?.couponCode || "");
+        setLocalRedeemUrl(editingPost.offer?.redeemOnlineUrl || "");
+        setLocalTerms(editingPost.offer?.termsConditions || "");
+
+        setLocalCtaPhone(
+      editingPost.callToAction?.url?.startsWith("tel:")
+        ? editingPost.callToAction.url.replace("tel:", "")
+        : ""
+    );
       }
     }, [editingPost]);
 
-    // 🔥 Modified save handler
     const handleSave = async () => {
+      // Validation
+      if (localPost.topicType === "EVENT") {
+        if (!localEventTitle.trim()) {
+          showMessage("error", "Event title is required");
+          return;
+        }
+        if (!localEventStart || !localEventEnd) {
+          showMessage("error", "Event dates are required");
+          return;
+        }
+      }
+
+      if (localPost.topicType === "OFFER") {
+        if (!localCouponCode.trim() && !localRedeemUrl.trim()) {
+          showMessage("error", "Coupon code or redeem URL is required");
+          return;
+        }
+        if (!localEventStart || !localEventEnd) {
+          showMessage("error", "Offer validity dates are required");
+          return;
+        }
+      }
+
       setLoading(true);
       try {
         const postData: any = {
@@ -760,6 +964,39 @@ function PostAutomation() {
           media: localPost.media || null,
           callToAction: localPost.callToAction || null,
         };
+
+        // Add EVENT data
+        if (localPost.topicType === "EVENT") {
+          postData.event = {
+            title: localEventTitle.trim(),
+            schedule: {
+              startDate: dateStringToGMBFormat(localEventStart),
+              endDate: dateStringToGMBFormat(localEventEnd),
+            },
+          };
+        }
+
+        // Add OFFER data
+        if (localPost.topicType === "OFFER") {
+          postData.offer = {};
+          if (localCouponCode.trim()) {
+            postData.offer.couponCode = localCouponCode.trim();
+          }
+          if (localRedeemUrl.trim()) {
+            postData.offer.redeemOnlineUrl = localRedeemUrl.trim();
+          }
+          if (localTerms.trim()) {
+            postData.offer.termsConditions = localTerms.trim();
+          }
+
+          postData.event = {
+            title: "Limited Time Offer",
+            schedule: {
+              startDate: dateStringToGMBFormat(localEventStart),
+              endDate: dateStringToGMBFormat(localEventEnd),
+            },
+          };
+        }
 
         await updatePost(localPost.id, postData);
 
@@ -817,7 +1054,123 @@ function PostAutomation() {
               </select>
             </div>
 
-            {/* Description - 🔥 Yaha fix hai */}
+            {/* 🔥 EVENT Fields */}
+            {localPost.topicType === "EVENT" && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
+                <div className="flex items-center gap-2 text-blue-700 font-medium">
+                  <CalendarDays className="w-4 h-4" />
+                  <span className="text-sm">Event Details</span>
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Event Title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={localEventTitle}
+                    onChange={(e) => setLocalEventTitle(e.target.value)}
+                    maxLength={58}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Start Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={localEventStart}
+                      onChange={(e) => setLocalEventStart(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      End Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={localEventEnd}
+                      onChange={(e) => setLocalEventEnd(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 🔥 OFFER Fields */}
+            {localPost.topicType === "OFFER" && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3">
+                <div className="flex items-center gap-2 text-green-700 font-medium">
+                  <Tag className="w-4 h-4" />
+                  <span className="text-sm">Offer Details</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Coupon Code
+                  </label>
+                  <input
+                    type="text"
+                    value={localCouponCode}
+                    onChange={(e) => setLocalCouponCode(e.target.value)}
+                    maxLength={50}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Redeem URL
+                  </label>
+                  <input
+                    type="url"
+                    value={localRedeemUrl}
+                    onChange={(e) => setLocalRedeemUrl(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Terms & Conditions
+                  </label>
+                  <textarea
+                    value={localTerms}
+                    onChange={(e) => setLocalTerms(e.target.value)}
+                    maxLength={500}
+                    rows={2}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-2">
+                    Offer Validity <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="date"
+                      value={localEventStart}
+                      onChange={(e) => setLocalEventStart(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                    />
+                    <input
+                      type="date"
+                      value={localEventEnd}
+                      onChange={(e) => setLocalEventEnd(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Post Description
@@ -857,61 +1210,92 @@ function PostAutomation() {
               />
             </div>
 
-            {/* CTA */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Call to Action
-              </label>
-              <select
-                value={localPost.callToAction?.actionType || "NONE"}
-                onChange={(e) => {
-                  const actionType = e.target.value;
-                  setLocalPost({
-                    ...localPost,
-                    callToAction:
-                      actionType === "NONE"
-                        ? undefined
-                        : {
-                            actionType,
-                            url: localPost.callToAction?.url || "",
-                          },
-                  });
-                }}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="NONE">None</option>
-                <option value="BOOK">Book</option>
-                <option value="ORDER">Order Online</option>
-                <option value="LEARN_MORE">Learn More</option>
-                <option value="SIGN_UP">Sign Up</option>
-                <option value="CALL">Call Now</option>
-              </select>
-            </div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Call to Action
+  </label>
+  <select
+    value={localPost.callToAction?.actionType || "NONE"}
+    onChange={(e) => {
+      const actionType = e.target.value;
+      setLocalPost({
+        ...localPost,
+        callToAction:
+          actionType === "NONE"
+            ? undefined
+            : {
+                actionType,
+                url: localPost.callToAction?.url || "",
+              },
+      });
+    }}
+    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+  >
+    <option value="NONE">None</option>
+    <option value="BOOK">Book</option>
+    <option value="ORDER">Order Online</option>
+    <option value="LEARN_MORE">Learn More</option>
+    <option value="SIGN_UP">Sign Up</option>
+    <option value="CALL">Call Now</option>
+  </select>
+</div>
 
-            {/* CTA URL */}
-            {localPost.callToAction?.actionType &&
-              localPost.callToAction.actionType !== "NONE" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    CTA Link
-                  </label>
-                  <input
-                    type="url"
-                    value={localPost.callToAction?.url || ""}
-                    onChange={(e) =>
-                      setLocalPost({
-                        ...localPost,
-                        callToAction: {
-                          ...localPost.callToAction!,
-                          url: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="https://your-website.com"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              )}
+{/* 🔥 Phone Number Input for CALL */}
+{localPost.callToAction?.actionType === "CALL" && (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Phone Number <span className="text-red-500">*</span>
+    </label>
+    <div className="relative">
+      <Phone className="w-5 h-5 text-gray-400 absolute top-1/2 left-3 -translate-y-1/2" />
+      <input
+        type="tel"
+        value={localCtaPhone}
+        onChange={(e) => {
+          setLocalCtaPhone(e.target.value);
+          setLocalPost({
+            ...localPost,
+            callToAction: {
+              ...localPost.callToAction!,
+              url: `tel:${e.target.value.replace(/[^0-9+]/g, "")}`,
+            },
+          });
+        }}
+        placeholder="+1 (555) 123-4567"
+        className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+    <p className="text-xs text-gray-500 mt-1">
+      Enter with country code (e.g., +1 for US)
+    </p>
+  </div>
+)}
+
+{/* 🔥 CTA URL for other action types */}
+{localPost.callToAction?.actionType &&
+  localPost.callToAction.actionType !== "NONE" &&
+  localPost.callToAction.actionType !== "CALL" && (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        CTA Link <span className="text-red-500">*</span>
+      </label>
+      <input
+        type="url"
+        value={localPost.callToAction?.url || ""}
+        onChange={(e) =>
+          setLocalPost({
+            ...localPost,
+            callToAction: {
+              ...localPost.callToAction!,
+              url: e.target.value,
+            },
+          })
+        }
+        placeholder="https://your-website.com"
+        className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+  )}
           </div>
 
           {/* Footer Actions */}
@@ -926,7 +1310,7 @@ function PostAutomation() {
               Cancel
             </button>
             <button
-              onClick={handleSave} // 🔥 Local save handler
+              onClick={handleSave}
               disabled={loading || !localPost.summary.trim()}
               className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
@@ -941,28 +1325,189 @@ function PostAutomation() {
 
   // ==================== TAB CONTENT ====================
 
+  // 🔥 UPDATED: Create New Post with EVENT & OFFER fields
   const CreateNewPost = () => (
     <div className="max-w-6xl mx-auto p-8 rounded-2xl">
       <div className="lg:col-span-2">
         {/* Post Type Selector */}
-        <div className="mb-4">
+        <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Post Type
           </label>
           <select
             value={topicType}
             onChange={(e) => setTopicType(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 bg-white"
           >
-            <option value="STANDARD">Standard Post</option>
-            <option value="EVENT">Event</option>
-            <option value="OFFER">Offer</option>
-            <option value="PRODUCT">Product</option>
+            <option value="STANDARD">📄 Standard Post</option>
+            <option value="EVENT">📅 Event</option>
+            <option value="OFFER">🎁 Offer</option>
+            <option value="PRODUCT">🛍️ Product</option>
           </select>
+          <p className="text-xs text-gray-500 mt-1">
+            {topicType === "EVENT" &&
+              "Share upcoming events with your customers"}
+            {topicType === "OFFER" && "Promote special deals and discounts"}
+            {topicType === "PRODUCT" && "Showcase your products"}
+            {topicType === "STANDARD" && "Share updates and news"}
+          </p>
         </div>
+
+        {/* 🔥 EVENT-specific fields */}
+        {topicType === "EVENT" && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
+            <div className="flex items-center gap-2 text-blue-700 font-medium mb-2">
+              <CalendarDays className="w-5 h-5" />
+              <span>Event Details</span>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Event Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={eventTitle}
+                onChange={(e) => setEventTitle(e.target.value)}
+                maxLength={58}
+                placeholder="e.g., Summer Sale 2025"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {eventTitle.length}/58 characters
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Start Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={eventStartDate}
+                  onChange={(e) => setEventStartDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  End Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={eventEndDate}
+                  onChange={(e) => setEventEndDate(e.target.value)}
+                  min={eventStartDate || new Date().toISOString().split("T")[0]}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🔥 OFFER-specific fields */}
+        {topicType === "OFFER" && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg space-y-4">
+            <div className="flex items-center gap-2 text-green-700 font-medium mb-2">
+              <Tag className="w-5 h-5" />
+              <span>Offer Details</span>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Coupon Code
+              </label>
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                maxLength={50}
+                placeholder="e.g., SAVE20"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Redeem Online URL
+              </label>
+              <input
+                type="url"
+                value={redeemUrl}
+                onChange={(e) => setRedeemUrl(e.target.value)}
+                placeholder="https://your-website.com/offer"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+
+            <p className="text-xs text-amber-600 flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" />
+              Either Coupon Code or Redeem URL is required
+            </p>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Terms & Conditions (Optional)
+              </label>
+              <textarea
+                value={termsConditions}
+                onChange={(e) => setTermsConditions(e.target.value)}
+                maxLength={500}
+                rows={3}
+                placeholder="e.g., Valid till stocks last. Cannot be combined with other offers."
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 resize-none"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {termsConditions.length}/500 characters
+              </p>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                <CalendarDays className="w-4 h-4" />
+                <span className="text-sm">
+                  Offer Validity Period <span className="text-red-500">*</span>
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Valid From
+                  </label>
+                  <input
+                    type="date"
+                    value={eventStartDate}
+                    onChange={(e) => setEventStartDate(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Valid Until
+                  </label>
+                  <input
+                    type="date"
+                    value={eventEndDate}
+                    onChange={(e) => setEventEndDate(e.target.value)}
+                    min={
+                      eventStartDate || new Date().toISOString().split("T")[0]
+                    }
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Description Textarea */}
         <div className="relative mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Post Description <span className="text-red-500">*</span>
+          </label>
           <textarea
             value={postDescription}
             onChange={(e) => setPostDescription(e.target.value)}
@@ -1005,57 +1550,99 @@ function PostAutomation() {
         </div>
 
         {/* CTA & Link */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="relative md:col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Call to Action
-            </label>
-            <select
-              value={ctaType}
-              onChange={(e) => setCtaType(e.target.value)}
-              className="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-3 px-4 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="NONE">None</option>
-              <option value="BOOK">Book</option>
-              <option value="ORDER">Order Online</option>
-              <option value="LEARN_MORE">Learn More</option>
-              <option value="SIGN_UP">Sign Up</option>
-              <option value="CALL">Call Now</option>
-            </select>
-            <ChevronDown className="w-5 h-5 text-gray-400 absolute bottom-3 right-3 pointer-events-none" />
-          </div>
+        {/* 🔥 UPDATED: CTA & Link/Phone Section */}
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+  <div className="relative md:col-span-1">
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Call to Action
+    </label>
+    <select
+      value={ctaType}
+      onChange={(e) => {
+        setCtaType(e.target.value);
+        // Reset fields when changing CTA type
+        setCtaUrl("");
+        setCtaPhone("");
+      }}
+      className="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-3 px-4 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
+      <option value="NONE">None</option>
+      <option value="BOOK">Book</option>
+      <option value="ORDER">Order Online</option>
+      <option value="LEARN_MORE">Learn More</option>
+      <option value="SIGN_UP">Sign Up</option>
+      <option value="CALL">Call Now</option>
+    </select>
+    <ChevronDown className="w-5 h-5 text-gray-400 absolute bottom-3 right-3 pointer-events-none" />
+  </div>
 
-          {ctaType !== "NONE" && (
-            <div className="relative md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                CTA Link
-              </label>
-              <LinkIcon className="w-5 h-5 text-gray-400 absolute bottom-3 left-3" />
-              <input
-                type="url"
-                value={ctaUrl}
-                onChange={(e) => setCtaUrl(e.target.value)}
-                placeholder="https://your-website.com"
-                className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          )}
-        </div>
+  {/* 🔥 Show Phone Input for CALL */}
+  {ctaType === "CALL" && (
+    <div className="relative md:col-span-2">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Phone Number <span className="text-red-500">*</span>
+      </label>
+      <div className="relative">
+        <Phone className="w-5 h-5 text-gray-400 absolute top-1/2 left-3 -translate-y-1/2" />
+        <input
+          type="tel"
+          value={ctaPhone}
+          onChange={(e) => setCtaPhone(e.target.value)}
+          placeholder="+1 (555) 123-4567"
+          className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      <p className="text-xs text-gray-500 mt-1">
+        Enter with country code (e.g., +1 for US)
+      </p>
+    </div>
+  )}
+
+  {/* 🔥 Show URL Input for other CTAs */}
+  {ctaType !== "NONE" && ctaType !== "CALL" && (
+    <div className="relative md:col-span-2">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        CTA Link <span className="text-red-500">*</span>
+      </label>
+      <LinkIcon className="w-5 h-5 text-gray-400 absolute bottom-3 left-3" />
+      <input
+        type="url"
+        value={ctaUrl}
+        onChange={(e) => setCtaUrl(e.target.value)}
+        placeholder="https://your-website.com"
+        className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+  )}
+</div>       
+
+
 
         {/* Action Buttons */}
         <div className="flex items-center gap-4">
           <button
             onClick={handlePostNow}
             disabled={loading || !postDescription.trim()}
-            className="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {loading ? "Publishing..." : "Post Now"}
+            {loading ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Publishing...
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4" />
+                Post Now
+              </>
+            )}
           </button>
           <button
             onClick={handleSaveAsDraft}
             disabled={loading || !postDescription.trim()}
-            className="bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-6 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            className="bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-6 rounded-lg hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2"
           >
+            <Save className="w-4 h-4" />
             Save as Draft
           </button>
         </div>
@@ -1143,55 +1730,6 @@ function PostAutomation() {
     </div>
   );
 
-  // Toggle handler with auto-save
-  const handleToggleAutomation = async (isActive: boolean) => {
-    setAutomationSettings({
-      ...automationSettings,
-      isActive: isActive,
-    });
-
-    // Auto-save immediately
-    if (!LOCATION_ID) {
-      showMessage("error", "Please select a location first");
-      return;
-    }
-
-    setAutomationLoading(true);
-    try {
-      const response = await fetch(`${SERVER}/api/post-automation`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          locationId: LOCATION_ID,
-          ...automationSettings,
-          isActive: isActive, // Updated value
-        }),
-        credentials: "include",
-      });
-
-      if (!response.ok) throw new Error("Failed to update automation");
-       window.dispatchEvent(
-         new CustomEvent("automation-toggled", {
-           detail: { isActive },
-         }),
-       );
-      showMessage(
-        "success",
-        isActive ? "Automation activated! ✅" : "Automation paused ⏸️",
-      );
-      await fetchAutomationSettings();
-    } catch (error: any) {
-      showMessage("error", error.message);
-      // Revert on error
-      setAutomationSettings({
-        ...automationSettings,
-        isActive: !isActive,
-      });
-    } finally {
-      setAutomationLoading(false);
-    }
-  };
-
   // ==================== MAIN RENDER ====================
 
   return (
@@ -1233,7 +1771,7 @@ function PostAutomation() {
         </div>
       )}
 
-      {/* 🔥 AUTOMATION SETTINGS SECTION */}
+      {/* Automation Settings Section */}
       {showAutomationSettings && (
         <div className="mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
           <div className="flex items-center justify-between mb-6">
@@ -1260,9 +1798,7 @@ function PostAutomation() {
             </label>
           </div>
 
-          {/* Automation Controls Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Frequency Selector */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Posting Frequency
@@ -1296,7 +1832,6 @@ function PostAutomation() {
               </select>
             </div>
 
-            {/* Custom Interval Days */}
             {automationSettings.frequency === "custom" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1318,7 +1853,6 @@ function PostAutomation() {
               </div>
             )}
 
-            {/* Max Per Month */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Max Posts Per Month (Optional)
@@ -1341,7 +1875,6 @@ function PostAutomation() {
               />
             </div>
 
-            {/* Default Post Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Default Post Type
@@ -1364,7 +1897,6 @@ function PostAutomation() {
             </div>
           </div>
 
-          {/* Checkboxes for Media and CTA */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -1401,7 +1933,6 @@ function PostAutomation() {
             </label>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex items-center gap-4">
             <button
               onClick={saveAutomationSettings}
@@ -1429,7 +1960,6 @@ function PostAutomation() {
             </button>
           </div>
 
-          {/* Info Box */}
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex gap-3">
               <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -1487,7 +2017,7 @@ function PostAutomation() {
         {activeTab === "past" && <PastPosts />}
       </div>
 
-      {/* 🔥 Edit Post Modal */}
+      {/* Edit Post Modal */}
       <EditPostModal />
     </div>
   );

@@ -1,3 +1,4 @@
+import { SERVER } from "@/constants";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 interface AuthContextType {
@@ -30,7 +31,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
 
       // Check if user is authenticated by trying to fetch accounts
-      const response = await fetch("/api/v1/accounts", {credentials: "include"});
+      const response = await fetch(`${SERVER}/api/v1/accounts`, {credentials: "include"});
 
       if (response.ok) {
         setIsAuthenticated(true);
