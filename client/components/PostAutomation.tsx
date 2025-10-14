@@ -93,6 +93,10 @@ function PostAutomation() {
   const [loading, setLoading] = useState(false);
   const [fetchingDrafts, setFetchingDrafts] = useState(false);
 
+  // Edit Modal States
+  const [editingPost, setEditingPost] = useState<PostDraft | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
   // Automation States
   const [automationSettings, setAutomationSettings] =
     useState<AutomationSettings>({
@@ -165,10 +169,9 @@ function PostAutomation() {
 
   // Create Draft
   const createDraft = async (postData: any) => {
-    // Convert media array to proper format for Prisma Json field
     const payload = {
       ...postData,
-      media: postData.media ? postData.media : null, // Ensure it's null if empty, not undefined
+      media: postData.media ? postData.media : null,
     };
 
     const response = await fetch(`${SERVER}/api/post-drafts`, {
@@ -181,6 +184,28 @@ function PostAutomation() {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.detail || "Failed to create draft");
+    }
+
+    return response.json();
+  };
+
+  // Update Draft/Post
+  const updatePost = async (postId: string, postData: any) => {
+    const payload = {
+      ...postData,
+      media: postData.media ? postData.media : null,
+    };
+
+    const response = await fetch(`${SERVER}/api/post-drafts/${postId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || "Failed to update post");
     }
 
     return response.json();
@@ -217,6 +242,30 @@ function PostAutomation() {
     });
 
     if (!response.ok) throw new Error("Failed to delete draft");
+    return response.json();
+  };
+
+  // 🔥 NEW: Delete Published Post from GMB
+  const deletePublishedPost = async (postId: string, googlePostId: string) => {
+    const formData = new FormData();
+    formData.append("acct_id", ACCOUNT_ID);
+    formData.append("loc_id", LOCATION_ID);
+    formData.append("google_post_id", googlePostId);
+
+    const response = await fetch(
+      `${SERVER}/api/post-drafts/${postId}/delete-from-google`,
+      {
+        method: "DELETE",
+        body: formData,
+        credentials: "include",
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || "Failed to delete post from GMB");
+    }
+
     return response.json();
   };
 
@@ -314,7 +363,6 @@ function PostAutomation() {
         topicType: topicType,
       };
 
-      // Add media if URL provided - send as array for Json field
       if (mediaUrl.trim()) {
         postData.media = [
           {
@@ -324,7 +372,6 @@ function PostAutomation() {
         ];
       }
 
-      // Add CTA if selected
       if (ctaType !== "NONE" && ctaUrl.trim()) {
         postData.callToAction = {
           actionType: ctaType,
@@ -332,16 +379,13 @@ function PostAutomation() {
         };
       }
 
-      console.log("Creating draft with data:", postData);
       await createDraft(postData);
 
-      // Reset form
       setPostDescription("");
       setMediaUrl("");
       setCtaUrl("");
       setCtaType("NONE");
 
-      // Refresh drafts
       await fetchDrafts();
 
       showMessage("success", "Post saved as draft!");
@@ -362,7 +406,6 @@ function PostAutomation() {
 
     setLoading(true);
     try {
-      // First create draft
       const postData: any = {
         locationId: LOCATION_ID,
         summary: postDescription,
@@ -386,17 +429,13 @@ function PostAutomation() {
       }
 
       const draftResult = await createDraft(postData);
-
-      // Then publish immediately
       await publishDraft(draftResult.data.id);
 
-      // Reset form
       setPostDescription("");
       setMediaUrl("");
       setCtaUrl("");
       setCtaType("NONE");
 
-      // Refresh lists
       await fetchDrafts();
       await fetchPublishedPosts();
 
@@ -432,6 +471,102 @@ function PostAutomation() {
       showMessage("success", "Draft deleted!");
     } catch (error: any) {
       showMessage("error", error.message);
+    }
+  };
+
+  // 🔥 NEW: Handle Edit Published Post
+  const handleEditPublishedPost = (post: PostDraft) => {
+    setEditingPost(post);
+    setShowEditModal(true);
+  };
+
+  // 🔥 NEW: Handle Edit Draft
+  const handleEditDraft = (post: PostDraft) => {
+    setEditingPost(post);
+    setShowEditModal(true);
+  };
+
+  // 🔥 MODIFY: Save Edited Post function ko update karo
+  const handleSaveEditedPost = async () => {
+    if (!editingPost) return;
+
+    setLoading(true);
+    try {
+      const postData: any = {
+        summary: editingPost.summary,
+        topicType: editingPost.topicType,
+        media: editingPost.media || null,
+        callToAction: editingPost.callToAction || null,
+      };
+
+      await updatePost(editingPost.id, postData);
+
+      // 🔥 Check if draft or published
+      if (editingPost.status === "draft") {
+        await fetchDrafts(); // Refresh drafts
+      } else {
+        await fetchPublishedPosts(); // Refresh published
+      }
+
+      setShowEditModal(false);
+      setEditingPost(null);
+      showMessage("success", "Post updated successfully!");
+    } catch (error: any) {
+      showMessage("error", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🔥 NEW: Save Edited Post
+//   const handleSaveEditedPost = async () => {
+//     if (!editingPost) return;
+
+//     setLoading(true);
+//     try {
+//       const postData: any = {
+//         summary: editingPost.summary,
+//         topicType: editingPost.topicType,
+//         media: editingPost.media || null,
+//         callToAction: editingPost.callToAction || null,
+//       };
+
+//       await updatePost(editingPost.id, postData);
+//       await fetchPublishedPosts();
+
+//       setShowEditModal(false);
+//       setEditingPost(null);
+//       showMessage("success", "Post updated successfully!");
+//     } catch (error: any) {
+//       showMessage("error", error.message);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+  // 🔥 NEW: Handle Delete Published Post
+  const handleDeletePublishedPost = async (post: PostDraft) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this post from Google My Business? This action cannot be undone.",
+      )
+    )
+      return;
+
+    if (!post.googlePostId) {
+      showMessage("error", "Cannot delete: Google Post ID not found");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await deletePublishedPost(post.id, post.googlePostId);
+      await fetchPublishedPosts();
+      showMessage("success", "Post deleted from GMB successfully!");
+    } catch (error: any) {
+      showMessage("error", error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -504,7 +639,15 @@ function PostAutomation() {
             Draft
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* 🔥 NEW: Edit Button */}
+          <button
+            onClick={() => handleEditDraft(post)}
+            className="flex-1 text-sm bg-white border border-blue-300 text-blue-600 py-2 px-4 rounded-md hover:bg-blue-50 flex items-center justify-center gap-1"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Edit
+          </button>
           <button
             onClick={() => handleDeleteDraft(post.id)}
             className="flex-1 text-sm bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50"
@@ -523,6 +666,7 @@ function PostAutomation() {
     </div>
   );
 
+  // 🔥 UPDATED: Published Post Card with Edit & Delete
   const PublishedPostCard = ({ post }: { post: PostDraft }) => (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
       {post.media && post.media.length > 0 && (
@@ -546,6 +690,7 @@ function PostAutomation() {
         </p>
         <div className="flex items-center justify-between mb-3">
           <span className="inline-flex items-center bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+            <CheckCircle2 className="w-3 h-3 mr-1" />
             Published
           </span>
           {post.callToAction && (
@@ -554,12 +699,196 @@ function PostAutomation() {
             </span>
           )}
         </div>
-        <button className="w-full text-sm bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50">
-          View on GMB
-        </button>
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={() => handleEditPublishedPost(post)}
+            className="flex items-center justify-center gap-1 text-sm bg-white border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Edit
+          </button>
+          <button
+            onClick={() => handleDeletePublishedPost(post)}
+            disabled={loading}
+            className="flex items-center justify-center gap-1 text-sm bg-white border border-red-300 text-red-600 py-2 px-3 rounded-md hover:bg-red-50 disabled:opacity-50"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </button>
+          <button className="flex items-center justify-center gap-1 text-sm bg-blue-50 border border-blue-300 text-blue-600 py-2 px-3 rounded-md hover:bg-blue-100">
+            <Eye className="w-3.5 h-3.5" />
+            View
+          </button>
+        </div>
       </div>
     </div>
   );
+
+  // 🔥 NEW: Edit Post Modal
+  const EditPostModal = () => {
+    if (!showEditModal || !editingPost) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+            <h3 className="text-xl font-semibold text-gray-900">
+              {editingPost?.status === "draft" ? "Edit Draft" : "Edit Post"}
+            </h3>
+            <button
+              onClick={() => {
+                setShowEditModal(false);
+                setEditingPost(null);
+              }}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {/* Post Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Post Type
+              </label>
+              <select
+                value={editingPost.topicType}
+                onChange={(e) =>
+                  setEditingPost({ ...editingPost, topicType: e.target.value })
+                }
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="STANDARD">Standard Post</option>
+                <option value="EVENT">Event</option>
+                <option value="OFFER">Offer</option>
+                <option value="PRODUCT">Product</option>
+              </select>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Post Description
+              </label>
+              <textarea
+                value={editingPost.summary}
+                onChange={(e) =>
+                  setEditingPost({ ...editingPost, summary: e.target.value })
+                }
+                maxLength={1500}
+                className="w-full h-32 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
+                placeholder="Edit your post description..."
+              />
+              <p className="text-sm text-gray-500 mt-1 text-right">
+                {editingPost.summary.length}/1500 characters
+              </p>
+            </div>
+
+            {/* Media URL */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Image URL (Optional)
+              </label>
+              <input
+                type="url"
+                value={editingPost.media?.[0]?.sourceUrl || ""}
+                onChange={(e) =>
+                  setEditingPost({
+                    ...editingPost,
+                    media: e.target.value
+                      ? [{ mediaFormat: "PHOTO", sourceUrl: e.target.value }]
+                      : undefined,
+                  })
+                }
+                placeholder="https://example.com/image.jpg"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* CTA */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Call to Action
+              </label>
+              <select
+                value={editingPost.callToAction?.actionType || "NONE"}
+                onChange={(e) => {
+                  const actionType = e.target.value;
+                  setEditingPost({
+                    ...editingPost,
+                    callToAction:
+                      actionType === "NONE"
+                        ? undefined
+                        : {
+                            actionType,
+                            url: editingPost.callToAction?.url || "",
+                          },
+                  });
+                }}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="NONE">None</option>
+                <option value="BOOK">Book</option>
+                <option value="ORDER">Order Online</option>
+                <option value="LEARN_MORE">Learn More</option>
+                <option value="SIGN_UP">Sign Up</option>
+                <option value="CALL">Call Now</option>
+              </select>
+            </div>
+
+            {/* CTA URL */}
+            {editingPost.callToAction?.actionType &&
+              editingPost.callToAction.actionType !== "NONE" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    CTA Link
+                  </label>
+                  <input
+                    type="url"
+                    value={editingPost.callToAction?.url || ""}
+                    onChange={(e) =>
+                      setEditingPost({
+                        ...editingPost,
+                        callToAction: {
+                          ...editingPost.callToAction!,
+                          url: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="https://your-website.com"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+          </div>
+
+          {/* Footer Actions */}
+          <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-6 flex items-center justify-end gap-3">
+            <button
+              onClick={() => {
+                setShowEditModal(false);
+                setEditingPost(null);
+              }}
+              className="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveEditedPost}
+              disabled={loading || !editingPost.summary.trim()}
+              className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              {loading ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // ==================== TAB CONTENT ====================
 
@@ -1064,6 +1393,9 @@ function PostAutomation() {
         {activeTab === "draft" && <DraftPosts />}
         {activeTab === "past" && <PastPosts />}
       </div>
+
+      {/* 🔥 Edit Post Modal */}
+      <EditPostModal />
     </div>
   );
 }
