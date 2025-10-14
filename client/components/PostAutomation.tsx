@@ -245,15 +245,20 @@ function PostAutomation() {
     return response.json();
   };
 
-  // 🔥 NEW: Delete Published Post from GMB
-  const deletePublishedPost = async (postId: string, googlePostId: string) => {
+  // 🔥 Delete Published Post from GMB and Database
+  const deletePublishedPost = async (
+    draftId: string,
+    googlePostId: string,
+    accountId: string,
+    locationId: string,
+  ) => {
     const formData = new FormData();
-    formData.append("acct_id", ACCOUNT_ID);
-    formData.append("loc_id", LOCATION_ID);
+    formData.append("acct_id", accountId);
+    formData.append("loc_id", locationId);
     formData.append("google_post_id", googlePostId);
 
     const response = await fetch(
-      `${SERVER}/api/post-drafts/${postId}/delete-from-google`,
+      `${SERVER}/api/post-drafts/${draftId}/delete-from-google`,
       {
         method: "DELETE",
         body: formData,
@@ -519,30 +524,30 @@ function PostAutomation() {
   };
 
   // 🔥 NEW: Save Edited Post
-//   const handleSaveEditedPost = async () => {
-//     if (!editingPost) return;
+  //   const handleSaveEditedPost = async () => {
+  //     if (!editingPost) return;
 
-//     setLoading(true);
-//     try {
-//       const postData: any = {
-//         summary: editingPost.summary,
-//         topicType: editingPost.topicType,
-//         media: editingPost.media || null,
-//         callToAction: editingPost.callToAction || null,
-//       };
+  //     setLoading(true);
+  //     try {
+  //       const postData: any = {
+  //         summary: editingPost.summary,
+  //         topicType: editingPost.topicType,
+  //         media: editingPost.media || null,
+  //         callToAction: editingPost.callToAction || null,
+  //       };
 
-//       await updatePost(editingPost.id, postData);
-//       await fetchPublishedPosts();
+  //       await updatePost(editingPost.id, postData);
+  //       await fetchPublishedPosts();
 
-//       setShowEditModal(false);
-//       setEditingPost(null);
-//       showMessage("success", "Post updated successfully!");
-//     } catch (error: any) {
-//       showMessage("error", error.message);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+  //       setShowEditModal(false);
+  //       setEditingPost(null);
+  //       showMessage("success", "Post updated successfully!");
+  //     } catch (error: any) {
+  //       showMessage("error", error.message);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
   // 🔥 NEW: Handle Delete Published Post
   const handleDeletePublishedPost = async (post: PostDraft) => {
@@ -560,7 +565,12 @@ function PostAutomation() {
 
     setLoading(true);
     try {
-      await deletePublishedPost(post.id, post.googlePostId);
+      await deletePublishedPost(
+        post.id,
+        post.googlePostId,
+        ACCOUNT_ID,
+        LOCATION_ID,
+      );
       await fetchPublishedPosts();
       showMessage("success", "Post deleted from GMB successfully!");
     } catch (error: any) {
@@ -730,12 +740,51 @@ function PostAutomation() {
   const EditPostModal = () => {
     if (!showEditModal || !editingPost) return null;
 
+    // 🔥 Local state for editing
+    const [localPost, setLocalPost] = useState<PostDraft>(editingPost);
+
+    // 🔥 Update local state when editingPost changes
+    useEffect(() => {
+      if (editingPost) {
+        setLocalPost(editingPost);
+      }
+    }, [editingPost]);
+
+    // 🔥 Modified save handler
+    const handleSave = async () => {
+      setLoading(true);
+      try {
+        const postData: any = {
+          summary: localPost.summary,
+          topicType: localPost.topicType,
+          media: localPost.media || null,
+          callToAction: localPost.callToAction || null,
+        };
+
+        await updatePost(localPost.id, postData);
+
+        if (localPost.status === "draft") {
+          await fetchDrafts();
+        } else {
+          await fetchPublishedPosts();
+        }
+
+        setShowEditModal(false);
+        setEditingPost(null);
+        showMessage("success", "Post updated successfully!");
+      } catch (error: any) {
+        showMessage("error", error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
             <h3 className="text-xl font-semibold text-gray-900">
-              {editingPost?.status === "draft" ? "Edit Draft" : "Edit Post"}
+              {localPost?.status === "draft" ? "Edit Draft" : "Edit Post"}
             </h3>
             <button
               onClick={() => {
@@ -755,9 +804,9 @@ function PostAutomation() {
                 Post Type
               </label>
               <select
-                value={editingPost.topicType}
+                value={localPost.topicType}
                 onChange={(e) =>
-                  setEditingPost({ ...editingPost, topicType: e.target.value })
+                  setLocalPost({ ...localPost, topicType: e.target.value })
                 }
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
               >
@@ -768,22 +817,22 @@ function PostAutomation() {
               </select>
             </div>
 
-            {/* Description */}
+            {/* Description - 🔥 Yaha fix hai */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Post Description
               </label>
               <textarea
-                value={editingPost.summary}
+                value={localPost.summary}
                 onChange={(e) =>
-                  setEditingPost({ ...editingPost, summary: e.target.value })
+                  setLocalPost({ ...localPost, summary: e.target.value })
                 }
                 maxLength={1500}
                 className="w-full h-32 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
                 placeholder="Edit your post description..."
               />
               <p className="text-sm text-gray-500 mt-1 text-right">
-                {editingPost.summary.length}/1500 characters
+                {localPost.summary.length}/1500 characters
               </p>
             </div>
 
@@ -794,10 +843,10 @@ function PostAutomation() {
               </label>
               <input
                 type="url"
-                value={editingPost.media?.[0]?.sourceUrl || ""}
+                value={localPost.media?.[0]?.sourceUrl || ""}
                 onChange={(e) =>
-                  setEditingPost({
-                    ...editingPost,
+                  setLocalPost({
+                    ...localPost,
                     media: e.target.value
                       ? [{ mediaFormat: "PHOTO", sourceUrl: e.target.value }]
                       : undefined,
@@ -814,17 +863,17 @@ function PostAutomation() {
                 Call to Action
               </label>
               <select
-                value={editingPost.callToAction?.actionType || "NONE"}
+                value={localPost.callToAction?.actionType || "NONE"}
                 onChange={(e) => {
                   const actionType = e.target.value;
-                  setEditingPost({
-                    ...editingPost,
+                  setLocalPost({
+                    ...localPost,
                     callToAction:
                       actionType === "NONE"
                         ? undefined
                         : {
                             actionType,
-                            url: editingPost.callToAction?.url || "",
+                            url: localPost.callToAction?.url || "",
                           },
                   });
                 }}
@@ -840,20 +889,20 @@ function PostAutomation() {
             </div>
 
             {/* CTA URL */}
-            {editingPost.callToAction?.actionType &&
-              editingPost.callToAction.actionType !== "NONE" && (
+            {localPost.callToAction?.actionType &&
+              localPost.callToAction.actionType !== "NONE" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     CTA Link
                   </label>
                   <input
                     type="url"
-                    value={editingPost.callToAction?.url || ""}
+                    value={localPost.callToAction?.url || ""}
                     onChange={(e) =>
-                      setEditingPost({
-                        ...editingPost,
+                      setLocalPost({
+                        ...localPost,
                         callToAction: {
-                          ...editingPost.callToAction!,
+                          ...localPost.callToAction!,
                           url: e.target.value,
                         },
                       })
@@ -877,8 +926,8 @@ function PostAutomation() {
               Cancel
             </button>
             <button
-              onClick={handleSaveEditedPost}
-              disabled={loading || !editingPost.summary.trim()}
+              onClick={handleSave} // 🔥 Local save handler
+              disabled={loading || !localPost.summary.trim()}
               className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
@@ -1094,6 +1143,55 @@ function PostAutomation() {
     </div>
   );
 
+  // Toggle handler with auto-save
+  const handleToggleAutomation = async (isActive: boolean) => {
+    setAutomationSettings({
+      ...automationSettings,
+      isActive: isActive,
+    });
+
+    // Auto-save immediately
+    if (!LOCATION_ID) {
+      showMessage("error", "Please select a location first");
+      return;
+    }
+
+    setAutomationLoading(true);
+    try {
+      const response = await fetch(`${SERVER}/api/post-automation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locationId: LOCATION_ID,
+          ...automationSettings,
+          isActive: isActive, // Updated value
+        }),
+        credentials: "include",
+      });
+
+      if (!response.ok) throw new Error("Failed to update automation");
+       window.dispatchEvent(
+         new CustomEvent("automation-toggled", {
+           detail: { isActive },
+         }),
+       );
+      showMessage(
+        "success",
+        isActive ? "Automation activated! ✅" : "Automation paused ⏸️",
+      );
+      await fetchAutomationSettings();
+    } catch (error: any) {
+      showMessage("error", error.message);
+      // Revert on error
+      setAutomationSettings({
+        ...automationSettings,
+        isActive: !isActive,
+      });
+    } finally {
+      setAutomationLoading(false);
+    }
+  };
+
   // ==================== MAIN RENDER ====================
 
   return (
@@ -1152,12 +1250,7 @@ function PostAutomation() {
               <input
                 type="checkbox"
                 checked={automationSettings.isActive}
-                onChange={(e) =>
-                  setAutomationSettings({
-                    ...automationSettings,
-                    isActive: e.target.checked,
-                  })
-                }
+                onChange={(e) => handleToggleAutomation(e.target.checked)}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>

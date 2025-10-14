@@ -115,19 +115,137 @@ export default function Automation() {
   const [selectedModule, setSelectedModule] = useState(automationModules[0]);
   const [modules, setModules] = useState(automationModules);
 
-  const toggleModule = (moduleId: string) => {
-    setModules(
-      modules.map((module) =>
-        module.id === moduleId
-          ? { ...module, enabled: !module.enabled }
-          : module,
-      ),
-    );
-  };
+  const [postAutomationActive, setPostAutomationActive] = useState(false);
+
+    // Redux state
+    const { user } = useSelector((state: any) => state.user);
+    const { activeLocation } = useSelector((state: any) => state.activeLocation);
+  
+    const ACCOUNT_ID = user?.accountId || "";
+    const LOCATION_ID = activeLocation?.locationId || "";
+
+  // const toggleModule = (moduleId: string) => {
+  //   setModules(
+  //     modules.map((module) =>
+  //       module.id === moduleId
+  //         ? { ...module, enabled: !module.enabled }
+  //         : module,
+  //     ),
+  //   );
+  // };
+
+
+    const toggleModule = async (moduleId: string) => {
+      // 🔥 Special handling for automate-posting
+      if (moduleId === "automate-posting") {
+        const currentModule = modules.find((m) => m.id === moduleId);
+        const newEnabledState = !currentModule?.enabled;
+
+        // Optimistic update
+        setModules((prev) =>
+          prev.map((m) =>
+            m.id === moduleId
+              ? {
+                  ...m,
+                  enabled: newEnabledState,
+                  status: newEnabledState ? "active" : "paused",
+                }
+              : m,
+          ),
+        );
+
+        // Backend update
+        try {
+          const response = await fetch(`${SERVER}/api/post-automation`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              locationId: LOCATION_ID,
+              isActive: newEnabledState,
+              frequency: "weekly", // Default values
+              intervalDays: 7,
+              maxPerMonth: null,
+              defaultTopicType: "STANDARD",
+              includeMedia: true,
+              includeCTA: false,
+            }),
+            credentials: "include",
+          });
+
+          if (!response.ok) throw new Error("Failed to toggle automation");
+
+          setPostAutomationActive(newEnabledState);
+        } catch (error) {
+          console.error("Toggle failed:", error);
+          // Revert on error
+          setModules((prev) =>
+            prev.map((m) =>
+              m.id === moduleId
+                ? {
+                    ...m,
+                    enabled: !newEnabledState,
+                    status: !newEnabledState ? "active" : "paused",
+                  }
+                : m,
+            ),
+          );
+        }
+      } else {
+        // 🔥 Other modules - local state only
+        setModules((prev) =>
+          prev.map((m) =>
+            m.id === moduleId ? { ...m, enabled: !m.enabled } : m,
+          ),
+        );
+      }
+    };
 
   const progressPercentage = Math.round(
     (modules.filter((m) => m.enabled).length / modules.length) * 100,
   );
+
+  const fetchPostAutomationStatus = useCallback(async () => {
+    if (!LOCATION_ID) return;
+
+    try {
+      const response = await fetch(
+        `${SERVER}/api/post-automation?locationId=${LOCATION_ID}`,
+        { credentials: "include" },
+      );
+
+      if (!response.ok) return;
+
+      const result = await response.json();
+      if (result.data && result.data.length > 0) {
+        const isActive = result.data[0].isActive;
+        setPostAutomationActive(isActive);
+
+        // 🔥 Update modules list bhi
+        setModules((prev) =>
+          prev.map((m) =>
+            m.id === "automate-posting"
+              ? {
+                  ...m,
+                  enabled: isActive,
+                  status: isActive ? "active" : "paused",
+                }
+              : m,
+          ),
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching post automation:", error);
+    }
+  }, [LOCATION_ID]);
+
+  useEffect(() => {
+    if (LOCATION_ID) {
+      fetchPostAutomationStatus(); 
+    }
+  }, [
+    LOCATION_ID,
+    fetchPostAutomationStatus,
+  ]);
 
   return (
     <div className="flex h-full bg-gray-50">
