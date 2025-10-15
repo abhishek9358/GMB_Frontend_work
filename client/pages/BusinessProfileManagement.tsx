@@ -36,6 +36,8 @@ import {
   RefreshCw,
   Save,
   Settings,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
@@ -405,7 +407,6 @@ const apiService = {
   },
 };
 
-
 const transformApiDataToProfile = (data: any): BusinessProfile => {
   // Helper function to format time with minutes
   const formatTime = (
@@ -521,7 +522,6 @@ const transformApiDataToProfile = (data: any): BusinessProfile => {
   };
 };
 
-
 export default function BusinessProfileManagement() {
   const [location, setLocation] = useState<ILocation | null>(null);
   const { locationName, accountId } = useParams<{
@@ -533,6 +533,10 @@ export default function BusinessProfileManagement() {
   const params = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("business-info");
+
+  // Define tab order for navigation
+  const tabsOrder = ["business-info", "contact", "location", "hours", "more"];
 
   // Fetch location details
   async function fetchLocationDetails({ id }: { id: string }) {
@@ -739,6 +743,21 @@ export default function BusinessProfileManagement() {
     });
   };
 
+  // Handle tab navigation
+  const handleNextTab = () => {
+    const currentIndex = tabsOrder.indexOf(activeTab);
+    if (currentIndex < tabsOrder.length - 1) {
+      setActiveTab(tabsOrder[currentIndex + 1]);
+    }
+  };
+
+  const handlePreviousTab = () => {
+    const currentIndex = tabsOrder.indexOf(activeTab);
+    if (currentIndex > 0) {
+      setActiveTab(tabsOrder[currentIndex - 1]);
+    }
+  };
+
   // Handle invalid parameters
   if (!params?.locationId) {
     return (
@@ -849,7 +868,7 @@ export default function BusinessProfileManagement() {
 
       {/* Main Content */}
       <div className="bg-white rounded-lg border border-gray-200">
-        <Tabs defaultValue="business-info" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5 rounded-t-lg bg-[#eff6ff] border-b border-gbp-blue-200">
             <TabsTrigger
               value="business-info"
@@ -889,124 +908,6 @@ export default function BusinessProfileManagement() {
           </TabsList>
 
           {/* Business Information Tab */}
-          {/* <TabsContent value="business-info" className="">
-            <Card className="bg-[#eff6ff] border-gbp-blue-200">
-              <CardHeader>
-                <CardTitle className="text-black">
-                  Business Information
-                </CardTitle>
-                <CardDescription className="text-gray-600">
-                  Basic information about your business
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-black font-medium">
-                      Business Name
-                    </Label>
-                    <Input
-                      id="name"
-                      {...formik.getFieldProps("name")}
-                      placeholder="Enter business name"
-                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
-                    />
-                    {formik.touched.name && formik.errors.name && (
-                      <span className="text-red-600 text-sm">
-                        {formik.errors.name}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="title" className="text-black font-medium">
-                      Business Title
-                    </Label>
-                    <Input
-                      id="title"
-                      {...formik.getFieldProps("title")}
-                      placeholder="Enter business title"
-                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
-                    />
-                    {formik.touched.title && formik.errors.title && (
-                      <span className="text-red-600 text-sm">
-                        {formik.errors.title}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="category"
-                      className="text-black font-medium"
-                    >
-                      Business Category
-                    </Label>
-                    <Select
-                      value={formik.values.category}
-                      onValueChange={(value) =>
-                        formik.setFieldValue("category", value)
-                      }
-                    >
-                      <SelectTrigger className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black">
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent className="border-gbp-blue-200 bg-white max-h-[200px] overflow-y-auto">
-                        {businessCategories.map((category) => (
-                          <SelectItem
-                            key={category}
-                            value={category}
-                            className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
-                          >
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {formik.touched.category && formik.errors.category && (
-                      <span className="text-red-600 text-sm">
-                        {formik.errors.category}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="openingDate"
-                      className="text-black font-medium"
-                    >
-                      Opening Date
-                    </Label>
-                    <Input
-                      id="openingDate"
-                      type="date"
-                      {...formik.getFieldProps("openingDate")}
-                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="description"
-                    className="text-black font-medium"
-                  >
-                    Description
-                  </Label>
-                  <Textarea
-                    id="description"
-                    rows={4}
-                    {...formik.getFieldProps("description")}
-                    placeholder="Describe your business..."
-                    className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400 resize-none"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent> */}
-
           <TabsContent value="business-info" className="">
             <Card className="bg-[#eff6ff] border-gbp-blue-200">
               <CardHeader>
@@ -1076,7 +977,7 @@ export default function BusinessProfileManagement() {
                           <SelectItem
                             key={category}
                             value={category}
-                            className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
+                            className="hover:bg-gbp-blue-500 focus:bg-gbp-blue-500 text-black cursor-pointer"
                           >
                             {category}
                           </SelectItem>
@@ -1121,8 +1022,6 @@ export default function BusinessProfileManagement() {
                     className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400 resize-none"
                   />
                 </div>
-
-                {/* AI Suggestions Section */}
 
                 {/* AI Suggestions Section */}
                 <div className="space-y-4">
@@ -1259,10 +1158,31 @@ export default function BusinessProfileManagement() {
                     </div>
                   )}
                 </div>
+
+                {/* Navigation Buttons */}
+                <div className="flex justify-between mt-6">
+                  <Button
+                    variant="outline"
+                    onClick={handlePreviousTab}
+                    disabled={activeTab === tabsOrder[0]}
+                    className="flex items-center space-x-2 border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300 bg-white"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Previous</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleNextTab}
+                    disabled={activeTab === tabsOrder[tabsOrder.length - 1]}
+                    className="flex items-center space-x-2 border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300 bg-white"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
-
 
           {/* Contact Information Tab */}
           <TabsContent value="contact" className="p-6">
@@ -1341,6 +1261,28 @@ export default function BusinessProfileManagement() {
                   >
                     Enable Chat
                   </Label>
+                </div>
+
+                {/* Navigation Buttons */}
+                <div className="flex justify-between mt-6">
+                  <Button
+                    variant="outline"
+                    onClick={handlePreviousTab}
+                    disabled={activeTab === tabsOrder[0]}
+                    className="flex items-center space-x-2 border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300 bg-white"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Previous</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleNextTab}
+                    disabled={activeTab === tabsOrder[tabsOrder.length - 1]}
+                    className="flex items-center space-x-2 border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300 bg-white"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -1484,6 +1426,28 @@ export default function BusinessProfileManagement() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Navigation Buttons */}
+                <div className="flex justify-between mt-6">
+                  <Button
+                    variant="outline"
+                    onClick={handlePreviousTab}
+                    disabled={activeTab === tabsOrder[0]}
+                    className="flex items-center space-x-2 border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300 bg-white"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Previous</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleNextTab}
+                    disabled={activeTab === tabsOrder[tabsOrder.length - 1]}
+                    className="flex items-center space-x-2 border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300 bg-white"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1564,6 +1528,28 @@ export default function BusinessProfileManagement() {
                     className="w-full border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300 bg-white"
                   >
                     Add Hours Period
+                  </Button>
+                </div>
+
+                {/* Navigation Buttons */}
+                <div className="flex justify-between mt-6">
+                  <Button
+                    variant="outline"
+                    onClick={handlePreviousTab}
+                    disabled={activeTab === tabsOrder[0]}
+                    className="flex items-center space-x-2 border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300 bg-white"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Previous</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleNextTab}
+                    disabled={activeTab === tabsOrder[tabsOrder.length - 1]}
+                    className="flex items-center space-x-2 border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300 bg-white"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
               </CardContent>
@@ -1842,6 +1828,28 @@ export default function BusinessProfileManagement() {
                         className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                       />
                     </div>
+                  </div>
+
+                  {/* Navigation Buttons */}
+                  <div className="flex justify-between mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={handlePreviousTab}
+                      disabled={activeTab === tabsOrder[0]}
+                      className="flex items-center space-x-2 border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300 bg-white"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Previous</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleNextTab}
+                      disabled={activeTab === tabsOrder[tabsOrder.length - 1]}
+                      className="flex items-center space-x-2 border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300 bg-white"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

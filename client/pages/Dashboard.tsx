@@ -5,7 +5,7 @@ import { useBusinesses } from "../hooks/useBusinesses";
 import { SERVER } from "@/constants";
 import { RootState } from "@/redux/store";
 import { useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 interface MetricCardProps {
   title: string;
@@ -109,6 +109,7 @@ export default function Dashboard() {
   }>();
   const [error, setError] = useState<string | null>(null);
   const { user } = useSelector((state: RootState) => state.user);
+  const navigate = useNavigate();
 
   // Fetch location data using Axios
   useEffect(() => {
@@ -146,7 +147,8 @@ export default function Dashboard() {
     console.log(user?.accountId, "Account ID from params:");
 
     const locId =
-      activeLocation?.locationId || localStorage.getItem("activeLocation")  ||
+      activeLocation?.locationId ||
+      localStorage.getItem("activeLocation") ||
       locationName;
     fetchLocationData(locId);
   }, [activeLocation?.locationId, user?.accountId]);
@@ -251,7 +253,6 @@ export default function Dashboard() {
           trend="up"
           trendValue="15%"
           color="orange"
-          actionLabel="See Optimizations"
           onAction={() => console.log("View optimizations")}
         />
         <MetricCard
@@ -260,7 +261,7 @@ export default function Dashboard() {
           subtitle="Automation efficiency"
           color="blue"
           actionLabel="See Automations"
-          onAction={() => console.log("View automations")}
+          onAction={() => navigate("/automation")}
         />
         <MetricCard
           title="Google Reviews"
@@ -268,7 +269,7 @@ export default function Dashboard() {
           subtitle="Average rating"
           color="green"
           actionLabel="See Reviews"
-          onAction={() => console.log("View reviews")}
+          onAction={() => navigate("/reviews")}
         />
       </div>
 
@@ -281,7 +282,7 @@ export default function Dashboard() {
             <p className="text-blue-100 text-sm mb-4">
               Help the chatbot Paige writes to be more specific and personalized
             </p>
-            <button className="bg-white text-gbp-blue-600 px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-50 transition-colors">
+            <button onClick={()=> navigate("/automation")} className="bg-white text-gbp-blue-600 px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-50 transition-colors">
               Train Paige
             </button>
           </div>
@@ -319,7 +320,7 @@ export default function Dashboard() {
                   SMBs on Google Business Profiles. You can customize each
                   setting once you select this option.
                 </p>
-                <button className="bg-gbp-blue-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-gbp-blue-600 transition-colors">
+                <button onClick={()=> navigate("/automation")} className="bg-gbp-blue-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-gbp-blue-600 transition-colors">
                   Trust Paige
                 </button>
               </div>
