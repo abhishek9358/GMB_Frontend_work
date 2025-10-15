@@ -1326,22 +1326,6 @@ export default function BusinessProfileManagement() {
                   />
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="chatEnabled"
-                    checked={formik.values.chatEnabled}
-                    onCheckedChange={(checked) =>
-                      formik.setFieldValue("chatEnabled", checked)
-                    }
-                    className="data-[state=checked]:bg-gbp-blue-500"
-                  />
-                  <Label
-                    htmlFor="chatEnabled"
-                    className="text-black font-medium"
-                  >
-                    Enable Chat
-                  </Label>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>

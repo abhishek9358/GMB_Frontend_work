@@ -166,7 +166,8 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-orange-100 text-sm font-medium mb-1">
-              Hey Help Paige Business!
+              Hey {locationData.title} !
+              
             </p>
             <h2 className="text-2xl font-bold mb-2">We need your help!</h2>
           </div>

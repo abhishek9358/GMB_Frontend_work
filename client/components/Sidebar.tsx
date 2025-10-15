@@ -35,9 +35,9 @@ export default function Sidebar() {
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-gbp-orange-500 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">P</span>
+            <span className="text-white font-bold text-sm">B</span>
           </div>
-          <span className="font-semibold text-gray-900">Paige</span>
+          <span className="font-semibold text-gray-900">BrightBeans</span>
         </div>
       </div>
 
