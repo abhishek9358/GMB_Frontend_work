@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {  DialogContent } from "@/components/ui/dialog";
+import { DialogContent } from "@/components/ui/dialog";
 import { RootState } from "@/redux/store";
 import {
   BarChart3,
@@ -16,24 +16,40 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import {SERVER} from "@/constants/index"
+import { SERVER } from "@/constants/index";
 
 // Replace your existing lucide-react import with this
 import {
-  Bookmark,  ChevronDown, Clock, Copy, Eye, Image as ImageIcon, Link as LinkIcon, 
-  MoreVertical, Pencil, Plus, Search, Send,Sparkles, Settings as  ThumbsUp, Trash2,CheckCircle2,ImageOff,Cloud,  Save, 
-  Play 
+  Bookmark,
+  ChevronDown,
+  Clock,
+  Copy,
+  Eye,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  MoreVertical,
+  Pencil,
+  Plus,
+  Search,
+  Send,
+  Sparkles,
+  Settings as ThumbsUp,
+  Trash2,
+  CheckCircle2,
+  ImageOff,
+  Cloud,
+  Save,
+  Play,
 } from "lucide-react";
 import PostAutomation from "@/components/PostAutomation";
 
 type DraftImage = {
   id: string | number;
-  type: 'file' | 'url';
+  type: "file" | "url";
   value: File | string;
   previewUrl: string;
   category: string;
 };
-
 
 interface AutomationModule {
   id: string;
@@ -117,12 +133,12 @@ export default function Automation() {
 
   const [postAutomationActive, setPostAutomationActive] = useState(false);
 
-    // Redux state
-    const { user } = useSelector((state: any) => state.user);
-    const { activeLocation } = useSelector((state: any) => state.activeLocation);
-  
-    const ACCOUNT_ID = user?.accountId || "";
-    const LOCATION_ID = activeLocation?.locationId || "";
+  // Redux state
+  const { user } = useSelector((state: any) => state.user);
+  const { activeLocation } = useSelector((state: any) => state.activeLocation);
+
+  const ACCOUNT_ID = user?.accountId || "";
+  const LOCATION_ID = activeLocation?.locationId || "";
 
   // const toggleModule = (moduleId: string) => {
   //   setModules(
@@ -134,71 +150,70 @@ export default function Automation() {
   //   );
   // };
 
+  const toggleModule = async (moduleId: string) => {
+    // 🔥 Special handling for automate-posting
+    if (moduleId === "automate-posting") {
+      const currentModule = modules.find((m) => m.id === moduleId);
+      const newEnabledState = !currentModule?.enabled;
 
-    const toggleModule = async (moduleId: string) => {
-      // 🔥 Special handling for automate-posting
-      if (moduleId === "automate-posting") {
-        const currentModule = modules.find((m) => m.id === moduleId);
-        const newEnabledState = !currentModule?.enabled;
+      // Optimistic update
+      setModules((prev) =>
+        prev.map((m) =>
+          m.id === moduleId
+            ? {
+                ...m,
+                enabled: newEnabledState,
+                status: newEnabledState ? "active" : "paused",
+              }
+            : m,
+        ),
+      );
 
-        // Optimistic update
+      // Backend update
+      try {
+        const response = await fetch(`${SERVER}/api/post-automation`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            locationId: LOCATION_ID,
+            isActive: newEnabledState,
+            frequency: "weekly", // Default values
+            intervalDays: 7,
+            maxPerMonth: null,
+            defaultTopicType: "STANDARD",
+            includeMedia: true,
+            includeCTA: false,
+          }),
+          credentials: "include",
+        });
+
+        if (!response.ok) throw new Error("Failed to toggle automation");
+
+        setPostAutomationActive(newEnabledState);
+      } catch (error) {
+        console.error("Toggle failed:", error);
+        // Revert on error
         setModules((prev) =>
           prev.map((m) =>
             m.id === moduleId
               ? {
                   ...m,
-                  enabled: newEnabledState,
-                  status: newEnabledState ? "active" : "paused",
+                  enabled: !newEnabledState,
+                  status: !newEnabledState ? "active" : "paused",
                 }
               : m,
           ),
         );
-
-        // Backend update
-        try {
-          const response = await fetch(`${SERVER}/api/post-automation`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              locationId: LOCATION_ID,
-              isActive: newEnabledState,
-              frequency: "weekly", // Default values
-              intervalDays: 7,
-              maxPerMonth: null,
-              defaultTopicType: "STANDARD",
-              includeMedia: true,
-              includeCTA: false,
-            }),
-            credentials: "include",
-          });
-
-          if (!response.ok) throw new Error("Failed to toggle automation");
-
-          setPostAutomationActive(newEnabledState);
-        } catch (error) {
-          console.error("Toggle failed:", error);
-          // Revert on error
-          setModules((prev) =>
-            prev.map((m) =>
-              m.id === moduleId
-                ? {
-                    ...m,
-                    enabled: !newEnabledState,
-                    status: !newEnabledState ? "active" : "paused",
-                  }
-                : m,
-            ),
-          );
-        }
-      } else {
-        // 🔥 Other modules - local state only
-        setModules((prev) =>
-          prev.map((m) =>
-            m.id === moduleId ? { ...m, enabled: !m.enabled } : m,
-          ),
-        );
       }
-    };
+    } else {
+      // 🔥 Other modules - local state only
+      setModules((prev) =>
+        prev.map((m) =>
+          m.id === moduleId ? { ...m, enabled: !m.enabled } : m,
+        ),
+      );
+    }
+  };
 
   const progressPercentage = Math.round(
     (modules.filter((m) => m.enabled).length / modules.length) * 100,
@@ -240,12 +255,9 @@ export default function Automation() {
 
   useEffect(() => {
     if (LOCATION_ID) {
-      fetchPostAutomationStatus(); 
+      fetchPostAutomationStatus();
     }
-  }, [
-    LOCATION_ID,
-    fetchPostAutomationStatus,
-  ]);
+  }, [LOCATION_ID, fetchPostAutomationStatus]);
 
   return (
     <div className="flex h-full bg-gray-50">
@@ -375,88 +387,87 @@ function AutomationContent({ module }: AutomationContentProps) {
   }
 }
 
-
-
 // Placeholder for your FileImportDialog component (MUST be defined elsewhere)
-// import FileImportDialog from './FileImportDialog'; 
+// import FileImportDialog from './FileImportDialog';
 
 // --- Configuration ---
 const API_BASE_URL = "http://localhost:3000/api/v1"; // <-- UPDATE THIS TO YOUR SERVER ROOT
 
 // Dummy implementation for the dialog trigger/state management
 const Dialog = ({ children }) => <>{children}</>;
-const DialogTrigger = ({ asChild, children, ...props }) => <div {...props}>{children}</div>;
-
+const DialogTrigger = ({ asChild, children, ...props }) => (
+  <div {...props}>{children}</div>
+);
 
 // Mock FileImportDialog structure for completeness
 const FileImportDialog = ({ open, onClose, onImport, files, setFiles }) => {
-    if (!open) return null;
+  if (!open) return null;
 
-    const handleFilesDrop = (newFiles) => {
-        // In a real scenario, this function would be complex, 
-        // but for integration, we just call onImport with the final list.
-        onImport({ files: newFiles });
-        onClose();
-    };
+  const handleFilesDrop = (newFiles) => {
+    // In a real scenario, this function would be complex,
+    // but for integration, we just call onImport with the final list.
+    onImport({ files: newFiles });
+    onClose();
+  };
 
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
-                <h4 className="font-bold mb-4">Select Files to Upload</h4>
-                {/* Simulated file list */}
-                {files.length > 0 && (
-                    <ul className="mb-4 text-sm list-disc list-inside">
-                        {files.map((f, i) => <li key={i}>{f.name} ({Math.round(f.size / 1024)} KB)</li>)}
-                    </ul>
-                )}
-                
-                {/* Input simulation for demo */}
-                <input
-                    type="file"
-                    multiple
-                    onChange={(e) => {
-                        const selectedFiles = Array.from(e.target.files || []);
-                        setFiles(selectedFiles);
-                    }}
-                    className="mb-4 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gbp-blue-100 file:text-gbp-blue-700 hover:file:bg-gbp-blue-200"
-                />
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
+        <h4 className="font-bold mb-4">Select Files to Upload</h4>
+        {/* Simulated file list */}
+        {files.length > 0 && (
+          <ul className="mb-4 text-sm list-disc list-inside">
+            {files.map((f, i) => (
+              <li key={i}>
+                {f.name} ({Math.round(f.size / 1024)} KB)
+              </li>
+            ))}
+          </ul>
+        )}
 
-                <div className="flex justify-end space-x-2">
-                    <button 
-                        onClick={() => {
-                            // In a real scenario, you might use the files state here 
-                            // or just rely on the handleImport from the main component flow.
-                            handleFilesDrop(files); 
-                        }}
-                        className="bg-gbp-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-gbp-blue-700"
-                        disabled={files.length === 0}
-                    >
-                        Process & Upload ({files.length})
-                    </button>
-                    <button 
-                        onClick={onClose}
-                        className="border border-gray-300 px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </div>
+        {/* Input simulation for demo */}
+        <input
+          type="file"
+          multiple
+          onChange={(e) => {
+            const selectedFiles = Array.from(e.target.files || []);
+            setFiles(selectedFiles);
+          }}
+          className="mb-4 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gbp-blue-100 file:text-gbp-blue-700 hover:file:bg-gbp-blue-200"
+        />
+
+        <div className="flex justify-end space-x-2">
+          <button
+            onClick={() => {
+              // In a real scenario, you might use the files state here
+              // or just rely on the handleImport from the main component flow.
+              handleFilesDrop(files);
+            }}
+            className="bg-gbp-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-gbp-blue-700"
+            disabled={files.length === 0}
+          >
+            Process & Upload ({files.length})
+          </button>
+          <button
+            onClick={onClose}
+            className="border border-gray-300 px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
         </div>
-    );
-}
+      </div>
+    </div>
+  );
+};
 
-
-
-  const CATEGORY_OPTIONS = [
-    { value: "ADDITIONAL", label: "Additional" },
-    { value: "COVER", label: "Cover" },
-    { value: "LOGO", label: "Logo" },
-    { value: "PROFILE", label: "Profile" },
-    { value: "INTERIOR", label: "Interior" },
-    { value: "EXTERIOR", label: "Exterior" },
-    
-  ];
-
+const CATEGORY_OPTIONS = [
+  { value: "ADDITIONAL", label: "Additional" },
+  { value: "COVER", label: "Cover" },
+  { value: "LOGO", label: "Logo" },
+  { value: "PROFILE", label: "Profile" },
+  { value: "INTERIOR", label: "Interior" },
+  { value: "EXTERIOR", label: "Exterior" },
+];
 
 type CategorySelectorProps = {
   selected: string;
@@ -465,13 +476,13 @@ type CategorySelectorProps = {
 
 function CategorySelector({ selected, onChange }: CategorySelectorProps) {
   return (
-    <div className="flex flex-wrap gap-2 mb-3">
+    <div className="flex flex-wrap gap-2 mb-2">
       {CATEGORY_OPTIONS.map((opt) => (
         <button
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`px-3 py-1 rounded-md border transition-all ${
+          className={`px-2 py-1 text-xs rounded-md border transition-all ${
             selected === opt.value
               ? "bg-blue-600 text-white border-blue-600"
               : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
@@ -484,13 +495,7 @@ function CategorySelector({ selected, onChange }: CategorySelectorProps) {
   );
 }
 
-
-
-
 function ImageUploadAutomation() {
-
-
-
   const [dialogOpen, setDialogOpen] = useState(false);
   // This 'files' state is now primarily for the dialog
   const [files, setFiles] = useState<File[]>([]);
@@ -526,6 +531,8 @@ function ImageUploadAutomation() {
   // 🔥 NEW: Category state for uploads
   const [urlCategory, setUrlCategory] = useState("ADDITIONAL");
   const [fileCategory, setFileCategory] = useState("ADDITIONAL");
+  const [selectedCategory, setSelectedCategory] = useState("ADDITIONAL");
+  const [showCategoryToggle, setShowCategoryToggle] = useState(false);
 
   const { user } = useSelector((state: RootState) => state.user);
   const { activeLocation } = useSelector(
@@ -605,7 +612,7 @@ function ImageUploadAutomation() {
         type: "file",
         value: draft.fileName,
         previewUrl: draft.fileUrl,
-        category: draft.category, 
+        category: draft.category,
       }));
 
       setDraftImages(backendDrafts);
@@ -617,7 +624,11 @@ function ImageUploadAutomation() {
   }, [LOCATION_ID]);
 
   // Upload file to draft (backend)
-  const uploadToDraft = async (file: File, scheduleDate?: string, category: string = "ADDITIONAL") => {
+  const uploadToDraft = async (
+    file: File,
+    scheduleDate?: string,
+    category: string = "ADDITIONAL",
+  ) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("locationId", LOCATION_ID);
@@ -642,7 +653,11 @@ function ImageUploadAutomation() {
   };
 
   // Upload URL to draft
-  const uploadUrlToDraft = async (imageUrl: string, scheduleDate?: string, category: string = "ADDITIONAL") => {
+  const uploadUrlToDraft = async (
+    imageUrl: string,
+    scheduleDate?: string,
+    category: string = "ADDITIONAL",
+  ) => {
     const formData = new FormData();
     formData.append("source_url", imageUrl); // 🔥 BACKEND expects 'source_url' not 'fileUrl'
     formData.append("locationId", LOCATION_ID);
@@ -773,27 +788,33 @@ function ImageUploadAutomation() {
     setUrlError("");
 
     try {
-
-       const img = new Image();
-    img.src = url;
-    await new Promise((resolve, reject) => {
-      img.onload = () => resolve("");
-      img.onerror = reject;
-    });
-
-    const width = img.width;
-    const height = img.height;
-
-    if (urlCategory === "COVER" && (width / height < 1.7 || width / height > 1.8)) {
-      setMessage({
-        type: "error",
-        text: "Cover photo must have a 16:9 aspect ratio (e.g., 1280×720).",
+      const img = new Image();
+      img.src = url;
+      await new Promise((resolve, reject) => {
+        img.onload = () => resolve("");
+        img.onerror = reject;
       });
-      return;
-    }
+
+      const width = img.width;
+      const height = img.height;
+
+      if (
+        urlCategory === "COVER" &&
+        (width / height < 1.7 || width / height > 1.8)
+      ) {
+        setMessage({
+          type: "error",
+          text: "Cover photo must have a 16:9 aspect ratio (e.g., 1280×720).",
+        });
+        return;
+      }
 
       // 🔥 Upload to backend using correct function
-      const result = await uploadUrlToDraft(trimmedUrl, scheduledDate, urlCategory);
+      const result = await uploadUrlToDraft(
+        trimmedUrl,
+        scheduledDate,
+        urlCategory,
+      );
 
       // Add to local state
       const newDraft: DraftImage = {
@@ -807,7 +828,7 @@ function ImageUploadAutomation() {
       setDraftImages((prev) => [...prev, newDraft]);
       setUrl("");
       setScheduledDate("");
-      setUrlCategory("ADDITIONAL")
+      setUrlCategory("ADDITIONAL");
       setMessage({ type: "success", text: "Image from URL added to drafts!" });
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
@@ -868,29 +889,28 @@ function ImageUploadAutomation() {
       for (const file of importedFiles) {
         try {
           const objectUrl = URL.createObjectURL(file);
-           const img = new Image();
-           img.src = objectUrl;
+          const img = new Image();
+          img.src = objectUrl;
 
-           await new Promise((resolve, reject) => {
-             img.onload = () => resolve("");
-             img.onerror = reject;
-           });
+          await new Promise((resolve, reject) => {
+            img.onload = () => resolve("");
+            img.onerror = reject;
+          });
 
-           const width = img.width;
-           const height = img.height;
+          const width = img.width;
+          const height = img.height;
 
-           if (
-             fileCategory === "COVER" &&
-             (width / height < 1.7 || width / height > 1.8)
-           ) {
-             setMessage({
-               type: "error",
-               text: `Cover photo "${file.name}" must have a 16:9 aspect ratio (e.g., 1280×720).`,
-             });
-             URL.revokeObjectURL(objectUrl);
+          if (
+            fileCategory === "COVER" &&
+            (width / height < 1.7 || width / height > 1.8)
+          ) {
+            setMessage({
+              type: "error",
+              text: `Cover photo "${file.name}" must have a 16:9 aspect ratio (e.g., 1280×720).`,
+            });
+            URL.revokeObjectURL(objectUrl);
             //  continue; // skip invalid cover images
-           }
-
+          }
 
           // Upload to backend
           const result = await uploadToDraft(file, scheduledDate, fileCategory);
@@ -901,7 +921,7 @@ function ImageUploadAutomation() {
             type: "file",
             value: file,
             previewUrl: URL.createObjectURL(file),
-            category: fileCategory
+            category: fileCategory,
           };
 
           setDraftImages((prev) => [...prev, newDraft]);
@@ -916,7 +936,7 @@ function ImageUploadAutomation() {
       setLoading(false);
       setDialogOpen(false);
       setScheduledDate("");
-      setFileCategory("ADDITIONAL"); 
+      setFileCategory("ADDITIONAL");
       setMessage({
         type: "success",
         text: `${successCount} image(s) added to drafts!`,
@@ -1111,7 +1131,7 @@ function ImageUploadAutomation() {
   // --- JSX RENDER ---
   return (
     <div className="max-w-6xl mx-auto bg-blue-50 p-8 rounded-2xl">
-      {/* Header and Upload Options (mostly unchanged) */}
+      {/* Header */}
       <div className="flex justify-between items-start mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
@@ -1124,39 +1144,68 @@ function ImageUploadAutomation() {
         </div>
       </div>
 
-      <div>
-        <h2 className="text-xl font-semibold text-gray-800 mb-1">
-          You have 3 options to upload images:
+      {/* Message */}
+      {message && (
+        <div
+          className={`p-3 rounded-lg mb-4 text-sm ${
+            message.type === "success"
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
+
+      {/* 🔥 NEW UPLOAD SECTION - Matching the image design */}
+      <div className="bg-white rounded-2xl p-8 shadow-sm mb-8">
+        {/* Header */}
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          Select Category
         </h2>
-        <p className="text-gray-500 mb-4">
-          Pro Tip: Try to add at least 5 images.
-        </p>
-        {message && (
-          <div
-            className={`p-3 rounded-lg mb-4 text-sm ${message.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
-          >
-            {message.text}
+
+        {/* Category Selector with Toggle */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-wrap gap-2">
+            {CATEGORY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setSelectedCategory(opt.value)}
+                className={`px-5 py-2.5 text-sm rounded-full border-2 transition-all font-medium ${
+                  selectedCategory === opt.value
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Option 1: URL Upload - Button now adds to draft */}
 
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <h4 className="font-semibold text-gray-900 mb-2">
-              Upload Using Link
-            </h4>
-            <p className="text-xs text-gray-500 mb-3">
-              Paste image URL (JPG, PNG, GIF, WEBP)
-            </p>
-            {/* Category Selector */}
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Select Category
-            </label>
-            <CategorySelector
-              selected={urlCategory}
-              onChange={(cat) => setUrlCategory(cat)}
-            />
+          {/* Toggle Switch */}
+          <div className="ml-4 flex items-center">
+            <button
+              onClick={() => setShowCategoryToggle(!showCategoryToggle)}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                showCategoryToggle ? "bg-blue-600" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                  showCategoryToggle ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
 
+        {/* URL Input Section */}
+        <div className="mb-6">
+          <label className="block text-base font-medium text-gray-900 mb-3">
+            Paste Image URL
+          </label>
+          <div className="flex gap-3">
             <input
               type="url"
               value={url}
@@ -1164,58 +1213,54 @@ function ImageUploadAutomation() {
                 setUrl(e.target.value);
                 setUrlError("");
               }}
-              placeholder="https://example.com/image.jpg"
-              className={`w-full border rounded-lg px-3 py-2 text-sm mb-2 focus:ring-2 focus:ring-gbp-blue-500 ${
-                urlError ? "border-red-500" : "border-gray-300"
+              placeholder="Enter URL..."
+              className={`flex-1 border-2 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${
+                urlError ? "border-red-500" : "border-gray-200"
               }`}
               disabled={loading}
             />
-
-            {urlError && (
-              <div className="flex items-start gap-2 mb-2 p-2 bg-red-50 rounded">
-                <X className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                <p className="text-red-600 text-xs">{urlError}</p>
-              </div>
-            )}
-
             <button
               onClick={handleAddUrlToDrafts}
               disabled={loading || !url.trim()}
-              className="w-full bg-gbp-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gbp-blue-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  Adding...
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  Add to Drafts
-                </>
-              )}
+              {loading ? "Adding..." : "Add to Drafts"}
             </button>
           </div>
+          {urlError && <p className="text-red-600 text-xs mt-2">{urlError}</p>}
+        </div>
 
-          {/* Other upload options ... */}
-          <div className="bg-white rounded-lg p-4 shadow-sm flex flex-col items-center justify-center border-2 border-dashed border-blue-300">
-            <h4 className="font-semibold text-gray-900 mb-2">
-              Drag and Drop Upload
-            </h4>
+        {/* OR Divider */}
+        <div className="flex items-center my-8">
+          <div className="flex-1 border-t border-gray-300"></div>
+          <span className="px-4 text-gray-500 font-medium">OR</span>
+          <div className="flex-1 border-t border-gray-300"></div>
+        </div>
 
-              {/* Category selector added for drag-drop uploads too */}
-            <CategorySelector
-              selected={fileCategory}
-              onChange={(cat) => setFileCategory(cat)}
-            />
-
-            <div
-              className="text-center cursor-pointer"
-              onClick={() => !loading && setDialogOpen(true)}
+        {/* Bottom Category Pills (read-only display) */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {CATEGORY_OPTIONS.map((opt) => (
+            <button
+              key={`bottom-${opt.value}`}
+              type="button"
+              onClick={() => setSelectedCategory(opt.value)}
+              className="px-4 py-2 text-sm rounded-full bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 transition-all font-medium"
             >
-              <Cloud className="w-10 h-10 mx-auto mb-2 text-gbp-blue-500" />
-              <p className="text-sm text-gray-500">Click or drop images here</p>
-            </div>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Drag and Drop Area */}
+        <div
+          onClick={() => !loading && setDialogOpen(true)}
+          className="border-2 border-dashed border-blue-300 rounded-xl p-12 bg-blue-50/30 hover:bg-blue-50/50 transition-colors cursor-pointer"
+        >
+          <div className="flex flex-col items-center justify-center text-center">
+            <Cloud className="w-16 h-16 text-gray-700 mb-4" strokeWidth={1.5} />
+            <p className="text-gray-700 text-base font-medium">
+              Click or drag and drop images here
+            </p>
           </div>
         </div>
       </div>
@@ -1227,7 +1272,6 @@ function ImageUploadAutomation() {
         files={files}
         setFiles={setFiles}
       />
-
       {/* 🔥 ADD THIS SECTION - After the 3 upload options grid */}
 
       {/* Automation Settings Section */}
@@ -1677,7 +1721,6 @@ function ImageUploadAutomation() {
     </div>
   );
 }
-
 
 function ReviewManagementAutomation() {
   return (
@@ -2268,11 +2311,10 @@ function SummaryAutomation() {
   );
 }
 
-
 function DefaultAutomation({ module }: { module: AutomationModule }) {
   // Check if the selected module is "Automate Posting"
-  if (module.id === 'automate-posting') {
-   return <PostAutomation />
+  if (module.id === "automate-posting") {
+    return <PostAutomation />;
   }
 
   // Fallback for any other module that doesn't have a specific UI yet
@@ -2299,21 +2341,6 @@ function DefaultAutomation({ module }: { module: AutomationModule }) {
   );
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // CategoryTag component ko fix karo
 const CategoryTag = ({ category }: { category: string }) => {
   const categoryColors: Record<string, string> = {
@@ -2325,10 +2352,9 @@ const CategoryTag = ({ category }: { category: string }) => {
 
   const bgColor = categoryColors[category] || "bg-gray-100 text-gray-700";
 
-  return (  // 🔥 ADD THIS RETURN
-    <span
-      className={`text-xs font-semibold px-2 py-1 rounded ${bgColor}`}
-    >
+  return (
+    // 🔥 ADD THIS RETURN
+    <span className={`text-xs font-semibold px-2 py-1 rounded ${bgColor}`}>
       {category}
     </span>
   );
