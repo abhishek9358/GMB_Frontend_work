@@ -78,7 +78,7 @@
 //   // Get location ID from localStorage or Redux state and clean it
 //   const rawLocationId = localStorage.getItem("activeLocation") || activeLocation?.locationId || "";
 //   const locationId = extractLocationId(rawLocationId);
-  
+
 //   // Get account ID - MAKE SURE THIS IS SET IN YOUR APP
 //   // You can set it like: localStorage.setItem("accountId", "116574816291503260287");
 //   const accountId = localStorage.getItem("accountId") || "116574816291503260287"; // Default for testing
@@ -101,12 +101,12 @@
 //         // Construct the correct API URL matching your Postman request
 //         // Format: /api/v1/reviews/{location_id}/all?account_id={account_id}
 //         const url = `${SERVER}/api/v1/reviews/${locationId}/all?account_id=${accountId}`;
-        
+
 //         console.log("🔍 Fetching reviews from:", url);
 //         console.log("📍 Raw Location ID:", rawLocationId);
 //         console.log("✨ Cleaned Location ID:", locationId);
 
-//         const response = await axios.get(url, { 
+//         const response = await axios.get(url, {
 //           withCredentials: true,
 //           headers: {
 //             'Content-Type': 'application/json',
@@ -124,7 +124,7 @@
 //           (review: any) => {
 //             const rating = parseStarRating(review.starRating);
 //             const createTime = review.createTime ? new Date(review.createTime) : new Date();
-            
+
 //             return {
 //               id: review.reviewId || review.name || Math.random().toString(36).substring(2, 11),
 //               reviewId: review.reviewId,
@@ -151,14 +151,14 @@
 //         setReviews(mappedReviews);
 //         setTotalReviewsCount(response.data.totalReviewCount || response.data.totalFetched || mappedReviews.length);
 //         setAverageRating(response.data.averageRating || 0);
-        
+
 //         // Get place_id from backend response
 //         if (response.data.placeId) {
 //           const receivedPlaceId = response.data.placeId;
 //           console.log("✅ Place ID received from backend:", receivedPlaceId);
 //           setPlaceId(receivedPlaceId);
 //           localStorage.setItem("placeId", receivedPlaceId); // Store for future use
-          
+
 //           // Generate review link
 //           const reviewLink = `https://search.google.com/local/writereview?placeid=${receivedPlaceId}`;
 //           setPrimaryReviewLink(reviewLink);
@@ -166,7 +166,7 @@
 //         } else {
 //           console.warn("⚠️ No place_id in backend response");
 //         }
-        
+
 //         setLoading(false);
 //       } catch (err: any) {
 //         console.error("❌ Failed to fetch reviews:", err);
@@ -176,9 +176,9 @@
 //           data: err.response?.data,
 //           url: err.config?.url
 //         });
-        
+
 //         let errorMessage = "Failed to fetch reviews";
-        
+
 //         if (err.response?.status === 401) {
 //           errorMessage = "Authentication required. Please log in again.";
 //         } else if (err.response?.status === 403) {
@@ -188,7 +188,7 @@
 //         } else if (err.response?.data?.detail) {
 //           errorMessage = err.response.data.detail;
 //         }
-        
+
 //         setError(errorMessage);
 //         setLoading(false);
 //       }
@@ -224,7 +224,7 @@
 //       // Set the place_id state if found
 //       if (foundPlaceId) {
 //         setPlaceId(foundPlaceId);
-        
+
 //         // Generate review link
 //         const reviewLink = `https://search.google.com/local/writereview?placeid=${foundPlaceId}`;
 //         setPrimaryReviewLink(reviewLink);
@@ -288,7 +288,7 @@
 //       const response = await axios.put(
 //         url,
 //         { comment: reviewToUpdate.ownerReplyText },
-//         { 
+//         {
 //           withCredentials: true,
 //           headers: {
 //             'Content-Type': 'application/json',
@@ -316,9 +316,9 @@
 //         data: error.response?.data,
 //         url: error.config?.url
 //       });
-      
+
 //       let errorMessage = "Failed to save reply";
-      
+
 //       if (error.response?.status === 401) {
 //         errorMessage = "Authentication expired. Please refresh the page and try again.";
 //       } else if (error.response?.status === 403) {
@@ -326,11 +326,11 @@
 //       } else if (error.response?.status === 404) {
 //         errorMessage = "Review not found. It may have been deleted.";
 //       } else if (error.response?.data?.detail) {
-//         errorMessage = typeof error.response.data.detail === 'string' 
-//           ? error.response.data.detail 
+//         errorMessage = typeof error.response.data.detail === 'string'
+//           ? error.response.data.detail
 //           : JSON.stringify(error.response.data.detail);
 //       }
-      
+
 //       alert(`Error: ${errorMessage}`);
 //     } finally {
 //       setSavingReplyId(null);
@@ -356,7 +356,7 @@
 //       console.log("📍 Location ID:", locationId);
 //       console.log("🔑 Account ID:", accountId);
 
-//       await axios.delete(url, { 
+//       await axios.delete(url, {
 //         withCredentials: true,
 //         headers: {
 //           'Content-Type': 'application/json',
@@ -383,9 +383,9 @@
 //         data: error.response?.data,
 //         url: error.config?.url
 //       });
-      
+
 //       let errorMessage = "Failed to delete reply";
-      
+
 //       if (error.response?.status === 401) {
 //         errorMessage = "Authentication expired. Please refresh the page and try again.";
 //       } else if (error.response?.status === 403) {
@@ -393,11 +393,11 @@
 //       } else if (error.response?.status === 404) {
 //         errorMessage = "Reply not found. It may have already been deleted.";
 //       } else if (error.response?.data?.detail) {
-//         errorMessage = typeof error.response.data.detail === 'string' 
-//           ? error.response.data.detail 
+//         errorMessage = typeof error.response.data.detail === 'string'
+//           ? error.response.data.detail
 //           : JSON.stringify(error.response.data.detail);
 //       }
-      
+
 //       alert(`Error: ${errorMessage}`);
 //     } finally {
 //       setDeletingReplyId(null);
@@ -430,11 +430,11 @@
 //   }, [filteredReviews, sortBy]);
 
 //   const totalReviews = totalReviewsCount;
-//   const calculatedAverageRating = averageRating || 
+//   const calculatedAverageRating = averageRating ||
 //     (reviews.length > 0
 //       ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
 //       : 0);
-      
+
 //   const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => ({
 //     rating,
 //     count: reviews.filter((r) => r.rating === rating).length,
@@ -447,7 +447,7 @@
 //   const currentYear = new Date().getFullYear();
 //   const monthlyData = useMemo(() => {
 //     const monthMap = new Map<number, { reviews: number; repliedReviews: number }>();
-    
+
 //     for (let i = 0; i < 12; i++) {
 //       monthMap.set(i, { reviews: 0, repliedReviews: 0 });
 //     }
@@ -564,10 +564,10 @@
 //         const canvas = document.createElement("canvas");
 //         const ctx = canvas.getContext("2d");
 //         const img = new Image();
-        
+
 //         canvas.width = 512;
 //         canvas.height = 512;
-        
+
 //         img.onload = () => {
 //           ctx?.drawImage(img, 0, 0, 512, 512);
 //           const url = canvas.toDataURL("image/png");
@@ -578,7 +578,7 @@
 //           link.click();
 //           document.body.removeChild(link);
 //         };
-        
+
 //         img.src = "data:image/svg+xml;base64," + btoa(svgData);
 //       }
 //     }
@@ -776,8 +776,8 @@
 //           </div>
 
 //           <div className="bg-white rounded-lg p-4 flex flex-col items-center">
-//             <div 
-//               className="w-24 h-24 rounded-lg mb-3 flex items-center justify-center bg-white" 
+//             <div
+//               className="w-24 h-24 rounded-lg mb-3 flex items-center justify-center bg-white"
 //               ref={qrCodeRef}
 //             >
 //               {primaryReviewLink ? (
@@ -918,10 +918,10 @@
 //               </div>
 //               <p className="text-xs text-gray-600 mt-3">
 //                 Last review: {latestReviewDate
-//                   ? latestReviewDate.toLocaleDateString('en-US', { 
-//                       month: '2-digit', 
-//                       day: '2-digit', 
-//                       year: 'numeric' 
+//                   ? latestReviewDate.toLocaleDateString('en-US', {
+//                       month: '2-digit',
+//                       day: '2-digit',
+//                       year: 'numeric'
 //                     })
 //                   : "N/A"}
 //               </p>
@@ -976,7 +976,7 @@
 //               <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
 //               <p className="text-gray-500 text-lg mb-2">No reviews found</p>
 //               <p className="text-gray-400 text-sm mb-6">
-//                 {filterRating !== "all" 
+//                 {filterRating !== "all"
 //                   ? "Try changing your filter settings"
 //                   : "Start collecting reviews from your customers"}
 //               </p>
@@ -1028,13 +1028,13 @@
 //                           </div>
 //                         </div>
 //                       </div>
-                      
+
 //                       {review.text && (
 //                         <p className="text-gray-700 text-sm mb-3 leading-relaxed">
 //                           {review.text}
 //                         </p>
 //                       )}
-                      
+
 //                       <div className="flex items-center space-x-3 mb-3">
 //                         <span
 //                           className={`text-xs px-2.5 py-1 rounded-full font-medium ${
@@ -1070,7 +1070,7 @@
 //                             </button>
 //                           )}
 //                         </div>
-                        
+
 //                         {review.isEditingReply ? (
 //                           <div>
 //                             <textarea
@@ -1205,22 +1205,36 @@ export default function Reviews() {
   const [placeId, setPlaceId] = useState<string>("");
   const [generatingAIId, setGeneratingAIId] = useState<string | null>(null);
 
-  const { activeLocation } = useSelector((state: RootState) => state.activeLocation);
+  const { user } = useSelector((state: RootState) => state.user);
+
+  console.log("👤 Current User from Redux:", user);
+
+  const { activeLocation } = useSelector(
+    (state: RootState) => state.activeLocation,
+  );
+
+  console.log("🌍 Active Location from Redux:", activeLocation);
 
   // Helper function to extract clean location ID (removes "locations/" prefix if present)
-  const extractLocationId = (rawLocationId: string | null | undefined): string => {
+  const extractLocationId = (
+    rawLocationId: string | null | undefined,
+  ): string => {
     if (!rawLocationId) return "";
     // Remove "locations/" prefix if it exists
     return rawLocationId.replace(/^locations\//, "");
   };
 
   // Get location ID from localStorage or Redux state and clean it
-  const rawLocationId = localStorage.getItem("activeLocation") || activeLocation?.locationId || "";
+  const rawLocationId =
+    localStorage.getItem("activeLocation") || activeLocation?.locationId || "";
   const locationId = extractLocationId(rawLocationId);
-  
+
   // Get account ID - MAKE SURE THIS IS SET IN YOUR APP
   // You can set it like: localStorage.setItem("accountId", "116574816291503260287");
-  const accountId = localStorage.getItem("accountId") || "116574816291503260287"; // Default for testing
+  const accountId = localStorage.getItem("accountId") || user?.accountId; // Default for testing
+
+  console.log("🔑 Using Account ID:", accountId);
+  
 
   // Ref for the QR code canvas to facilitate download
   const qrCodeRef = useRef<HTMLDivElement>(null);
@@ -1240,32 +1254,37 @@ export default function Reviews() {
         // Construct the correct API URL matching your Postman request
         // Format: /api/v1/reviews/{location_id}/all?account_id={account_id}
         const url = `${SERVER}/api/v1/reviews/${locationId}/all?account_id=${accountId}`;
-        
+
         console.log("🔍 Fetching reviews from:", url);
         console.log("📍 Raw Location ID:", rawLocationId);
         console.log("✨ Cleaned Location ID:", locationId);
 
-        const response = await axios.get(url, { 
+        const response = await axios.get(url, {
           withCredentials: true,
           headers: {
-            'Content-Type': 'application/json',
-          }
+            "Content-Type": "application/json",
+          },
         });
 
         console.log("✅ API Response received:", {
           totalFetched: response.data.totalFetched,
           pagesProcessed: response.data.pagesProcessed,
-          reviewsCount: response.data.reviews?.length
+          reviewsCount: response.data.reviews?.length,
         });
 
         // Map the backend response to frontend format
         const mappedReviews: Review[] = (response.data.reviews || []).map(
           (review: any) => {
             const rating = parseStarRating(review.starRating);
-            const createTime = review.createTime ? new Date(review.createTime) : new Date();
-            
+            const createTime = review.createTime
+              ? new Date(review.createTime)
+              : new Date();
+
             return {
-              id: review.reviewId || review.name || Math.random().toString(36).substring(2, 11),
+              id:
+                review.reviewId ||
+                review.name ||
+                Math.random().toString(36).substring(2, 11),
               reviewId: review.reviewId,
               author: review.reviewer?.displayName || "Anonymous",
               rating: rating,
@@ -1273,39 +1292,42 @@ export default function Reviews() {
               date: createTime.toISOString().split("T")[0],
               updateTime: review.updateTime || review.createTime || "",
               sentiment:
-                rating >= 4
-                  ? "positive"
-                  : rating <= 2
-                  ? "negative"
-                  : "neutral",
+                rating >= 4 ? "positive" : rating <= 2 ? "negative" : "neutral",
               replied: !!review.reviewReply,
               ownerReplyText: review.reviewReply?.comment || "",
               isEditingReply: false,
             };
-          }
+          },
         );
 
         console.log(`✅ Mapped ${mappedReviews.length} reviews`);
 
         setReviews(mappedReviews);
-        setTotalReviewsCount(response.data.totalReviewCount || response.data.totalFetched || mappedReviews.length);
+        setTotalReviewsCount(
+          response.data.totalReviewCount ||
+            response.data.totalFetched ||
+            mappedReviews.length,
+        );
         setAverageRating(response.data.averageRating || 0);
-        
+
         // Get place_id from backend response
         if (response.data.placeId) {
           const receivedPlaceId = response.data.placeId;
           console.log("✅ Place ID received from backend:", receivedPlaceId);
           setPlaceId(receivedPlaceId);
           localStorage.setItem("placeId", receivedPlaceId); // Store for future use
-          
+
           // Generate review link
           const reviewLink = `https://search.google.com/local/writereview?placeid=${receivedPlaceId}`;
           setPrimaryReviewLink(reviewLink);
-          console.log("🔗 Generated review link from backend place_id:", reviewLink);
+          console.log(
+            "🔗 Generated review link from backend place_id:",
+            reviewLink,
+          );
         } else {
           console.warn("⚠️ No place_id in backend response");
         }
-        
+
         setLoading(false);
       } catch (err: any) {
         console.error("❌ Failed to fetch reviews:", err);
@@ -1313,21 +1335,22 @@ export default function Reviews() {
           status: err.response?.status,
           statusText: err.response?.statusText,
           data: err.response?.data,
-          url: err.config?.url
+          url: err.config?.url,
         });
-        
+
         let errorMessage = "Failed to fetch reviews";
-        
+
         if (err.response?.status === 401) {
           errorMessage = "Authentication required. Please log in again.";
         } else if (err.response?.status === 403) {
-          errorMessage = "Access denied. Check your permissions for this location.";
+          errorMessage =
+            "Access denied. Check your permissions for this location.";
         } else if (err.response?.status === 404) {
           errorMessage = `Location not found. Please verify location ID: ${locationId}`;
         } else if (err.response?.data?.detail) {
           errorMessage = err.response.data.detail;
         }
-        
+
         setError(errorMessage);
         setLoading(false);
       }
@@ -1363,14 +1386,16 @@ export default function Reviews() {
       // Set the place_id state if found
       if (foundPlaceId) {
         setPlaceId(foundPlaceId);
-        
+
         // Generate review link
         const reviewLink = `https://search.google.com/local/writereview?placeid=${foundPlaceId}`;
         setPrimaryReviewLink(reviewLink);
         console.log("🔗 Generated review link from fallback:", reviewLink);
       } else {
         console.warn("⚠️ No place_id available from any source.");
-        console.log("💡 Backend should provide place_id automatically. Check if include_place_id=true in API call.");
+        console.log(
+          "💡 Backend should provide place_id automatically. Check if include_place_id=true in API call.",
+        );
       }
     };
 
@@ -1393,53 +1418,69 @@ export default function Reviews() {
 
     try {
       console.log("🤖 Requesting AI response suggestion...");
-      
+
       // Build request with available data
       const requestData = {
         review_text: reviewToUpdate.text || "No review text provided",
         star_rating: reviewToUpdate.rating,
         reviewer_name: reviewToUpdate.author,
         // Use optional chaining and provide undefined if properties don't exist
-        business_name: (activeLocation as any)?.title || (activeLocation as any)?.name || undefined,
-        business_type: (activeLocation as any)?.businessType || (activeLocation as any)?.category || undefined
+        business_name:
+          (activeLocation as any)?.title ||
+          (activeLocation as any)?.name ||
+          undefined,
+        business_type:
+          (activeLocation as any)?.businessType ||
+          (activeLocation as any)?.category ||
+          undefined,
       };
 
-      console.log("📤 Sending AI request:", { 
-        star_rating: requestData.star_rating, 
-        review_length: requestData.review_text.length 
+      console.log("📤 Sending AI request:", {
+        star_rating: requestData.star_rating,
+        review_length: requestData.review_text.length,
       });
 
       const response = await axios.post(
         `${SERVER}/api/v1/ai/generate-review-response`,
         requestData,
-        { 
+        {
           withCredentials: true,
           headers: {
-            'Content-Type': 'application/json',
-          }
-        }
+            "Content-Type": "application/json",
+          },
+        },
       );
 
       if (response.data.success && response.data.response) {
         console.log("✅ AI response generated successfully");
-        console.log("📝 Response length:", response.data.response.length, "characters");
-        
+        console.log(
+          "📝 Response length:",
+          response.data.response.length,
+          "characters",
+        );
+
         // Auto-fill the AI-generated response
         setReviews((prevReviews) =>
           prevReviews.map((review) =>
             review.id === id
-              ? { ...review, ownerReplyText: response.data.response, isEditingReply: true }
-              : review
-          )
+              ? {
+                  ...review,
+                  ownerReplyText: response.data.response,
+                  isEditingReply: true,
+                }
+              : review,
+          ),
         );
       } else {
-        throw new Error(response.data.error || "Failed to generate AI response");
+        throw new Error(
+          response.data.error || "Failed to generate AI response",
+        );
       }
     } catch (error: any) {
       console.error("❌ Failed to generate AI response:", error);
-      
+
       let errorMessage = "Failed to generate AI suggestion";
-      
+
       if (error.response?.status === 400) {
         errorMessage = "Invalid request. Please check the review data.";
       } else if (error.response?.status === 500) {
@@ -1447,14 +1488,15 @@ export default function Reviews() {
         if (detail.includes("GOOGLE_API_KEY")) {
           errorMessage = "AI service not configured. Please contact support.";
         } else {
-          errorMessage = "AI service temporarily unavailable. Please try again.";
+          errorMessage =
+            "AI service temporarily unavailable. Please try again.";
         }
       } else if (error.response?.data?.detail) {
         errorMessage = error.response.data.detail;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       alert(`❌ ${errorMessage}`);
     } finally {
       setGeneratingAIId(null);
@@ -1467,8 +1509,8 @@ export default function Reviews() {
       prevReviews.map((review) =>
         review.id === id
           ? { ...review, isEditingReply: !review.isEditingReply }
-          : review
-      )
+          : review,
+      ),
     );
   };
 
@@ -1476,8 +1518,8 @@ export default function Reviews() {
   const handleOwnerResponseChange = (id: string, newResponse: string) => {
     setReviews((prevReviews) =>
       prevReviews.map((review) =>
-        review.id === id ? { ...review, ownerReplyText: newResponse } : review
-      )
+        review.id === id ? { ...review, ownerReplyText: newResponse } : review,
+      ),
     );
   };
 
@@ -1501,12 +1543,12 @@ export default function Reviews() {
       const response = await axios.put(
         url,
         { comment: reviewToUpdate.ownerReplyText },
-        { 
+        {
           withCredentials: true,
           headers: {
-            'Content-Type': 'application/json',
-          }
-        }
+            "Content-Type": "application/json",
+          },
+        },
       );
 
       console.log("✅ Reply saved successfully:", response.data);
@@ -1516,8 +1558,8 @@ export default function Reviews() {
         prevReviews.map((review) =>
           review.id === id
             ? { ...review, isEditingReply: false, replied: true }
-            : review
-        )
+            : review,
+        ),
       );
 
       alert("✅ Reply posted successfully!");
@@ -1526,25 +1568,27 @@ export default function Reviews() {
       console.error("Error details:", {
         status: error.response?.status,
         data: error.response?.data,
-        url: error.config?.url
+        url: error.config?.url,
       });
-      
+
       let errorMessage = "Failed to save reply";
-      
+
       if (error.response?.status === 401) {
-        errorMessage = "Session expired. Please refresh the page and log in again.";
+        errorMessage =
+          "Session expired. Please refresh the page and log in again.";
       } else if (error.response?.status === 403) {
-        errorMessage = "You don't have permission to reply to reviews for this location. Please check your account access.";
+        errorMessage =
+          "You don't have permission to reply to reviews for this location. Please check your account access.";
       } else if (error.response?.status === 404) {
         errorMessage = "Review not found. It may have been deleted.";
       } else if (error.response?.data?.detail) {
-        if (typeof error.response.data.detail === 'string') {
+        if (typeof error.response.data.detail === "string") {
           errorMessage = error.response.data.detail;
         } else if (error.response.data.detail.error) {
           errorMessage = error.response.data.detail.error;
         }
       }
-      
+
       alert(`❌ Error: ${errorMessage}`);
     } finally {
       setSavingReplyId(null);
@@ -1567,11 +1611,11 @@ export default function Reviews() {
 
       console.log("🗑️ Deleting reply from:", url);
 
-      await axios.delete(url, { 
+      await axios.delete(url, {
         withCredentials: true,
         headers: {
-          'Content-Type': 'application/json',
-        }
+          "Content-Type": "application/json",
+        },
       });
 
       console.log("✅ Reply deleted successfully");
@@ -1580,9 +1624,14 @@ export default function Reviews() {
       setReviews((prevReviews) =>
         prevReviews.map((review) =>
           review.id === id
-            ? { ...review, ownerReplyText: "", replied: false, isEditingReply: false }
-            : review
-        )
+            ? {
+                ...review,
+                ownerReplyText: "",
+                replied: false,
+                isEditingReply: false,
+              }
+            : review,
+        ),
       );
 
       alert("✅ Reply deleted successfully!");
@@ -1591,25 +1640,27 @@ export default function Reviews() {
       console.error("Error details:", {
         status: error.response?.status,
         data: error.response?.data,
-        url: error.config?.url
+        url: error.config?.url,
       });
-      
+
       let errorMessage = "Failed to delete reply";
-      
+
       if (error.response?.status === 401) {
-        errorMessage = "Session expired. Please refresh the page and log in again.";
+        errorMessage =
+          "Session expired. Please refresh the page and log in again.";
       } else if (error.response?.status === 403) {
-        errorMessage = "You don't have permission to delete replies for this location.";
+        errorMessage =
+          "You don't have permission to delete replies for this location.";
       } else if (error.response?.status === 404) {
         errorMessage = "Reply not found. It may have already been deleted.";
       } else if (error.response?.data?.detail) {
-        if (typeof error.response.data.detail === 'string') {
+        if (typeof error.response.data.detail === "string") {
           errorMessage = error.response.data.detail;
         } else if (error.response.data.detail.error) {
           errorMessage = error.response.data.detail.error;
         }
       }
-      
+
       alert(`❌ Error: ${errorMessage}`);
     } finally {
       setDeletingReplyId(null);
@@ -1642,24 +1693,28 @@ export default function Reviews() {
   }, [filteredReviews, sortBy]);
 
   const totalReviews = totalReviewsCount;
-  const calculatedAverageRating = averageRating || 
+  const calculatedAverageRating =
+    averageRating ||
     (reviews.length > 0
       ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
       : 0);
-      
+
   const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => ({
     rating,
     count: reviews.filter((r) => r.rating === rating).length,
     percentage:
       (reviews.filter((r) => r.rating === rating).length / reviews.length) *
-      100 || 0,
+        100 || 0,
   }));
 
   // Dynamic Monthly Reviews Data Calculation
   const currentYear = new Date().getFullYear();
   const monthlyData = useMemo(() => {
-    const monthMap = new Map<number, { reviews: number; repliedReviews: number }>();
-    
+    const monthMap = new Map<
+      number,
+      { reviews: number; repliedReviews: number }
+    >();
+
     for (let i = 0; i < 12; i++) {
       monthMap.set(i, { reviews: 0, repliedReviews: 0 });
     }
@@ -1693,8 +1748,12 @@ export default function Reviews() {
       <div className="p-6 flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-gbp-blue-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 text-lg font-medium">Loading reviews...</p>
-          <p className="text-gray-500 text-sm mt-2">This may take a moment for large datasets</p>
+          <p className="text-gray-600 text-lg font-medium">
+            Loading reviews...
+          </p>
+          <p className="text-gray-500 text-sm mt-2">
+            This may take a moment for large datasets
+          </p>
         </div>
       </div>
     );
@@ -1706,18 +1765,33 @@ export default function Reviews() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-2xl mx-auto">
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
-              <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-6 h-6 text-red-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-red-800 font-semibold text-lg mb-2">Error Loading Reviews</h3>
+              <h3 className="text-red-800 font-semibold text-lg mb-2">
+                Error Loading Reviews
+              </h3>
               <p className="text-red-600 mb-4">{error}</p>
               <div className="bg-white border border-red-200 rounded p-3 mb-4">
                 <p className="text-sm text-gray-700 font-mono">
-                  Raw Location ID: {rawLocationId || "Not set"}<br />
-                  Cleaned Location ID: {locationId || "Not set"}<br />
-                  Account ID: {accountId || "Not set"}<br />
+                  Raw Location ID: {rawLocationId || "Not set"}
+                  <br />
+                  Cleaned Location ID: {locationId || "Not set"}
+                  <br />
+                  Account ID: {accountId || "Not set"}
+                  <br />
                   Place ID: {placeId || "Not set"}
                 </p>
               </div>
@@ -1741,7 +1815,7 @@ export default function Reviews() {
 
   const daysSinceLastReview = latestReviewDate
     ? Math.floor(
-        (Date.now() - latestReviewDate.getTime()) / (1000 * 60 * 60 * 24)
+        (Date.now() - latestReviewDate.getTime()) / (1000 * 60 * 60 * 24),
       )
     : 0;
 
@@ -1764,22 +1838,25 @@ export default function Reviews() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Reviews");
 
-    XLSX.writeFile(workbook, `reviews_${locationId}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(
+      workbook,
+      `reviews_${locationId}_${new Date().toISOString().split("T")[0]}.xlsx`,
+    );
   };
 
   // Function to download the QR code
   const downloadQrCode = () => {
     if (qrCodeRef.current) {
-      const svg = qrCodeRef.current.querySelector('svg');
+      const svg = qrCodeRef.current.querySelector("svg");
       if (svg) {
         const svgData = new XMLSerializer().serializeToString(svg);
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
         const img = new Image();
-        
+
         canvas.width = 512;
         canvas.height = 512;
-        
+
         img.onload = () => {
           ctx?.drawImage(img, 0, 0, 512, 512);
           const url = canvas.toDataURL("image/png");
@@ -1790,7 +1867,7 @@ export default function Reviews() {
           link.click();
           document.body.removeChild(link);
         };
-        
+
         img.src = "data:image/svg+xml;base64," + btoa(svgData);
       }
     }
@@ -1800,7 +1877,9 @@ export default function Reviews() {
     <div className="p-6 bg-gray-50 min-h-full">
       {/* Debug Info (Remove in production) */}
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-xs">
-        <strong>Debug Info:</strong> Raw Location: {rawLocationId} | Cleaned Location: {locationId} | Account: {accountId} | Place ID: {placeId || "Not found"} | Reviews: {reviews.length}
+        <strong>Debug Info:</strong> Raw Location: {rawLocationId} | Cleaned
+        Location: {locationId} | Account: {accountId} | Place ID:{" "}
+        {placeId || "Not found"} | Reviews: {reviews.length}
       </div>
 
       {/* Header */}
@@ -1881,14 +1960,16 @@ export default function Reviews() {
               <p className="text-2xl font-bold text-gray-900 mt-1">
                 {reviews.length > 0
                   ? (
-                      (reviews.filter((r) => r.replied).length / reviews.length) *
+                      (reviews.filter((r) => r.replied).length /
+                        reviews.length) *
                       100
                     ).toFixed(1)
                   : "0.0"}
                 %
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {reviews.filter((r) => r.replied).length} of {reviews.length} replied
+                {reviews.filter((r) => r.replied).length} of {reviews.length}{" "}
+                replied
               </p>
             </div>
           </div>
@@ -1897,15 +1978,11 @@ export default function Reviews() {
         <div className="bg-white rounded-lg p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Last Review
-              </p>
+              <p className="text-sm font-medium text-gray-600">Last Review</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
                 {daysSinceLastReview}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
-                days ago
-              </p>
+              <p className="text-xs text-gray-500 mt-1">days ago</p>
             </div>
           </div>
         </div>
@@ -1970,7 +2047,8 @@ export default function Reviews() {
           {!primaryReviewLink && !loading && (
             <div className="bg-yellow-500 bg-opacity-20 border border-yellow-300 rounded-lg p-3 mb-4">
               <p className="text-xs text-white">
-                ⚠️ Place ID not available.<br />
+                ⚠️ Place ID not available.
+                <br />
                 The backend should automatically provide this. Check API logs.
               </p>
             </div>
@@ -1988,8 +2066,8 @@ export default function Reviews() {
           </div>
 
           <div className="bg-white rounded-lg p-4 flex flex-col items-center">
-            <div 
-              className="w-24 h-24 rounded-lg mb-3 flex items-center justify-center bg-white" 
+            <div
+              className="w-24 h-24 rounded-lg mb-3 flex items-center justify-center bg-white"
               ref={qrCodeRef}
             >
               {primaryReviewLink ? (
@@ -1999,7 +2077,9 @@ export default function Reviews() {
               )}
             </div>
             <p className="text-gray-900 text-sm font-medium mb-2">
-              {primaryReviewLink ? "Scan to leave a review" : "QR code unavailable"}
+              {primaryReviewLink
+                ? "Scan to leave a review"
+                : "QR code unavailable"}
             </p>
             <button
               onClick={downloadQrCode}
@@ -2023,7 +2103,7 @@ export default function Reviews() {
             {monthlyData.map((data) => {
               const maxReviews = Math.max(
                 ...monthlyData.map((d) => d.reviews),
-                1
+                1,
               );
               const minHeight = 6;
               const maxHeight = 120;
@@ -2032,7 +2112,7 @@ export default function Reviews() {
                   ? minHeight
                   : Math.max(
                       minHeight,
-                      (data.reviews / maxReviews) * maxHeight
+                      (data.reviews / maxReviews) * maxHeight,
                     );
 
               return (
@@ -2063,8 +2143,8 @@ export default function Reviews() {
                         data.responseRate === 100
                           ? "bg-green-500"
                           : data.responseRate > 0
-                          ? "bg-yellow-500"
-                          : "bg-gray-300"
+                            ? "bg-yellow-500"
+                            : "bg-gray-300"
                       }`}
                     ></div>
                     <span className="text-[10px] text-gray-500 ml-1">
@@ -2129,11 +2209,12 @@ export default function Reviews() {
                 </div>
               </div>
               <p className="text-xs text-gray-600 mt-3">
-                Last review: {latestReviewDate
-                  ? latestReviewDate.toLocaleDateString('en-US', { 
-                      month: '2-digit', 
-                      day: '2-digit', 
-                      year: 'numeric' 
+                Last review:{" "}
+                {latestReviewDate
+                  ? latestReviewDate.toLocaleDateString("en-US", {
+                      month: "2-digit",
+                      day: "2-digit",
+                      year: "numeric",
                     })
                   : "N/A"}
               </p>
@@ -2188,7 +2269,7 @@ export default function Reviews() {
               <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-lg mb-2">No reviews found</p>
               <p className="text-gray-400 text-sm mb-6">
-                {filterRating !== "all" 
+                {filterRating !== "all"
                   ? "Try changing your filter settings"
                   : "Start collecting reviews from your customers"}
               </p>
@@ -2240,21 +2321,21 @@ export default function Reviews() {
                           </div>
                         </div>
                       </div>
-                      
+
                       {review.text && (
                         <p className="text-gray-700 text-sm mb-3 leading-relaxed">
                           {review.text}
                         </p>
                       )}
-                      
+
                       <div className="flex items-center space-x-3 mb-3">
                         <span
                           className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                             review.sentiment === "positive"
                               ? "bg-green-100 text-green-700"
                               : review.sentiment === "negative"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-gray-100 text-gray-700"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-gray-100 text-gray-700"
                           }`}
                         >
                           {review.sentiment}
@@ -2282,7 +2363,7 @@ export default function Reviews() {
                             </button>
                           )}
                         </div>
-                        
+
                         {review.isEditingReply ? (
                           <div>
                             <div className="relative">
@@ -2291,7 +2372,10 @@ export default function Reviews() {
                                 rows={4}
                                 value={review.ownerReplyText}
                                 onChange={(e) =>
-                                  handleOwnerResponseChange(review.id, e.target.value)
+                                  handleOwnerResponseChange(
+                                    review.id,
+                                    e.target.value,
+                                  )
                                 }
                                 placeholder="Write your response..."
                               />
@@ -2299,22 +2383,39 @@ export default function Reviews() {
                                 <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-md">
                                   <div className="text-center">
                                     <Loader2 className="w-8 h-8 text-gbp-blue-500 animate-spin mx-auto mb-2" />
-                                    <p className="text-sm text-gray-600">Generating AI suggestion...</p>
+                                    <p className="text-sm text-gray-600">
+                                      Generating AI suggestion...
+                                    </p>
                                   </div>
                                 </div>
                               )}
                             </div>
-                            
+
                             {/* AI Suggestion Button */}
                             <div className="mt-2 flex items-center space-x-2">
                               <button
-                                onClick={() => handleGenerateAIResponse(review.id)}
-                                disabled={generatingAIId === review.id || savingReplyId === review.id}
+                                onClick={() =>
+                                  handleGenerateAIResponse(review.id)
+                                }
+                                disabled={
+                                  generatingAIId === review.id ||
+                                  savingReplyId === review.id
+                                }
                                 className="flex items-center space-x-1.5 px-3 py-1.5 text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded-md hover:bg-purple-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Get AI-powered response suggestion"
                               >
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                <svg
+                                  className="w-3.5 h-3.5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                                  />
                                 </svg>
                                 <span>AI Suggestion</span>
                               </button>
@@ -2322,24 +2423,35 @@ export default function Reviews() {
                                 ✨ Let AI help craft a professional response
                               </span>
                             </div>
-                            
+
                             <div className="flex justify-end mt-3 space-x-2">
                               <button
                                 onClick={() => handleEditToggle(review.id)}
                                 className="text-gray-600 border border-gray-300 px-4 py-1.5 rounded-md text-sm hover:bg-gray-50 transition-colors"
-                                disabled={savingReplyId === review.id || generatingAIId === review.id}
+                                disabled={
+                                  savingReplyId === review.id ||
+                                  generatingAIId === review.id
+                                }
                               >
                                 Cancel
                               </button>
                               <button
                                 onClick={() => handleSaveResponse(review.id)}
-                                disabled={savingReplyId === review.id || generatingAIId === review.id || !review.ownerReplyText.trim()}
+                                disabled={
+                                  savingReplyId === review.id ||
+                                  generatingAIId === review.id ||
+                                  !review.ownerReplyText.trim()
+                                }
                                 className="bg-gbp-blue-500 text-white px-4 py-1.5 rounded-md text-sm hover:bg-gbp-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                               >
                                 {savingReplyId === review.id && (
                                   <Loader2 className="w-4 h-4 animate-spin" />
                                 )}
-                                <span>{savingReplyId === review.id ? "Saving..." : "Save Reply"}</span>
+                                <span>
+                                  {savingReplyId === review.id
+                                    ? "Saving..."
+                                    : "Save Reply"}
+                                </span>
                               </button>
                             </div>
                           </div>
@@ -2360,7 +2472,9 @@ export default function Reviews() {
                               onClick={() => handleEditToggle(review.id)}
                               className="text-gbp-blue-600 border border-gbp-blue-600 px-4 py-1.5 rounded-md text-sm hover:bg-gbp-blue-50 transition-colors"
                             >
-                              {review.ownerReplyText ? "Edit Reply" : "Add Reply"}
+                              {review.ownerReplyText
+                                ? "Edit Reply"
+                                : "Add Reply"}
                             </button>
                           </div>
                         )}
