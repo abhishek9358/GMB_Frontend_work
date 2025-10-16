@@ -36,7 +36,9 @@ import {
   RefreshCw,
   Save,
   Settings,
-  Plus, X, Cloud
+  Plus,
+  X,
+  Cloud,
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
@@ -407,7 +409,6 @@ const apiService = {
   },
 };
 
-
 const transformApiDataToProfile = (data: any): BusinessProfile => {
   // Helper function to format time with minutes
   const formatTime = (
@@ -523,7 +524,6 @@ const transformApiDataToProfile = (data: any): BusinessProfile => {
   };
 };
 
-
 export default function BusinessProfileManagement() {
   const [location, setLocation] = useState<ILocation | null>(null);
   const { locationName, accountId } = useParams<{
@@ -540,9 +540,12 @@ export default function BusinessProfileManagement() {
   async function fetchLocationDetails({ id }: { id: string }) {
     setIsLoading(true);
     try {
-      const res = await axios.get(`${SERVER}/api/v1/locations/${id}?account_id=${user?.accountId}`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${SERVER}/api/v1/locations/${id}?account_id=${user?.accountId}`,
+        {
+          withCredentials: true,
+        },
+      );
       console.log("LocationDetails", res.data);
       if (res.data?.location) {
         setLocation(res.data.location);
@@ -664,7 +667,9 @@ export default function BusinessProfileManagement() {
       const accountId = user?.accountId;
 
       if (!locationId || !accountId) {
-        setAiSuggestionsError('Missing location ID or account ID. Please try refreshing the page.');
+        setAiSuggestionsError(
+          "Missing location ID or account ID. Please try refreshing the page.",
+        );
         return;
       }
 
@@ -674,35 +679,46 @@ export default function BusinessProfileManagement() {
         {
           withCredentials: true,
           headers: {
-            'Content-Type': 'application/json',
-          }
-        }
+            "Content-Type": "application/json",
+          },
+        },
       );
 
-      if (response.data.success && response.data.data && response.data.data.suggestions) {
+      if (
+        response.data.success &&
+        response.data.data &&
+        response.data.data.suggestions
+      ) {
         setAiSuggestions({
           professional: response.data.data.suggestions.professional,
           modern: response.data.data.suggestions.modern,
-          friendly: response.data.data.suggestions.friendly
+          friendly: response.data.data.suggestions.friendly,
         });
       } else {
-        console.error('AI suggestions not found in response:', response.data);
-        setAiSuggestionsError('Failed to generate AI suggestions. Please try again.');
+        console.error("AI suggestions not found in response:", response.data);
+        setAiSuggestionsError(
+          "Failed to generate AI suggestions. Please try again.",
+        );
       }
     } catch (error) {
-      console.error('Error generating AI suggestions:', error);
+      console.error("Error generating AI suggestions:", error);
       if (error.response) {
         // Server responded with error status
-        const errorMessage = error.response.data?.detail?.error ||
+        const errorMessage =
+          error.response.data?.detail?.error ||
           error.response.data?.message ||
           `Server error: ${error.response.status}`;
         setAiSuggestionsError(errorMessage);
       } else if (error.request) {
         // Network error
-        setAiSuggestionsError('Network error. Please check your connection and try again.');
+        setAiSuggestionsError(
+          "Network error. Please check your connection and try again.",
+        );
       } else {
         // Other error
-        setAiSuggestionsError('An unexpected error occurred. Please try again.');
+        setAiSuggestionsError(
+          "An unexpected error occurred. Please try again.",
+        );
       }
     } finally {
       setAiSuggestionsLoading(false);
@@ -712,12 +728,12 @@ export default function BusinessProfileManagement() {
   // Function to approve a specific description
   const handleApproveDescription = (type) => {
     const selectedDescription = aiSuggestions[type];
-    formik.setFieldValue('description', selectedDescription);
+    formik.setFieldValue("description", selectedDescription);
 
     // Mark this suggestion as selected instead of hiding all suggestions
-    setAiSuggestions(prev => ({
+    setAiSuggestions((prev) => ({
       ...prev,
-      selectedType: type
+      selectedType: type,
     }));
   };
 
@@ -1078,7 +1094,7 @@ export default function BusinessProfileManagement() {
                           <SelectItem
                             key={category}
                             value={category}
-                            className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
+                            className="hover:bg-gbp-blue-500 focus:bg-gbp-blue-500 text-black cursor-pointer"
                           >
                             {category}
                           </SelectItem>
@@ -1144,12 +1160,24 @@ export default function BusinessProfileManagement() {
                   {aiSuggestionsError && !aiSuggestionsLoading && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                       <div className="flex items-center space-x-2">
-                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <svg
+                          className="w-5 h-5 text-red-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
                         </svg>
                         <span className="text-red-700 font-medium">Error</span>
                       </div>
-                      <p className="text-red-600 text-sm mt-2">{aiSuggestionsError}</p>
+                      <p className="text-red-600 text-sm mt-2">
+                        {aiSuggestionsError}
+                      </p>
                       <button
                         onClick={() => {
                           setAiSuggestionsError(null);
@@ -1178,14 +1206,17 @@ export default function BusinessProfileManagement() {
                               Professional Description
                             </h4>
                             <button
-                              onClick={() => handleApproveDescription('professional')}
+                              onClick={() =>
+                                handleApproveDescription("professional")
+                              }
                               className="px-3 py-1 text-xs bg-gbp-blue-50 text-gbp-blue-600 rounded-md hover:bg-gbp-blue-100 transition-colors"
                             >
                               Use This
                             </button>
                           </div>
                           <p className="text-gray-700 text-sm leading-relaxed">
-                            {aiSuggestions.professional || "Loading professional description..."}
+                            {aiSuggestions.professional ||
+                              "Loading professional description..."}
                           </p>
                         </div>
 
@@ -1197,14 +1228,15 @@ export default function BusinessProfileManagement() {
                               Modern Description
                             </h4>
                             <button
-                              onClick={() => handleApproveDescription('modern')}
+                              onClick={() => handleApproveDescription("modern")}
                               className="px-3 py-1 text-xs bg-gbp-blue-50 text-gbp-blue-600 rounded-md hover:bg-gbp-blue-100 transition-colors"
                             >
                               Use This
                             </button>
                           </div>
                           <p className="text-gray-700 text-sm leading-relaxed">
-                            {aiSuggestions.modern || "Loading modern description..."}
+                            {aiSuggestions.modern ||
+                              "Loading modern description..."}
                           </p>
                         </div>
 
@@ -1216,14 +1248,17 @@ export default function BusinessProfileManagement() {
                               Friendly Description
                             </h4>
                             <button
-                              onClick={() => handleApproveDescription('friendly')}
+                              onClick={() =>
+                                handleApproveDescription("friendly")
+                              }
                               className="px-3 py-1 text-xs bg-gbp-blue-50 text-gbp-blue-600 rounded-md hover:bg-gbp-blue-100 transition-colors"
                             >
                               Use This
                             </button>
                           </div>
                           <p className="text-gray-700 text-sm leading-relaxed">
-                            {aiSuggestions.friendly || "Loading friendly description..."}
+                            {aiSuggestions.friendly ||
+                              "Loading friendly description..."}
                           </p>
                         </div>
                       </div>
@@ -1253,8 +1288,18 @@ export default function BusinessProfileManagement() {
                         onClick={handleGenerateAISuggestions}
                         className="px-6 py-3 bg-gbp-blue-500 text-white rounded-lg hover:bg-gbp-blue-600 transition-colors font-medium inline-flex items-center space-x-2"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 10V3L4 14h7v7l9-11h-7z"
+                          />
                         </svg>
                         <span>Generate AI Descriptions</span>
                       </button>
@@ -1264,7 +1309,6 @@ export default function BusinessProfileManagement() {
               </CardContent>
             </Card>
           </TabsContent>
-
 
           {/* Contact Information Tab */}
           <TabsContent value="contact" className="p-6">
@@ -1327,7 +1371,6 @@ export default function BusinessProfileManagement() {
                     className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                   />
                 </div>
-
               </CardContent>
             </Card>
           </TabsContent>
@@ -1576,7 +1619,7 @@ export default function BusinessProfileManagement() {
                             id={`accessibility-${key}`}
                             checked={
                               formik.values.accessibility[
-                              key as keyof BusinessProfile["accessibility"]
+                                key as keyof BusinessProfile["accessibility"]
                               ]
                             }
                             onCheckedChange={(checked) =>
@@ -1618,7 +1661,7 @@ export default function BusinessProfileManagement() {
                           id={`amenities-${key}`}
                           checked={
                             formik.values.amenities[
-                            key as keyof BusinessProfile["amenities"]
+                              key as keyof BusinessProfile["amenities"]
                             ]
                           }
                           onCheckedChange={(checked) =>
@@ -1656,7 +1699,7 @@ export default function BusinessProfileManagement() {
                           id={`crowd-${key}`}
                           checked={
                             formik.values.crowd[
-                            key as keyof BusinessProfile["crowd"]
+                              key as keyof BusinessProfile["crowd"]
                             ]
                           }
                           onCheckedChange={(checked) =>
@@ -1694,7 +1737,7 @@ export default function BusinessProfileManagement() {
                           id={`parking-${key}`}
                           checked={
                             formik.values.parking[
-                            key as keyof BusinessProfile["parking"]
+                              key as keyof BusinessProfile["parking"]
                             ]
                           }
                           onCheckedChange={(checked) =>
@@ -1732,7 +1775,7 @@ export default function BusinessProfileManagement() {
                           id={`pets-${key}`}
                           checked={
                             formik.values.pets[
-                            key as keyof BusinessProfile["pets"]
+                              key as keyof BusinessProfile["pets"]
                             ]
                           }
                           onCheckedChange={(checked) =>
