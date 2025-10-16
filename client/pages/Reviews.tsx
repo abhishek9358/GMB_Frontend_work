@@ -1,102 +1,496 @@
-// import { useState, useEffect } from "react";
+// import { useState, useEffect, useMemo, useRef } from "react";
 // import {
 //   Star,
-//   TrendingUp,
 //   Download,
 //   QrCode,
 //   MessageSquare,
 //   Filter,
 //   MoreHorizontal,
+//   Loader2,
+//   Trash2,
 // } from "lucide-react";
 // import axios from "axios";
 // import { SERVER } from "@/constants";
 // import * as XLSX from "xlsx";
 // import { useSelector } from "react-redux";
 // import { RootState } from "@/redux/store";
+// import QRCodeSVG from "react-qr-code";
 
 // interface Review {
 //   id: string;
+//   reviewId: string;
 //   author: string;
 //   rating: number;
 //   text: string;
 //   date: string;
 //   sentiment: "positive" | "negative" | "neutral";
 //   replied: boolean;
+//   ownerReplyText: string;
+//   isEditingReply: boolean;
+//   updateTime: string;
 // }
+
+// // Helper to get month name
+// const getMonthName = (monthIndex: number) => {
+//   const date = new Date();
+//   date.setMonth(monthIndex);
+//   return date.toLocaleString("en-US", { month: "short" });
+// };
+
+// // Helper to parse star rating (can be string like "FIVE", "FOUR", etc. or number)
+// const parseStarRating = (starRating: any): number => {
+//   if (typeof starRating === "number") return starRating;
+//   if (typeof starRating === "string") {
+//     const ratingMap: { [key: string]: number } = {
+//       ONE: 1,
+//       TWO: 2,
+//       THREE: 3,
+//       FOUR: 4,
+//       FIVE: 5,
+//     };
+//     return ratingMap[starRating.toUpperCase()] || 0;
+//   }
+//   return 0;
+// };
 
 // export default function Reviews() {
 //   const [reviews, setReviews] = useState<Review[]>([]);
+//   const [totalReviewsCount, setTotalReviewsCount] = useState<number>(0);
+//   const [averageRating, setAverageRating] = useState<number>(0);
 //   const [sortBy, setSortBy] = useState("latest");
 //   const [filterRating, setFilterRating] = useState("all");
 //   const [loading, setLoading] = useState(true);
 //   const [error, setError] = useState<string | null>(null);
+//   const [primaryReviewLink, setPrimaryReviewLink] = useState<string>("");
+//   const [savingReplyId, setSavingReplyId] = useState<string | null>(null);
+//   const [deletingReplyId, setDeletingReplyId] = useState<string | null>(null);
+//   const [placeId, setPlaceId] = useState<string>("");
 
 //   const { activeLocation } = useSelector((state: RootState) => state.activeLocation);
 
-//   const locationId = localStorage.getItem("activeLocation");
+//   // Helper function to extract clean location ID (removes "locations/" prefix if present)
+//   const extractLocationId = (rawLocationId: string | null | undefined): string => {
+//     if (!rawLocationId) return "";
+//     // Remove "locations/" prefix if it exists
+//     return rawLocationId.replace(/^locations\//, "");
+//   };
 
-//   // API endpoint
-//   const API_URL = `${SERVER}/api/v1/location/${ locationId || activeLocation?.locationId || ""}/reviews?place_id=${activeLocation?.placeId || ""}`;
+//   // Get location ID from localStorage or Redux state and clean it
+//   const rawLocationId = localStorage.getItem("activeLocation") || activeLocation?.locationId || "";
+//   const locationId = extractLocationId(rawLocationId);
+  
+//   // Get account ID - MAKE SURE THIS IS SET IN YOUR APP
+//   // You can set it like: localStorage.setItem("accountId", "116574816291503260287");
+//   const accountId = localStorage.getItem("accountId") || "116574816291503260287"; // Default for testing
+
+//   // Ref for the QR code canvas to facilitate download
+//   const qrCodeRef = useRef<HTMLDivElement>(null);
 
 //   useEffect(() => {
 //     const fetchReviews = async () => {
+//       if (!locationId) {
+//         setError("No location ID found. Please select a location.");
+//         setLoading(false);
+//         return;
+//       }
+
 //       try {
 //         setLoading(true);
-//         const response = await axios.get(API_URL, { withCredentials: true });
+//         setError(null);
 
-//         // Map API response to component's Review interface
-//         const mappedReviews: Review[] = response.data.reviews.map(
-//           (review: any, index: number) => ({
-//             id: index.toString(),
-//             author: review.author_name,
-//             rating: review.rating,
-//             text: review.text,
-//             date: new Date(review.time * 1000).toISOString().split("T")[0], // Convert timestamp to date
-//             sentiment:
-//               review.rating >= 4
-//                 ? "positive"
-//                 : review.rating <= 2
+//         // Construct the correct API URL matching your Postman request
+//         // Format: /api/v1/reviews/{location_id}/all?account_id={account_id}
+//         const url = `${SERVER}/api/v1/reviews/${locationId}/all?account_id=${accountId}`;
+        
+//         console.log("🔍 Fetching reviews from:", url);
+//         console.log("📍 Raw Location ID:", rawLocationId);
+//         console.log("✨ Cleaned Location ID:", locationId);
+
+//         const response = await axios.get(url, { 
+//           withCredentials: true,
+//           headers: {
+//             'Content-Type': 'application/json',
+//           }
+//         });
+
+//         console.log("✅ API Response received:", {
+//           totalFetched: response.data.totalFetched,
+//           pagesProcessed: response.data.pagesProcessed,
+//           reviewsCount: response.data.reviews?.length
+//         });
+
+//         // Map the backend response to frontend format
+//         const mappedReviews: Review[] = (response.data.reviews || []).map(
+//           (review: any) => {
+//             const rating = parseStarRating(review.starRating);
+//             const createTime = review.createTime ? new Date(review.createTime) : new Date();
+            
+//             return {
+//               id: review.reviewId || review.name || Math.random().toString(36).substring(2, 11),
+//               reviewId: review.reviewId,
+//               author: review.reviewer?.displayName || "Anonymous",
+//               rating: rating,
+//               text: review.comment || "",
+//               date: createTime.toISOString().split("T")[0],
+//               updateTime: review.updateTime || review.createTime || "",
+//               sentiment:
+//                 rating >= 4
+//                   ? "positive"
+//                   : rating <= 2
 //                   ? "negative"
 //                   : "neutral",
-//             replied: !!review.ownerReply,
-//           }),
+//               replied: !!review.reviewReply,
+//               ownerReplyText: review.reviewReply?.comment || "",
+//               isEditingReply: false,
+//             };
+//           }
 //         );
 
+//         console.log(`✅ Mapped ${mappedReviews.length} reviews`);
+
 //         setReviews(mappedReviews);
+//         setTotalReviewsCount(response.data.totalReviewCount || response.data.totalFetched || mappedReviews.length);
+//         setAverageRating(response.data.averageRating || 0);
+        
 //         setLoading(false);
-//       } catch (err) {
-//         // setError("Failed to fetch reviews");
+//       } catch (err: any) {
+//         console.error("❌ Failed to fetch reviews:", err);
+//         console.error("Error details:", {
+//           status: err.response?.status,
+//           statusText: err.response?.statusText,
+//           data: err.response?.data,
+//           url: err.config?.url
+//         });
+        
+//         let errorMessage = "Failed to fetch reviews";
+        
+//         if (err.response?.status === 401) {
+//           errorMessage = "Authentication required. Please log in again.";
+//         } else if (err.response?.status === 403) {
+//           errorMessage = "Access denied. Check your permissions for this location.";
+//         } else if (err.response?.status === 404) {
+//           errorMessage = `Location not found. Please verify location ID: ${locationId}`;
+//         } else if (err.response?.data?.detail) {
+//           errorMessage = err.response.data.detail;
+//         }
+        
+//         setError(errorMessage);
 //         setLoading(false);
 //       }
 //     };
 
 //     fetchReviews();
-//   }, []);
+//   }, [rawLocationId, accountId, SERVER, activeLocation?.placeId]);
 
-//   const totalReviews = reviews.length;
-//   const averageRating =
-//     reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews || 0;
+//   // Separate useEffect to fetch and set place_id and review link
+//   useEffect(() => {
+//     const getPlaceIdAndReviewLink = async () => {
+//       // Try to get place_id from multiple sources
+//       let foundPlaceId = "";
+
+//       // 1. Check Redux state
+//       if (activeLocation?.placeId) {
+//         foundPlaceId = activeLocation.placeId;
+//         console.log("✅ Place ID from Redux:", foundPlaceId);
+//       }
+//       // 2. Check localStorage
+//       else {
+//         const storedPlaceId = localStorage.getItem("placeId");
+//         if (storedPlaceId) {
+//           foundPlaceId = storedPlaceId;
+//           console.log("✅ Place ID from localStorage:", foundPlaceId);
+//         }
+//       }
+
+//       // 3. If still no place_id, try to fetch from location details API
+//       if (!foundPlaceId && locationId && accountId) {
+//         try {
+//           console.log("🔍 Attempting to fetch place_id from location details API...");
+//           const locationDetailsUrl = `${SERVER}/api/v1/locations/${locationId}?account_id=${accountId}`;
+//           const response = await axios.get(locationDetailsUrl, { 
+//             withCredentials: true,
+//             headers: {
+//               'Content-Type': 'application/json',
+//             }
+//           });
+          
+//           if (response.data?.placeId) {
+//             foundPlaceId = response.data.placeId;
+//             console.log("✅ Place ID from API:", foundPlaceId);
+//             // Store for future use
+//             localStorage.setItem("placeId", foundPlaceId);
+//           }
+//         } catch (error) {
+//           console.log("⚠️ Could not fetch place_id from API:", error);
+//         }
+//       }
+
+//       // Set the place_id state
+//       setPlaceId(foundPlaceId);
+
+//       // Generate review link if we have a place_id
+//       if (foundPlaceId) {
+//         const reviewLink = `https://search.google.com/local/writereview?placeid=${foundPlaceId}`;
+//         setPrimaryReviewLink(reviewLink);
+//         console.log("🔗 Generated review link:", reviewLink);
+//       } else {
+//         console.warn("⚠️ No place_id available. Review link cannot be generated.");
+//         console.log("💡 To fix this, store place_id using: localStorage.setItem('placeId', 'your_place_id')");
+//       }
+//     };
+
+//     if (locationId) {
+//       getPlaceIdAndReviewLink();
+//     }
+//   }, [locationId, accountId, activeLocation?.placeId, SERVER]);
+
+//   // Handler for toggling edit mode for an owner's reply
+//   const handleEditToggle = (id: string) => {
+//     setReviews((prevReviews) =>
+//       prevReviews.map((review) =>
+//         review.id === id
+//           ? { ...review, isEditingReply: !review.isEditingReply }
+//           : review
+//       )
+//     );
+//   };
+
+//   // Handler for updating owner's reply text
+//   const handleOwnerResponseChange = (id: string, newResponse: string) => {
+//     setReviews((prevReviews) =>
+//       prevReviews.map((review) =>
+//         review.id === id ? { ...review, ownerReplyText: newResponse } : review
+//       )
+//     );
+//   };
+
+//   // Handler for saving owner's reply using the new API
+//   const handleSaveResponse = async (id: string) => {
+//     const reviewToUpdate = reviews.find((review) => review.id === id);
+//     if (!reviewToUpdate || !reviewToUpdate.ownerReplyText.trim()) {
+//       alert("Please enter a response before saving");
+//       return;
+//     }
+
+//     setSavingReplyId(id);
+
+//     try {
+//       // Build the API URL for replying to a review
+//       // Format: /api/v1/reviews/{location_id}/{review_id}/reply?account_id={account_id}
+//       const url = `${SERVER}/api/v1/reviews/${locationId}/${reviewToUpdate.reviewId}/reply?account_id=${accountId}`;
+
+//       console.log("💾 Saving reply to:", url);
+
+//       const response = await axios.put(
+//         url,
+//         { comment: reviewToUpdate.ownerReplyText },
+//         { 
+//           withCredentials: true,
+//           headers: {
+//             'Content-Type': 'application/json',
+//           }
+//         }
+//       );
+
+//       console.log("✅ Reply saved successfully:", response.data);
+
+//       // Update local state after successful API call
+//       setReviews((prevReviews) =>
+//         prevReviews.map((review) =>
+//           review.id === id
+//             ? { ...review, isEditingReply: false, replied: true }
+//             : review
+//         )
+//       );
+
+//       alert("Reply posted successfully!");
+//     } catch (error: any) {
+//       console.error("❌ Failed to save reply:", error);
+//       console.error("Error details:", {
+//         status: error.response?.status,
+//         data: error.response?.data,
+//         url: error.config?.url
+//       });
+      
+//       let errorMessage = "Failed to save reply";
+//       if (error.response?.data?.detail) {
+//         errorMessage = error.response.data.detail;
+//       }
+//       alert(`Error: ${errorMessage}`);
+//     } finally {
+//       setSavingReplyId(null);
+//     }
+//   };
+
+//   // Handler for deleting owner's reply using the new API
+//   const handleDeleteResponse = async (id: string) => {
+//     const reviewToUpdate = reviews.find((review) => review.id === id);
+//     if (!reviewToUpdate) return;
+
+//     if (!confirm("Are you sure you want to delete this reply?")) return;
+
+//     setDeletingReplyId(id);
+
+//     try {
+//       // Build the API URL for deleting a review reply
+//       // Format: /api/v1/reviews/{location_id}/{review_id}/reply?account_id={account_id}
+//       const url = `${SERVER}/api/v1/reviews/${locationId}/${reviewToUpdate.reviewId}/reply?account_id=${accountId}`;
+
+//       console.log("🗑️ Deleting reply from:", url);
+
+//       await axios.delete(url, { 
+//         withCredentials: true,
+//         headers: {
+//           'Content-Type': 'application/json',
+//         }
+//       });
+
+//       console.log("✅ Reply deleted successfully");
+
+//       // Update local state after successful deletion
+//       setReviews((prevReviews) =>
+//         prevReviews.map((review) =>
+//           review.id === id
+//             ? { ...review, ownerReplyText: "", replied: false, isEditingReply: false }
+//             : review
+//         )
+//       );
+
+//       alert("Reply deleted successfully!");
+//     } catch (error: any) {
+//       console.error("❌ Failed to delete reply:", error);
+//       console.error("Error details:", {
+//         status: error.response?.status,
+//         data: error.response?.data,
+//         url: error.config?.url
+//       });
+      
+//       let errorMessage = "Failed to delete reply";
+//       if (error.response?.data?.detail) {
+//         errorMessage = error.response.data.detail;
+//       }
+//       alert(`Error: ${errorMessage}`);
+//     } finally {
+//       setDeletingReplyId(null);
+//     }
+//   };
+
+//   // Filter and Sort Logic (Memoized for performance)
+//   const filteredReviews = useMemo(() => {
+//     return reviews.filter((review) => {
+//       if (filterRating === "all") return true;
+//       return review.rating === parseInt(filterRating);
+//     });
+//   }, [reviews, filterRating]);
+
+//   const sortedReviews = useMemo(() => {
+//     return [...filteredReviews].sort((a, b) => {
+//       switch (sortBy) {
+//         case "latest":
+//           return new Date(b.date).getTime() - new Date(a.date).getTime();
+//         case "oldest":
+//           return new Date(a.date).getTime() - new Date(b.date).getTime();
+//         case "rating-high":
+//           return b.rating - a.rating;
+//         case "rating-low":
+//           return a.rating - b.rating;
+//         default:
+//           return 0;
+//       }
+//     });
+//   }, [filteredReviews, sortBy]);
+
+//   const totalReviews = totalReviewsCount;
+//   const calculatedAverageRating = averageRating || 
+//     (reviews.length > 0
+//       ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+//       : 0);
+      
 //   const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => ({
 //     rating,
 //     count: reviews.filter((r) => r.rating === rating).length,
 //     percentage:
-//       (reviews.filter((r) => r.rating === rating).length / totalReviews) *
-//         100 || 0,
+//       (reviews.filter((r) => r.rating === rating).length / reviews.length) *
+//       100 || 0,
 //   }));
 
-//   const monthlyData = [
-//     { month: "Dec", reviews: 3, responseRate: 100 }, // Dec 2022: 2 reviews, both replied
-//     { month: "Jul", reviews: 5, responseRate: 100 }, // Jul 2023: 1 review, replied
-//     { month: "Jan", reviews: 1, responseRate: 0 }, // Jan 2025: 1 review, no reply
-//     { month: "Sep", reviews: 0, responseRate: 0 }, // current month, 0 reviews
-//   ];
+//   // Dynamic Monthly Reviews Data Calculation
+//   const currentYear = new Date().getFullYear();
+//   const monthlyData = useMemo(() => {
+//     const monthMap = new Map<number, { reviews: number; repliedReviews: number }>();
+    
+//     for (let i = 0; i < 12; i++) {
+//       monthMap.set(i, { reviews: 0, repliedReviews: 0 });
+//     }
+
+//     reviews.forEach((review) => {
+//       const reviewDate = new Date(review.date);
+//       if (reviewDate.getFullYear() === currentYear) {
+//         const month = reviewDate.getMonth();
+//         const data = monthMap.get(month)!;
+//         data.reviews++;
+//         if (review.replied) {
+//           data.repliedReviews++;
+//         }
+//       }
+//     });
+
+//     return Array.from(monthMap.entries())
+//       .sort(([monthA], [monthB]) => monthA - monthB)
+//       .map(([monthIndex, data]) => ({
+//         month: getMonthName(monthIndex),
+//         reviews: data.reviews,
+//         responseRate:
+//           data.reviews > 0
+//             ? Math.round((data.repliedReviews / data.reviews) * 100)
+//             : 0,
+//       }));
+//   }, [reviews, currentYear]);
 
 //   if (loading) {
-//     return <div className="p-6">Loading reviews...</div>;
+//     return (
+//       <div className="p-6 flex items-center justify-center min-h-screen">
+//         <div className="text-center">
+//           <Loader2 className="w-12 h-12 text-gbp-blue-500 animate-spin mx-auto mb-4" />
+//           <p className="text-gray-600 text-lg font-medium">Loading reviews...</p>
+//           <p className="text-gray-500 text-sm mt-2">This may take a moment for large datasets</p>
+//         </div>
+//       </div>
+//     );
 //   }
 
 //   if (error) {
-//     return <div className="p-6 text-red-600">{error}</div>;
+//     return (
+//       <div className="p-6">
+//         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-2xl mx-auto">
+//           <div className="flex items-start space-x-3">
+//             <div className="flex-shrink-0">
+//               <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+//               </svg>
+//             </div>
+//             <div className="flex-1">
+//               <h3 className="text-red-800 font-semibold text-lg mb-2">Error Loading Reviews</h3>
+//               <p className="text-red-600 mb-4">{error}</p>
+//               <div className="bg-white border border-red-200 rounded p-3 mb-4">
+//                 <p className="text-sm text-gray-700 font-mono">
+//                   Raw Location ID: {rawLocationId || "Not set"}<br />
+//                   Cleaned Location ID: {locationId || "Not set"}<br />
+//                   Account ID: {accountId || "Not set"}<br />
+//                   Place ID: {placeId || "Not set"}
+//                 </p>
+//               </div>
+//               <button
+//                 onClick={() => window.location.reload()}
+//                 className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+//               >
+//                 Retry
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     );
 //   }
 
 //   // Get latest review date
@@ -106,38 +500,68 @@
 
 //   const daysSinceLastReview = latestReviewDate
 //     ? Math.floor(
-//         (Date.now() - latestReviewDate.getTime()) / (1000 * 60 * 60 * 24),
+//         (Date.now() - latestReviewDate.getTime()) / (1000 * 60 * 60 * 24)
 //       )
 //     : 0;
 
 //   const exportToCSV = () => {
 //     if (reviews.length === 0) return;
 
-//     const sortedReviews = [...reviews].sort(
-//       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-//     );
+//     const reviewsToExport = [...sortedReviews];
 
-//     // Prepare data
-//     const data = sortedReviews.map((r) => ({
+//     const data = reviewsToExport.map((r) => ({
 //       Author: r.author,
 //       Rating: r.rating,
 //       Review: r.text,
 //       Date: r.date,
 //       Sentiment: r.sentiment,
 //       Replied: r.replied ? "Yes" : "No",
+//       OwnerReply: r.ownerReplyText || "N/A",
 //     }));
 
-//     // Convert to worksheet
 //     const worksheet = XLSX.utils.json_to_sheet(data);
 //     const workbook = XLSX.utils.book_new();
 //     XLSX.utils.book_append_sheet(workbook, worksheet, "Reviews");
 
-//     // Export file
-//     XLSX.writeFile(workbook, "reviews.xlsx");
+//     XLSX.writeFile(workbook, `reviews_${locationId}_${new Date().toISOString().split('T')[0]}.xlsx`);
+//   };
+
+//   // Function to download the QR code
+//   const downloadQrCode = () => {
+//     if (qrCodeRef.current) {
+//       const svg = qrCodeRef.current.querySelector('svg');
+//       if (svg) {
+//         const svgData = new XMLSerializer().serializeToString(svg);
+//         const canvas = document.createElement("canvas");
+//         const ctx = canvas.getContext("2d");
+//         const img = new Image();
+        
+//         canvas.width = 512;
+//         canvas.height = 512;
+        
+//         img.onload = () => {
+//           ctx?.drawImage(img, 0, 0, 512, 512);
+//           const url = canvas.toDataURL("image/png");
+//           const link = document.createElement("a");
+//           link.href = url;
+//           link.download = "review_qr_code.png";
+//           document.body.appendChild(link);
+//           link.click();
+//           document.body.removeChild(link);
+//         };
+        
+//         img.src = "data:image/svg+xml;base64," + btoa(svgData);
+//       }
+//     }
 //   };
 
 //   return (
 //     <div className="p-6 bg-gray-50 min-h-full">
+//       {/* Debug Info (Remove in production) */}
+//       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-xs">
+//         <strong>Debug Info:</strong> Raw Location: {rawLocationId} | Cleaned Location: {locationId} | Account: {accountId} | Place ID: {placeId || "Not found"} | Reviews: {reviews.length}
+//       </div>
+
 //       {/* Header */}
 //       <div className="flex items-center justify-between mb-6">
 //         <div>
@@ -149,7 +573,8 @@
 //         <div className="flex items-center space-x-3">
 //           <button
 //             onClick={exportToCSV}
-//             className="border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center space-x-2"
+//             disabled={reviews.length === 0}
+//             className="border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
 //           >
 //             <Download className="w-4 h-4" />
 //             <span>Export</span>
@@ -171,7 +596,6 @@
 //               <p className="text-2xl font-bold text-gray-900 mt-1">
 //                 {totalReviews}
 //               </p>
-//               <p className="text-xs text-green-600 mt-1">↑ 12% vs last month</p>
 //             </div>
 //             <div className="w-12 h-12 bg-gbp-blue-100 rounded-lg flex items-center justify-center">
 //               <Star className="w-6 h-6 text-gbp-blue-600" />
@@ -187,14 +611,14 @@
 //               </p>
 //               <div className="flex items-center space-x-2 mt-1">
 //                 <p className="text-2xl font-bold text-gray-900">
-//                   {averageRating.toFixed(1)}
+//                   {calculatedAverageRating.toFixed(1)}
 //                 </p>
 //                 <div className="flex">
 //                   {[...Array(5)].map((_, i) => (
 //                     <Star
 //                       key={i}
 //                       className={`w-4 h-4 ${
-//                         i < Math.floor(averageRating)
+//                         i < Math.floor(calculatedAverageRating)
 //                           ? "text-yellow-400 fill-current"
 //                           : "text-gray-300"
 //                       }`}
@@ -203,7 +627,7 @@
 //                 </div>
 //               </div>
 //               <p className="text-xs text-gray-500 mt-1">
-//                 Average rating this year
+//                 Based on {reviews.length} reviews
 //               </p>
 //             </div>
 //           </div>
@@ -214,13 +638,17 @@
 //             <div>
 //               <p className="text-sm font-medium text-gray-600">Response Rate</p>
 //               <p className="text-2xl font-bold text-gray-900 mt-1">
-//                 {(
-//                   (reviews.filter((r) => r.replied).length / totalReviews) *
-//                   100
-//                 ).toFixed(1)}
+//                 {reviews.length > 0
+//                   ? (
+//                       (reviews.filter((r) => r.replied).length / reviews.length) *
+//                       100
+//                     ).toFixed(1)
+//                   : "0.0"}
 //                 %
 //               </p>
-//               <p className="text-xs text-gray-500 mt-1">Response rate</p>
+//               <p className="text-xs text-gray-500 mt-1">
+//                 {reviews.filter((r) => r.replied).length} of {reviews.length} replied
+//               </p>
 //             </div>
 //           </div>
 //         </div>
@@ -229,13 +657,13 @@
 //           <div className="flex items-center justify-between">
 //             <div>
 //               <p className="text-sm font-medium text-gray-600">
-//                 Days since last review
+//                 Last Review
 //               </p>
 //               <p className="text-2xl font-bold text-gray-900 mt-1">
 //                 {daysSinceLastReview}
 //               </p>
 //               <p className="text-xs text-gray-500 mt-1">
-//                 Days since last review
+//                 days ago
 //               </p>
 //             </div>
 //           </div>
@@ -261,7 +689,7 @@
 //                 <div className="flex-1">
 //                   <div className="w-full bg-gray-200 rounded-full h-2">
 //                     <div
-//                       className="bg-gbp-success-500 h-2 rounded-full"
+//                       className="bg-gbp-success-500 h-2 rounded-full transition-all duration-300"
 //                       style={{ width: `${percentage}%` }}
 //                     ></div>
 //                   </div>
@@ -270,26 +698,45 @@
 //               </div>
 //             ))}
 //           </div>
+//           <p className="text-xs text-gray-500 mt-4">
+//             Based on {reviews.length} reviews
+//           </p>
 //         </div>
 
 //         {/* Review Request Box */}
 //         <div className="bg-gradient-to-br from-gbp-blue-500 to-gbp-blue-600 rounded-lg p-6 text-white">
 //           <h3 className="text-lg font-semibold mb-2">Review request link</h3>
 //           <p className="text-gbp-blue-100 text-sm mb-4">
-//             Here's your link for staff or put customers to get quick reviews.
+//             Here's your link for staff or customers to get quick reviews.
 //           </p>
 
 //           <div className="bg-white rounded-lg p-3 mb-4">
 //             <input
 //               type="text"
-//               value="https://review.gptbusiness.com/A-R-Techno-Solutions-operators"
+//               value={primaryReviewLink || "Loading link..."}
 //               readOnly
 //               className="w-full text-xs text-gray-600 bg-transparent border-none outline-none"
+//               onClick={(e) => {
+//                 if (primaryReviewLink) {
+//                   e.currentTarget.select();
+//                   navigator.clipboard.writeText(primaryReviewLink);
+//                 }
+//               }}
+//               title={primaryReviewLink ? "Click to copy" : ""}
 //             />
 //           </div>
 
+//           {!primaryReviewLink && placeId === "" && (
+//             <div className="bg-yellow-500 bg-opacity-20 border border-yellow-300 rounded-lg p-3 mb-4">
+//               <p className="text-xs text-white">
+//                 ⚠️ Place ID not found. Store it using:<br />
+//                 <code className="text-yellow-100">localStorage.setItem('placeId', 'your_place_id')</code>
+//               </p>
+//             </div>
+//           )}
+
 //           <div className="flex items-center space-x-3 mb-4">
-//             <label className="flex items-center space-x-2 text-gbp-blue-100">
+//             <label className="flex items-center space-x-2 text-gbp-blue-100 cursor-pointer">
 //               <input
 //                 type="checkbox"
 //                 className="rounded text-gbp-blue-500"
@@ -300,76 +747,86 @@
 //           </div>
 
 //           <div className="bg-white rounded-lg p-4 flex flex-col items-center">
-//             <div className="w-24 h-24 bg-black rounded-lg mb-3 flex items-center justify-center">
-//               <QrCode className="w-16 h-16 text-white" />
+//             <div 
+//               className="w-24 h-24 rounded-lg mb-3 flex items-center justify-center bg-white" 
+//               ref={qrCodeRef}
+//             >
+//               {primaryReviewLink ? (
+//                 <QRCodeSVG value={primaryReviewLink} size={96} level="H" />
+//               ) : (
+//                 <QrCode className="w-16 h-16 text-gray-400" />
+//               )}
 //             </div>
 //             <p className="text-gray-900 text-sm font-medium mb-2">
-//               Get more reviews
+//               {primaryReviewLink ? "Scan to leave a review" : "QR code unavailable"}
 //             </p>
-//             <button className="bg-gbp-blue-500 text-white px-4 py-2 rounded text-sm">
-//               Download
+//             <button
+//               onClick={downloadQrCode}
+//               disabled={!primaryReviewLink}
+//               className="bg-gbp-blue-500 text-white px-4 py-2 rounded text-sm hover:bg-gbp-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+//             >
+//               Download QR Code
 //             </button>
 //           </div>
 //         </div>
 //       </div>
 
 //       {/* Charts */}
-//       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-//         <div className="bg-white rounded-lg p-6 border border-gray-200">
-//           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-//             Average monthly reviews
+//       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+//         {/* Monthly Reviews Chart */}
+//         <div className="bg-white rounded-lg p-5 border border-gray-200">
+//           <h3 className="text-base font-semibold text-gray-900 mb-3">
+//             Monthly Reviews ({currentYear})
 //           </h3>
-//           <div className="h-48 flex items-end justify-center space-x-4 px-4">
+//           <div className="h-40 flex items-end justify-between space-x-2 px-2">
 //             {monthlyData.map((data) => {
-//               // Calculate height based on the maximum value in the dataset
-//               const maxReviews = Math.max(...monthlyData.map((d) => d.reviews));
-//               const minHeight = 8; // Minimum height for zero values
-//               const maxHeight = 160; // Maximum chart height
+//               const maxReviews = Math.max(
+//                 ...monthlyData.map((d) => d.reviews),
+//                 1
+//               );
+//               const minHeight = 6;
+//               const maxHeight = 120;
 //               const height =
 //                 data.reviews === 0
 //                   ? minHeight
 //                   : Math.max(
 //                       minHeight,
-//                       (data.reviews / maxReviews) * maxHeight,
+//                       (data.reviews / maxReviews) * maxHeight
 //                     );
 
 //               return (
 //                 <div
 //                   key={data.month}
-//                   className="flex flex-col items-center min-w-[60px]"
+//                   className="flex flex-col items-center flex-1"
 //                 >
-//                   {/* Review count label on top */}
-//                   <div className="mb-2 text-xs font-medium text-gray-700 h-4">
-//                     {data.reviews > 0 && data.reviews}
+//                   <div className="mb-1 text-[10px] font-semibold text-gray-700 h-3">
+//                     {data.reviews > 0 ? data.reviews : ""}
 //                   </div>
 
-//                   {/* Bar */}
 //                   <div
-//                     className={`w-12 rounded-t transition-all duration-300 ${
+//                     className={`w-full max-w-[40px] rounded-t transition-all duration-300 ${
 //                       data.reviews === 0
 //                         ? "bg-gray-200"
-//                         : "bg-gradient-to-t from-gbp-blue-500 to-gbp-blue-400 hover:from-gbp-blue-600 hover:to-gbp-blue-500"
+//                         : "bg-gradient-to-t from-gbp-blue-500 to-gbp-blue-400"
 //                     }`}
 //                     style={{ height: `${height}px` }}
 //                   ></div>
 
-//                   {/* Month label */}
-//                   <span className="text-xs text-gray-600 mt-2 font-medium">
+//                   <span className="text-[11px] text-gray-700 mt-1.5 font-medium">
 //                     {data.month}
 //                   </span>
 
-//                   {/* Response rate indicator */}
-//                   <div className="mt-1 flex items-center">
+//                   <div className="mt-0.5 flex items-center justify-center">
 //                     <div
-//                       className={`w-2 h-2 rounded-full ${
+//                       className={`w-1.5 h-1.5 rounded-full ${
 //                         data.responseRate === 100
 //                           ? "bg-green-500"
 //                           : data.responseRate > 0
-//                             ? "bg-yellow-500"
-//                             : "bg-gray-300"
+//                           ? "bg-yellow-500"
+//                           : "bg-gray-300"
 //                       }`}
 //                     ></div>
-//                     <span className="text-xs text-gray-500 ml-1">
+//                     <span className="text-[10px] text-gray-500 ml-1">
 //                       {data.responseRate}%
 //                     </span>
 //                   </div>
@@ -378,68 +835,68 @@
 //             })}
 //           </div>
 
-//           {/* Legend */}
-//           <div className="mt-4 flex items-center justify-center space-x-4 text-xs text-gray-600">
+//           <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-center space-x-4 text-[11px] text-gray-600">
 //             <div className="flex items-center">
-//               <div className="w-3 h-3 bg-gbp-blue-500 rounded mr-2"></div>
+//               <div className="w-2.5 h-2.5 bg-gbp-blue-500 rounded mr-1.5"></div>
 //               <span>Reviews</span>
 //             </div>
 //             <div className="flex items-center">
-//               <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-//               <span>100% Response Rate</span>
+//               <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></div>
+//               <span>100% Response</span>
 //             </div>
 //             <div className="flex items-center">
-//               <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
-//               <span>Partial Response</span>
-//             </div>
-//             <div className="flex items-center">
-//               <div className="w-2 h-2 bg-gray-300 rounded-full mr-2"></div>
-//               <span>No Response</span>
+//               <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full mr-1.5"></div>
+//               <span>Partial</span>
 //             </div>
 //           </div>
 //         </div>
 
-//         <div className="bg-white rounded-lg p-6 border border-gray-200">
-//           <h3 className="text-lg font-semibold text-gray-900 mb-4">
+//         {/* Days Since Last Review */}
+//         <div className="bg-white rounded-lg p-5 border border-gray-200">
+//           <h3 className="text-base font-semibold text-gray-900 mb-3">
 //             Days since last review
 //           </h3>
-//           <div className="h-48 flex items-center justify-center">
+//           <div className="h-40 flex items-center justify-center">
 //             <div className="text-center">
-//               <div className="w-32 h-32 rounded-full border-8 border-gbp-blue-500 flex items-center justify-center mb-4">
-//                 <div className="text-center">
-//                   <p className="text-2xl font-bold text-gray-900 mt-1">
+//               <div className="relative inline-flex items-center justify-center">
+//                 <svg className="w-36 h-36 transform -rotate-90">
+//                   <circle
+//                     cx="72"
+//                     cy="72"
+//                     r="60"
+//                     stroke="#E5E7EB"
+//                     strokeWidth="10"
+//                     fill="none"
+//                   />
+//                   <circle
+//                     cx="72"
+//                     cy="72"
+//                     r="60"
+//                     stroke="#3B82F6"
+//                     strokeWidth="10"
+//                     fill="none"
+//                     strokeLinecap="round"
+//                     strokeDasharray={`${2 * Math.PI * 60}`}
+//                     strokeDashoffset="0"
+//                   />
+//                 </svg>
+//                 <div className="absolute inset-0 flex flex-col items-center justify-center">
+//                   <p className="text-4xl font-bold text-gray-900">
 //                     {daysSinceLastReview}
 //                   </p>
-
-//                   <p className="text-xs text-gray-500">days</p>
+//                   <p className="text-xs text-gray-500 mt-1">days</p>
 //                 </div>
 //               </div>
-//               <p className="text-sm text-gray-600">
-//                 Last review was{" "}
-//                 {latestReviewDate
-//                   ? latestReviewDate.toLocaleDateString()
+//               <p className="text-xs text-gray-600 mt-3">
+//                 Last review: {latestReviewDate
+//                   ? latestReviewDate.toLocaleDateString('en-US', { 
+//                       month: '2-digit', 
+//                       day: '2-digit', 
+//                       year: 'numeric' 
+//                     })
 //                   : "N/A"}
 //               </p>
 //             </div>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Ideas to get more reviews */}
-//       <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
-//         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-//           Ideas to get more reviews
-//         </h3>
-//         <div className="space-y-3">
-//           <div className="flex items-start space-x-3 p-3 bg-gbp-blue-50 rounded-lg">
-//             <div className="w-2 h-2 bg-gbp-blue-500 rounded-full mt-2"></div>
-//             <p className="text-sm text-gray-700">
-//               Send your review request and register a QR code outside your
-//               business with a QR code saying 'We'd love a review! You can either
-//               include reviews on a business card, or use displays and register
-//               for the google. Please leave your QR code in the customers may the
-//               first option directly.
-//             </p>
 //           </div>
 //         </div>
 //       </div>
@@ -448,14 +905,16 @@
 //       <div className="bg-white rounded-lg border border-gray-200">
 //         <div className="p-6 border-b border-gray-200">
 //           <div className="flex items-center justify-between">
-//             <h3 className="text-lg font-semibold text-gray-900">Reviews</h3>
+//             <h3 className="text-lg font-semibold text-gray-900">
+//               All Reviews ({sortedReviews.length})
+//             </h3>
 //             <div className="flex items-center space-x-3">
 //               <div className="flex items-center space-x-2">
-//                 <span className="text-sm text-gray-600">Sort by:</span>
+//                 <span className="text-sm text-gray-600">Sort:</span>
 //                 <select
 //                   value={sortBy}
 //                   onChange={(e) => setSortBy(e.target.value)}
-//                   className="border border-gray-200 rounded px-3 py-1 text-sm"
+//                   className="border border-gray-200 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-gbp-blue-500"
 //                 >
 //                   <option value="latest">Latest</option>
 //                   <option value="oldest">Oldest</option>
@@ -463,116 +922,183 @@
 //                   <option value="rating-low">Lowest Rating</option>
 //                 </select>
 //               </div>
-//               <button className="border border-gray-200 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50">
-//                 <Filter className="w-4 h-4" />
-//               </button>
+//               <div className="flex items-center space-x-2">
+//                 <span className="text-sm text-gray-600">Filter:</span>
+//                 <select
+//                   value={filterRating}
+//                   onChange={(e) => setFilterRating(e.target.value)}
+//                   className="border border-gray-200 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-gbp-blue-500"
+//                 >
+//                   <option value="all">All Ratings</option>
+//                   <option value="5">5 Stars</option>
+//                   <option value="4">4 Stars</option>
+//                   <option value="3">3 Stars</option>
+//                   <option value="2">2 Stars</option>
+//                   <option value="1">1 Star</option>
+//                 </select>
+//               </div>
 //             </div>
 //           </div>
 //         </div>
 
 //         <div className="p-6">
-//           {reviews.length === 0 ? (
-//             <div className="text-center py-8">
-//               <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-//               <p className="text-gray-500">No reviews</p>
-//               <button className="mt-4 bg-gbp-blue-500 text-white px-6 py-2 rounded-lg">
-//                 Load More
-//               </button>
+//           {sortedReviews.length === 0 ? (
+//             <div className="text-center py-12">
+//               <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+//               <p className="text-gray-500 text-lg mb-2">No reviews found</p>
+//               <p className="text-gray-400 text-sm mb-6">
+//                 {filterRating !== "all" 
+//                   ? "Try changing your filter settings"
+//                   : "Start collecting reviews from your customers"}
+//               </p>
+//               {filterRating === "all" && (
+//                 <button className="bg-gbp-blue-500 text-white px-6 py-3 rounded-lg hover:bg-gbp-blue-600 transition-colors">
+//                   Request Reviews
+//                 </button>
+//               )}
 //             </div>
 //           ) : (
 //             <div className="space-y-4">
-//               {(() => {
-//                 const sortedReviews = [...reviews].sort((a, b) => {
-//                   switch (sortBy) {
-//                     case "latest":
-//                       return (
-//                         new Date(b.date).getTime() - new Date(a.date).getTime()
-//                       );
-//                     case "oldest":
-//                       return (
-//                         new Date(a.date).getTime() - new Date(b.date).getTime()
-//                       );
-//                     case "rating-high":
-//                       return b.rating - a.rating;
-//                     case "rating-low":
-//                       return a.rating - b.rating;
-//                     default:
-//                       return 0;
-//                   }
-//                 });
-
-//                 return sortedReviews.map((review) => (
-//                   <div
-//                     key={review.id}
-//                     className="border border-gray-200 rounded-lg p-4"
-//                   >
-//                     <div className="flex items-start justify-between">
-//                       <div className="flex-1">
-//                         <div className="flex items-center space-x-3 mb-2">
-//                           <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-//                             <span className="text-xs font-medium text-gray-600">
-//                               {review.author
-//                                 .split(" ")
-//                                 .map((n) => n[0])
-//                                 .join("")}
-//                             </span>
-//                           </div>
-//                           <div>
-//                             <p className="font-medium text-gray-900">
-//                               {review.author}
-//                             </p>
-//                             <div className="flex items-center space-x-2">
-//                               <div className="flex">
-//                                 {[...Array(5)].map((_, i) => (
-//                                   <Star
-//                                     key={i}
-//                                     className={`w-4 h-4 ${
-//                                       i < review.rating
-//                                         ? "text-yellow-400 fill-current"
-//                                         : "text-gray-300"
-//                                     }`}
-//                                   />
-//                                 ))}
-//                               </div>
-//                               <span className="text-xs text-gray-500">
-//                                 {review.date}
-//                               </span>
+//               {sortedReviews.map((review) => (
+//                 <div
+//                   key={review.id}
+//                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+//                 >
+//                   <div className="flex items-start justify-between">
+//                     <div className="flex-1">
+//                       <div className="flex items-center space-x-3 mb-2">
+//                         <div className="w-10 h-10 bg-gradient-to-br from-gbp-blue-400 to-gbp-blue-600 rounded-full flex items-center justify-center">
+//                           <span className="text-sm font-semibold text-white">
+//                             {review.author
+//                               .split(" ")
+//                               .map((n) => n[0])
+//                               .join("")
+//                               .substring(0, 2)}
+//                           </span>
+//                         </div>
+//                         <div>
+//                           <p className="font-semibold text-gray-900">
+//                             {review.author}
+//                           </p>
+//                           <div className="flex items-center space-x-2">
+//                             <div className="flex">
+//                               {[...Array(5)].map((_, i) => (
+//                                 <Star
+//                                   key={i}
+//                                   className={`w-4 h-4 ${
+//                                     i < review.rating
+//                                       ? "text-yellow-400 fill-current"
+//                                       : "text-gray-300"
+//                                   }`}
+//                                 />
+//                               ))}
 //                             </div>
+//                             <span className="text-xs text-gray-500">
+//                               {review.date}
+//                             </span>
 //                           </div>
 //                         </div>
-//                         <p className="text-gray-700 text-sm mb-3">
+//                       </div>
+                      
+//                       {review.text && (
+//                         <p className="text-gray-700 text-sm mb-3 leading-relaxed">
 //                           {review.text}
 //                         </p>
-//                         <div className="flex items-center space-x-3">
-//                           <span
-//                             className={`text-xs px-2 py-1 rounded-full ${
-//                               review.sentiment === "positive"
-//                                 ? "bg-green-100 text-green-700"
-//                                 : review.sentiment === "negative"
-//                                   ? "bg-red-100 text-red-700"
-//                                   : "bg-gray-100 text-gray-700"
-//                             }`}
-//                           >
-//                             {review.sentiment}
-//                           </span>
-//                           {review.replied ? (
-//                             <span className="text-xs text-gray-500">
-//                               ✓ Replied
-//                             </span>
-//                           ) : (
-//                             <button className="text-xs text-gbp-blue-600 hover:text-gbp-blue-700">
-//                               Reply
+//                       )}
+                      
+//                       <div className="flex items-center space-x-3 mb-3">
+//                         <span
+//                           className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+//                             review.sentiment === "positive"
+//                               ? "bg-green-100 text-green-700"
+//                               : review.sentiment === "negative"
+//                               ? "bg-red-100 text-red-700"
+//                               : "bg-gray-100 text-gray-700"
+//                           }`}
+//                         >
+//                           {review.sentiment}
+//                         </span>
+//                       </div>
+
+//                       {/* Owner Response Section */}
+//                       <div className="mt-4 pt-4 border-t border-gray-100">
+//                         <div className="flex items-center justify-between mb-2">
+//                           <p className="text-sm font-semibold text-gray-800">
+//                             Owner's Response
+//                           </p>
+//                           {review.replied && !review.isEditingReply && (
+//                             <button
+//                               onClick={() => handleDeleteResponse(review.id)}
+//                               disabled={deletingReplyId === review.id}
+//                               className="text-red-600 hover:text-red-700 text-xs flex items-center space-x-1 disabled:opacity-50"
+//                             >
+//                               {deletingReplyId === review.id ? (
+//                                 <Loader2 className="w-3 h-3 animate-spin" />
+//                               ) : (
+//                                 <Trash2 className="w-3 h-3" />
+//                               )}
+//                               <span>Delete</span>
 //                             </button>
 //                           )}
 //                         </div>
+                        
+//                         {review.isEditingReply ? (
+//                           <div>
+//                             <textarea
+//                               className="w-full p-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-gbp-blue-500 focus:border-gbp-blue-500 transition-all"
+//                               rows={3}
+//                               value={review.ownerReplyText}
+//                               onChange={(e) =>
+//                                 handleOwnerResponseChange(review.id, e.target.value)
+//                               }
+//                               placeholder="Write your response..."
+//                             />
+//                             <div className="flex justify-end mt-2 space-x-2">
+//                               <button
+//                                 onClick={() => handleEditToggle(review.id)}
+//                                 className="text-gray-600 border border-gray-300 px-4 py-1.5 rounded-md text-sm hover:bg-gray-50 transition-colors"
+//                                 disabled={savingReplyId === review.id}
+//                               >
+//                                 Cancel
+//                               </button>
+//                               <button
+//                                 onClick={() => handleSaveResponse(review.id)}
+//                                 disabled={savingReplyId === review.id || !review.ownerReplyText.trim()}
+//                                 className="bg-gbp-blue-500 text-white px-4 py-1.5 rounded-md text-sm hover:bg-gbp-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+//                               >
+//                                 {savingReplyId === review.id && (
+//                                   <Loader2 className="w-4 h-4 animate-spin" />
+//                                 )}
+//                                 <span>{savingReplyId === review.id ? "Saving..." : "Save Reply"}</span>
+//                               </button>
+//                             </div>
+//                           </div>
+//                         ) : (
+//                           <div>
+//                             {review.ownerReplyText ? (
+//                               <div className="bg-gray-50 rounded-lg p-3 mb-2">
+//                                 <p className="text-gray-700 text-sm leading-relaxed">
+//                                   {review.ownerReplyText}
+//                                 </p>
+//                               </div>
+//                             ) : (
+//                               <p className="text-gray-400 text-sm italic mb-2">
+//                                 No response yet
+//                               </p>
+//                             )}
+//                             <button
+//                               onClick={() => handleEditToggle(review.id)}
+//                               className="text-gbp-blue-600 border border-gbp-blue-600 px-4 py-1.5 rounded-md text-sm hover:bg-gbp-blue-50 transition-colors"
+//                             >
+//                               {review.ownerReplyText ? "Edit Reply" : "Add Reply"}
+//                             </button>
+//                           </div>
+//                         )}
 //                       </div>
-//                       <button className="text-gray-400 hover:text-gray-600">
-//                         <MoreHorizontal className="w-4 h-4" />
-//                       </button>
 //                     </div>
 //                   </div>
-//                 ));
-//               })()}
+//                 </div>
+//               ))}
 //             </div>
 //           )}
 //         </div>
@@ -580,8 +1106,6 @@
 //     </div>
 //   );
 // }
-
-
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
@@ -591,6 +1115,8 @@ import {
   MessageSquare,
   Filter,
   MoreHorizontal,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 import axios from "axios";
 import { SERVER } from "@/constants";
@@ -601,6 +1127,7 @@ import QRCodeSVG from "react-qr-code";
 
 interface Review {
   id: string;
+  reviewId: string;
   author: string;
   rating: number;
   text: string;
@@ -609,6 +1136,7 @@ interface Review {
   replied: boolean;
   ownerReplyText: string;
   isEditingReply: boolean;
+  updateTime: string;
 }
 
 // Helper to get month name
@@ -618,65 +1146,246 @@ const getMonthName = (monthIndex: number) => {
   return date.toLocaleString("en-US", { month: "short" });
 };
 
+// Helper to parse star rating (can be string like "FIVE", "FOUR", etc. or number)
+const parseStarRating = (starRating: any): number => {
+  if (typeof starRating === "number") return starRating;
+  if (typeof starRating === "string") {
+    const ratingMap: { [key: string]: number } = {
+      ONE: 1,
+      TWO: 2,
+      THREE: 3,
+      FOUR: 4,
+      FIVE: 5,
+    };
+    return ratingMap[starRating.toUpperCase()] || 0;
+  }
+  return 0;
+};
+
 export default function Reviews() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [totalReviewsCount, setTotalReviewsCount] = useState<number>(0);
+  const [averageRating, setAverageRating] = useState<number>(0);
   const [sortBy, setSortBy] = useState("latest");
   const [filterRating, setFilterRating] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [primaryReviewLink, setPrimaryReviewLink] = useState<string>("");
+  const [savingReplyId, setSavingReplyId] = useState<string | null>(null);
+  const [deletingReplyId, setDeletingReplyId] = useState<string | null>(null);
+  const [placeId, setPlaceId] = useState<string>("");
 
   const { activeLocation } = useSelector((state: RootState) => state.activeLocation);
 
-  const locationId = localStorage.getItem("activeLocation");
+  // Helper function to extract clean location ID (removes "locations/" prefix if present)
+  const extractLocationId = (rawLocationId: string | null | undefined): string => {
+    if (!rawLocationId) return "";
+    // Remove "locations/" prefix if it exists
+    return rawLocationId.replace(/^locations\//, "");
+  };
+
+  // Get location ID from localStorage or Redux state and clean it
+  const rawLocationId = localStorage.getItem("activeLocation") || activeLocation?.locationId || "";
+  const locationId = extractLocationId(rawLocationId);
+  
+  // Get account ID - MAKE SURE THIS IS SET IN YOUR APP
+  // You can set it like: localStorage.setItem("accountId", "116574816291503260287");
+  const accountId = localStorage.getItem("accountId") || "116574816291503260287"; // Default for testing
 
   // Ref for the QR code canvas to facilitate download
   const qrCodeRef = useRef<HTMLDivElement>(null);
 
-  // API endpoint
-  const API_URL = `${SERVER}/api/v1/location/${
-    locationId || activeLocation?.locationId || ""
-  }/reviews?place_id=${activeLocation?.placeId || ""}`;
-
   useEffect(() => {
     const fetchReviews = async () => {
+      if (!locationId) {
+        setError("No location ID found. Please select a location.");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const response = await axios.get(API_URL, { withCredentials: true });
+        setError(null);
 
-        const mappedReviews: Review[] = response.data.reviews.map(
-          (review: any) => ({
-            id: review.review_id || Math.random().toString(36).substring(2, 11),
-            author: review.author_name,
-            rating: review.rating,
-            text: review.text,
-            date: new Date(review.time * 1000).toISOString().split("T")[0],
-            sentiment:
-              review.rating >= 4
-                ? "positive"
-                : review.rating <= 2
-                ? "negative"
-                : "neutral",
-            replied: !!review.ownerReply,
-            ownerReplyText: review.ownerReply || "",
-            isEditingReply: false,
-          })
+        // Construct the correct API URL matching your Postman request
+        // Format: /api/v1/reviews/{location_id}/all?account_id={account_id}
+        const url = `${SERVER}/api/v1/reviews/${locationId}/all?account_id=${accountId}`;
+        
+        console.log("🔍 Fetching reviews from:", url);
+        console.log("📍 Raw Location ID:", rawLocationId);
+        console.log("✨ Cleaned Location ID:", locationId);
+
+        const response = await axios.get(url, { 
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        console.log("✅ API Response received:", {
+          totalFetched: response.data.totalFetched,
+          pagesProcessed: response.data.pagesProcessed,
+          reviewsCount: response.data.reviews?.length
+        });
+
+        // Map the backend response to frontend format
+        const mappedReviews: Review[] = (response.data.reviews || []).map(
+          (review: any) => {
+            const rating = parseStarRating(review.starRating);
+            const createTime = review.createTime ? new Date(review.createTime) : new Date();
+            
+            return {
+              id: review.reviewId || review.name || Math.random().toString(36).substring(2, 11),
+              reviewId: review.reviewId,
+              author: review.reviewer?.displayName || "Anonymous",
+              rating: rating,
+              text: review.comment || "",
+              date: createTime.toISOString().split("T")[0],
+              updateTime: review.updateTime || review.createTime || "",
+              sentiment:
+                rating >= 4
+                  ? "positive"
+                  : rating <= 2
+                  ? "negative"
+                  : "neutral",
+              replied: !!review.reviewReply,
+              ownerReplyText: review.reviewReply?.comment || "",
+              isEditingReply: false,
+            };
+          }
         );
 
+        console.log(`✅ Mapped ${mappedReviews.length} reviews`);
+
         setReviews(mappedReviews);
-        setTotalReviewsCount(response.data.totalReviews);
-        setPrimaryReviewLink(response.data.reviewRequestLinks?.primaryReviewLink || "");
+        setTotalReviewsCount(response.data.totalReviewCount || response.data.totalFetched || mappedReviews.length);
+        setAverageRating(response.data.averageRating || 0);
+        
         setLoading(false);
-      } catch (err) {
-        setError("Failed to fetch reviews");
+      } catch (err: any) {
+        console.error("❌ Failed to fetch reviews:", err);
+        console.error("Error details:", {
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data,
+          url: err.config?.url
+        });
+        
+        let errorMessage = "Failed to fetch reviews";
+        
+        if (err.response?.status === 401) {
+          errorMessage = "Authentication required. Please log in again.";
+        } else if (err.response?.status === 403) {
+          errorMessage = "Access denied. Check your permissions for this location.";
+        } else if (err.response?.status === 404) {
+          errorMessage = `Location not found. Please verify location ID: ${locationId}`;
+        } else if (err.response?.data?.detail) {
+          errorMessage = err.response.data.detail;
+        }
+        
+        setError(errorMessage);
         setLoading(false);
-        console.error("Failed to fetch reviews:", err);
       }
     };
 
     fetchReviews();
-  }, [API_URL]);
+  }, [rawLocationId, accountId, SERVER, activeLocation?.placeId]);
+
+  // Separate useEffect to fetch and set place_id and review link
+  useEffect(() => {
+    const getPlaceIdAndReviewLink = async () => {
+      // Try to get place_id from multiple sources
+      let foundPlaceId = "";
+
+      // 1. Check Redux state
+      if (activeLocation?.placeId) {
+        foundPlaceId = activeLocation.placeId;
+        console.log("✅ Place ID from Redux:", foundPlaceId);
+      }
+      // 2. Check localStorage
+      else {
+        const storedPlaceId = localStorage.getItem("placeId");
+        if (storedPlaceId) {
+          foundPlaceId = storedPlaceId;
+          console.log("✅ Place ID from localStorage:", foundPlaceId);
+        }
+      }
+
+      // 3. If still no place_id, try to fetch from location details API
+      if (!foundPlaceId && locationId && accountId) {
+        try {
+          console.log("🔍 Attempting to fetch place_id from location details API...");
+          const locationDetailsUrl = `${SERVER}/api/v1/locations/${locationId}?account_id=${accountId}`;
+          const response = await axios.get(locationDetailsUrl, { 
+            withCredentials: true,
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          
+          if (response.data?.placeId) {
+            foundPlaceId = response.data.placeId;
+            console.log("✅ Place ID from API:", foundPlaceId);
+            // Store for future use
+            localStorage.setItem("placeId", foundPlaceId);
+          }
+        } catch (error) {
+          console.log("⚠️ Could not fetch place_id from API:", error);
+        }
+      }
+
+      // Set the place_id state
+      setPlaceId(foundPlaceId);
+
+      // Generate review link using multiple methods
+      let reviewLink = "";
+
+      // Method 1: Use place_id if available (preferred method)
+      if (foundPlaceId) {
+        reviewLink = `https://search.google.com/local/writereview?placeid=${foundPlaceId}`;
+        console.log("🔗 Generated review link using place_id:", reviewLink);
+      }
+      // Method 2: Use account_id and location_id as fallback
+      else if (locationId && accountId) {
+        // Try to fetch review link from backend API
+        try {
+          console.log("🔍 Attempting to fetch review link from backend using account_id and location_id...");
+          const reviewLinkUrl = `${SERVER}/api/v1/reviews/${locationId}/link?account_id=${accountId}`;
+          const response = await axios.get(reviewLinkUrl, { 
+            withCredentials: true,
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          
+          if (response.data?.reviewLink || response.data?.link) {
+            reviewLink = response.data.reviewLink || response.data.link;
+            console.log("✅ Review link from backend API:", reviewLink);
+          }
+        } catch (error) {
+          console.log("⚠️ Could not fetch review link from backend API:", error);
+          
+          // Method 3: Generate a basic Google Maps search link as last resort
+          console.log("💡 Generating basic review link using account_id and location_id...");
+          // This creates a link that opens Google Maps to the business location
+          reviewLink = `https://g.page/r/accounts/${accountId}/locations/${locationId}/review`;
+          console.log("🔗 Generated fallback review link:", reviewLink);
+        }
+      }
+
+      // Set the review link
+      if (reviewLink) {
+        setPrimaryReviewLink(reviewLink);
+        console.log("✅ Final review link set:", reviewLink);
+      } else {
+        console.warn("⚠️ Could not generate review link. Please ensure place_id or proper account/location IDs are available.");
+      }
+    };
+
+    if (locationId) {
+      getPlaceIdAndReviewLink();
+    }
+  }, [locationId, accountId, activeLocation?.placeId, SERVER]);
 
   // Handler for toggling edit mode for an owner's reply
   const handleEditToggle = (id: string) => {
@@ -698,23 +1407,37 @@ export default function Reviews() {
     );
   };
 
-  // Handler for saving owner's reply
+  // Handler for saving owner's reply using the new API
   const handleSaveResponse = async (id: string) => {
     const reviewToUpdate = reviews.find((review) => review.id === id);
-    if (!reviewToUpdate) return;
+    if (!reviewToUpdate || !reviewToUpdate.ownerReplyText.trim()) {
+      alert("Please enter a response before saving");
+      return;
+    }
 
-    console.log(
-      `Saving owner's response for review ${id}: ${reviewToUpdate.ownerReplyText}`
-    );
+    setSavingReplyId(id);
 
     try {
-      // Example API call to save the reply
-      // await axios.post(`${SERVER}/api/v1/reviews/${id}/reply`,
-      //   { replyText: reviewToUpdate.ownerReplyText },
-      //   { withCredentials: true }
-      // );
+      // Build the API URL for replying to a review
+      // Format: /api/v1/reviews/{location_id}/{review_id}/reply?account_id={account_id}
+      const url = `${SERVER}/api/v1/reviews/${locationId}/${reviewToUpdate.reviewId}/reply?account_id=${accountId}`;
 
-      // After successful API call, update local state
+      console.log("💾 Saving reply to:", url);
+
+      const response = await axios.put(
+        url,
+        { comment: reviewToUpdate.ownerReplyText },
+        { 
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      console.log("✅ Reply saved successfully:", response.data);
+
+      // Update local state after successful API call
       setReviews((prevReviews) =>
         prevReviews.map((review) =>
           review.id === id
@@ -722,8 +1445,76 @@ export default function Reviews() {
             : review
         )
       );
-    } catch (error) {
-      console.error("Failed to save owner's response:", error);
+
+      alert("Reply posted successfully!");
+    } catch (error: any) {
+      console.error("❌ Failed to save reply:", error);
+      console.error("Error details:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url
+      });
+      
+      let errorMessage = "Failed to save reply";
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setSavingReplyId(null);
+    }
+  };
+
+  // Handler for deleting owner's reply using the new API
+  const handleDeleteResponse = async (id: string) => {
+    const reviewToUpdate = reviews.find((review) => review.id === id);
+    if (!reviewToUpdate) return;
+
+    if (!confirm("Are you sure you want to delete this reply?")) return;
+
+    setDeletingReplyId(id);
+
+    try {
+      // Build the API URL for deleting a review reply
+      // Format: /api/v1/reviews/{location_id}/{review_id}/reply?account_id={account_id}
+      const url = `${SERVER}/api/v1/reviews/${locationId}/${reviewToUpdate.reviewId}/reply?account_id=${accountId}`;
+
+      console.log("🗑️ Deleting reply from:", url);
+
+      await axios.delete(url, { 
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      console.log("✅ Reply deleted successfully");
+
+      // Update local state after successful deletion
+      setReviews((prevReviews) =>
+        prevReviews.map((review) =>
+          review.id === id
+            ? { ...review, ownerReplyText: "", replied: false, isEditingReply: false }
+            : review
+        )
+      );
+
+      alert("Reply deleted successfully!");
+    } catch (error: any) {
+      console.error("❌ Failed to delete reply:", error);
+      console.error("Error details:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url
+      });
+      
+      let errorMessage = "Failed to delete reply";
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setDeletingReplyId(null);
     }
   };
 
@@ -753,10 +1544,11 @@ export default function Reviews() {
   }, [filteredReviews, sortBy]);
 
   const totalReviews = totalReviewsCount;
-  const averageRating =
-    reviews.length > 0
+  const calculatedAverageRating = averageRating || 
+    (reviews.length > 0
       ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-      : 0;
+      : 0);
+      
   const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => ({
     rating,
     count: reviews.filter((r) => r.rating === rating).length,
@@ -765,45 +1557,83 @@ export default function Reviews() {
       100 || 0,
   }));
 
- // --- Dynamic Monthly Reviews Data Calculation ---
-const currentYear = new Date().getFullYear();
-const monthlyData = useMemo(() => {
-  const monthMap = new Map<number, { reviews: number; repliedReviews: number }>();
-  
-  for (let i = 0; i < 12; i++) {
-    monthMap.set(i, { reviews: 0, repliedReviews: 0 });
-  }
-
-  reviews.forEach((review) => {
-    const reviewDate = new Date(review.date);
-    if (reviewDate.getFullYear() === currentYear) {
-      const month = reviewDate.getMonth();
-      const data = monthMap.get(month)!;
-      data.reviews++;
-      if (review.replied) {
-        data.repliedReviews++;
-      }
+  // Dynamic Monthly Reviews Data Calculation
+  const currentYear = new Date().getFullYear();
+  const monthlyData = useMemo(() => {
+    const monthMap = new Map<number, { reviews: number; repliedReviews: number }>();
+    
+    for (let i = 0; i < 12; i++) {
+      monthMap.set(i, { reviews: 0, repliedReviews: 0 });
     }
-  });
 
-  return Array.from(monthMap.entries())
-    .sort(([monthA], [monthB]) => monthA - monthB)
-    .map(([monthIndex, data]) => ({
-      month: getMonthName(monthIndex),
-      reviews: data.reviews,
-      responseRate:
-        data.reviews > 0
-          ? Math.round((data.repliedReviews / data.reviews) * 100)
-          : 0,
-    }));
-}, [reviews, currentYear]);
+    reviews.forEach((review) => {
+      const reviewDate = new Date(review.date);
+      if (reviewDate.getFullYear() === currentYear) {
+        const month = reviewDate.getMonth();
+        const data = monthMap.get(month)!;
+        data.reviews++;
+        if (review.replied) {
+          data.repliedReviews++;
+        }
+      }
+    });
+
+    return Array.from(monthMap.entries())
+      .sort(([monthA], [monthB]) => monthA - monthB)
+      .map(([monthIndex, data]) => ({
+        month: getMonthName(monthIndex),
+        reviews: data.reviews,
+        responseRate:
+          data.reviews > 0
+            ? Math.round((data.repliedReviews / data.reviews) * 100)
+            : 0,
+      }));
+  }, [reviews, currentYear]);
 
   if (loading) {
-    return <div className="p-6">Loading reviews...</div>;
+    return (
+      <div className="p-6 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-gbp-blue-500 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 text-lg font-medium">Loading reviews...</p>
+          <p className="text-gray-500 text-sm mt-2">This may take a moment for large datasets</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="p-6 text-red-600">{error}</div>;
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-2xl mx-auto">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0">
+              <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-red-800 font-semibold text-lg mb-2">Error Loading Reviews</h3>
+              <p className="text-red-600 mb-4">{error}</p>
+              <div className="bg-white border border-red-200 rounded p-3 mb-4">
+                <p className="text-sm text-gray-700 font-mono">
+                  Raw Location ID: {rawLocationId || "Not set"}<br />
+                  Cleaned Location ID: {locationId || "Not set"}<br />
+                  Account ID: {accountId || "Not set"}<br />
+                  Place ID: {placeId || "Not set"}
+                </p>
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Get latest review date
@@ -836,7 +1666,7 @@ const monthlyData = useMemo(() => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Reviews");
 
-    XLSX.writeFile(workbook, "reviews.xlsx");
+    XLSX.writeFile(workbook, `reviews_${locationId}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   // Function to download the QR code
@@ -870,6 +1700,11 @@ const monthlyData = useMemo(() => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-full">
+      {/* Debug Info (Remove in production) */}
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-xs">
+        <strong>Debug Info:</strong> Raw Location: {rawLocationId} | Cleaned Location: {locationId} | Account: {accountId} | Place ID: {placeId || "Not found"} | Reviews: {reviews.length}
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -881,7 +1716,8 @@ const monthlyData = useMemo(() => {
         <div className="flex items-center space-x-3">
           <button
             onClick={exportToCSV}
-            className="border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center space-x-2"
+            disabled={reviews.length === 0}
+            className="border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download className="w-4 h-4" />
             <span>Export</span>
@@ -903,7 +1739,6 @@ const monthlyData = useMemo(() => {
               <p className="text-2xl font-bold text-gray-900 mt-1">
                 {totalReviews}
               </p>
-              
             </div>
             <div className="w-12 h-12 bg-gbp-blue-100 rounded-lg flex items-center justify-center">
               <Star className="w-6 h-6 text-gbp-blue-600" />
@@ -919,14 +1754,14 @@ const monthlyData = useMemo(() => {
               </p>
               <div className="flex items-center space-x-2 mt-1">
                 <p className="text-2xl font-bold text-gray-900">
-                  {averageRating.toFixed(1)}
+                  {calculatedAverageRating.toFixed(1)}
                 </p>
                 <div className="flex">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
                       className={`w-4 h-4 ${
-                        i < Math.floor(averageRating)
+                        i < Math.floor(calculatedAverageRating)
                           ? "text-yellow-400 fill-current"
                           : "text-gray-300"
                       }`}
@@ -935,7 +1770,7 @@ const monthlyData = useMemo(() => {
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Based on {reviews.length} recent reviews
+                Based on {reviews.length} reviews
               </p>
             </div>
           </div>
@@ -954,7 +1789,9 @@ const monthlyData = useMemo(() => {
                   : "0.0"}
                 %
               </p>
-              <p className="text-xs text-gray-500 mt-1">Based on recent reviews</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {reviews.filter((r) => r.replied).length} of {reviews.length} replied
+              </p>
             </div>
           </div>
         </div>
@@ -963,13 +1800,13 @@ const monthlyData = useMemo(() => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">
-                Days since last review
+                Last Review
               </p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
                 {daysSinceLastReview}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Days since last review
+                days ago
               </p>
             </div>
           </div>
@@ -995,7 +1832,7 @@ const monthlyData = useMemo(() => {
                 <div className="flex-1">
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className="bg-gbp-success-500 h-2 rounded-full"
+                      className="bg-gbp-success-500 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${percentage}%` }}
                     ></div>
                   </div>
@@ -1005,7 +1842,7 @@ const monthlyData = useMemo(() => {
             ))}
           </div>
           <p className="text-xs text-gray-500 mt-4">
-            Based on {reviews.length} most recent reviews
+            Based on {reviews.length} reviews
           </p>
         </div>
 
@@ -1019,14 +1856,31 @@ const monthlyData = useMemo(() => {
           <div className="bg-white rounded-lg p-3 mb-4">
             <input
               type="text"
-              value={primaryReviewLink || "Loading link..."}
+              value={primaryReviewLink || "Generating review link..."}
               readOnly
-              className="w-full text-xs text-gray-600 bg-transparent border-none outline-none"
+              className="w-full text-xs text-gray-600 bg-transparent border-none outline-none cursor-pointer"
+              onClick={(e) => {
+                if (primaryReviewLink) {
+                  e.currentTarget.select();
+                  navigator.clipboard.writeText(primaryReviewLink);
+                  // Optional: Show a toast/notification
+                  alert("Review link copied to clipboard!");
+                }
+              }}
+              title={primaryReviewLink ? "Click to copy" : ""}
             />
           </div>
 
+          {!primaryReviewLink && (
+            <div className="bg-blue-500 bg-opacity-20 border border-blue-300 rounded-lg p-3 mb-4">
+              <p className="text-xs text-white">
+                ℹ️ Generating review link using account and location IDs...
+              </p>
+            </div>
+          )}
+
           <div className="flex items-center space-x-3 mb-4">
-            <label className="flex items-center space-x-2 text-gbp-blue-100">
+            <label className="flex items-center space-x-2 text-gbp-blue-100 cursor-pointer">
               <input
                 type="checkbox"
                 className="rounded text-gbp-blue-500"
@@ -1037,7 +1891,10 @@ const monthlyData = useMemo(() => {
           </div>
 
           <div className="bg-white rounded-lg p-4 flex flex-col items-center">
-            <div className="w-24 h-24 rounded-lg mb-3 flex items-center justify-center" ref={qrCodeRef}>
+            <div 
+              className="w-24 h-24 rounded-lg mb-3 flex items-center justify-center bg-white" 
+              ref={qrCodeRef}
+            >
               {primaryReviewLink ? (
                 <QRCodeSVG value={primaryReviewLink} size={96} level="H" />
               ) : (
@@ -1045,12 +1902,12 @@ const monthlyData = useMemo(() => {
               )}
             </div>
             <p className="text-gray-900 text-sm font-medium mb-2">
-              Get more reviews
+              {primaryReviewLink ? "Scan to leave a review" : "QR code unavailable"}
             </p>
             <button
               onClick={downloadQrCode}
               disabled={!primaryReviewLink}
-              className="bg-gbp-blue-500 text-white px-4 py-2 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-gbp-blue-500 text-white px-4 py-2 rounded text-sm hover:bg-gbp-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Download QR Code
             </button>
@@ -1059,19 +1916,20 @@ const monthlyData = useMemo(() => {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white rounded-lg p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Average monthly reviews ({currentYear})
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        {/* Monthly Reviews Chart */}
+        <div className="bg-white rounded-lg p-10  border border-gray-200">
+          <h3 className="text-base font-semibold text-gray-900 mb-3">
+            Monthly Reviews ({currentYear})
           </h3>
-          <div className="h-48 flex items-end justify-center space-x-4 px-4">
+          <div className="h-40 flex items-end justify-between space-x-2 px-2">
             {monthlyData.map((data) => {
               const maxReviews = Math.max(
                 ...monthlyData.map((d) => d.reviews),
                 1
               );
-              const minHeight = 8;
-              const maxHeight = 160;
+              const minHeight = 6;
+              const maxHeight = 120;
               const height =
                 data.reviews === 0
                   ? minHeight
@@ -1083,28 +1941,28 @@ const monthlyData = useMemo(() => {
               return (
                 <div
                   key={data.month}
-                  className="flex flex-col items-center min-w-[60px]"
+                  className="flex flex-col items-center flex-1"
                 >
-                  <div className="mb-2 text-xs font-medium text-gray-700 h-4">
+                  <div className="mb-1 text-[10px] font-semibold text-gray-700 h-3">
                     {data.reviews > 0 ? data.reviews : ""}
                   </div>
 
                   <div
-                    className={`w-12 rounded-t transition-all duration-300 ${
+                    className={`w-full max-w-[40px] rounded-t transition-all duration-300 ${
                       data.reviews === 0
                         ? "bg-gray-200"
-                        : "bg-gradient-to-t from-gbp-blue-500 to-gbp-blue-400 hover:from-gbp-blue-600 hover:to-gbp-blue-500"
+                        : "bg-gradient-to-t from-gbp-blue-500 to-gbp-blue-400"
                     }`}
                     style={{ height: `${height}px` }}
                   ></div>
 
-                  <span className="text-xs text-gray-600 mt-2 font-medium">
+                  <span className="text-[11px] text-gray-700 mt-1.5 font-medium">
                     {data.month}
                   </span>
 
-                  <div className="mt-1 flex items-center">
+                  <div className="mt-0.5 flex items-center justify-center">
                     <div
-                      className={`w-2 h-2 rounded-full ${
+                      className={`w-1.5 h-1.5 rounded-full ${
                         data.responseRate === 100
                           ? "bg-green-500"
                           : data.responseRate > 0
@@ -1112,7 +1970,7 @@ const monthlyData = useMemo(() => {
                           : "bg-gray-300"
                       }`}
                     ></div>
-                    <span className="text-xs text-gray-500 ml-1">
+                    <span className="text-[10px] text-gray-500 ml-1">
                       {data.responseRate}%
                     </span>
                   </div>
@@ -1121,63 +1979,68 @@ const monthlyData = useMemo(() => {
             })}
           </div>
 
-          <div className="mt-4 flex items-center justify-center space-x-4 text-xs text-gray-600">
+          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-center space-x-4 text-[11px] text-gray-600">
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-gbp-blue-500 rounded mr-2"></div>
+              <div className="w-2.5 h-2.5 bg-gbp-blue-500 rounded mr-1.5"></div>
               <span>Reviews</span>
             </div>
             <div className="flex items-center">
-              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-              <span>100% Response Rate</span>
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></div>
+              <span>100% Response</span>
             </div>
             <div className="flex items-center">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
-              <span>Partial Response</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-gray-300 rounded-full mr-2"></div>
-              <span>No Response</span>
+              <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full mr-1.5"></div>
+              <span>Partial</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        {/* Days Since Last Review */}
+        <div className="bg-white rounded-lg p-5 border border-gray-200">
+          <h3 className="text-base font-semibold text-gray-900 mb-3">
             Days since last review
           </h3>
-          <div className="h-48 flex items-center justify-center">
+          <div className="h-40 flex items-center justify-center">
             <div className="text-center">
-              <div className="w-32 h-32 rounded-full border-8 border-gbp-blue-500 flex items-center justify-center mb-4">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
+              <div className="relative inline-flex items-center justify-center">
+                <svg className="w-36 h-36 transform -rotate-90">
+                  <circle
+                    cx="72"
+                    cy="72"
+                    r="60"
+                    stroke="#E5E7EB"
+                    strokeWidth="10"
+                    fill="none"
+                  />
+                  <circle
+                    cx="72"
+                    cy="72"
+                    r="60"
+                    stroke="#3B82F6"
+                    strokeWidth="10"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 60}`}
+                    strokeDashoffset="0"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <p className="text-4xl font-bold text-gray-900">
                     {daysSinceLastReview}
                   </p>
-
-                  <p className="text-xs text-gray-500">days</p>
+                  <p className="text-xs text-gray-500 mt-1">days</p>
                 </div>
               </div>
-              <p className="text-sm text-gray-600">
-                Last review was{" "}
-                {latestReviewDate
-                  ? latestReviewDate.toLocaleDateString()
+              <p className="text-xs text-gray-600 mt-3">
+                Last review: {latestReviewDate
+                  ? latestReviewDate.toLocaleDateString('en-US', { 
+                      month: '2-digit', 
+                      day: '2-digit', 
+                      year: 'numeric' 
+                    })
                   : "N/A"}
               </p>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Ideas to get more reviews */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Ideas to get more reviews
-        </h3>
-        <div className="space-y-3">
-          <div className="flex items-start space-x-3 p-3 bg-gbp-blue-50 rounded-lg">
-            <div className="w-2 h-2 bg-gbp-blue-500 rounded-full mt-2"></div>
-            <p className="text-sm text-gray-700">
-              Send your review request link to customers or display a QR code at your business location. You can include it on business cards, receipts, or use table displays to make it easy for customers to leave reviews.
-            </p>
           </div>
         </div>
       </div>
@@ -1186,14 +2049,16 @@ const monthlyData = useMemo(() => {
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Reviews</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              All Reviews ({sortedReviews.length})
+            </h3>
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Sort by:</span>
+                <span className="text-sm text-gray-600">Sort:</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="border border-gray-200 rounded px-3 py-1 text-sm"
+                  className="border border-gray-200 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-gbp-blue-500"
                 >
                   <option value="latest">Latest</option>
                   <option value="oldest">Oldest</option>
@@ -1202,11 +2067,11 @@ const monthlyData = useMemo(() => {
                 </select>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Filter by:</span>
+                <span className="text-sm text-gray-600">Filter:</span>
                 <select
                   value={filterRating}
                   onChange={(e) => setFilterRating(e.target.value)}
-                  className="border border-gray-200 rounded px-3 py-1 text-sm"
+                  className="border border-gray-200 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-gbp-blue-500"
                 >
                   <option value="all">All Ratings</option>
                   <option value="5">5 Stars</option>
@@ -1216,42 +2081,47 @@ const monthlyData = useMemo(() => {
                   <option value="1">1 Star</option>
                 </select>
               </div>
-              <button className="border border-gray-200 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50">
-                <Filter className="w-4 h-4" />
-              </button>
             </div>
           </div>
         </div>
 
         <div className="p-6">
-          {reviews.length === 0 ? (
-            <div className="text-center py-8">
-              <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">No reviews</p>
-              <button className="mt-4 bg-gbp-blue-500 text-white px-6 py-2 rounded-lg">
-                Request Reviews
-              </button>
+          {sortedReviews.length === 0 ? (
+            <div className="text-center py-12">
+              <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg mb-2">No reviews found</p>
+              <p className="text-gray-400 text-sm mb-6">
+                {filterRating !== "all" 
+                  ? "Try changing your filter settings"
+                  : "Start collecting reviews from your customers"}
+              </p>
+              {filterRating === "all" && (
+                <button className="bg-gbp-blue-500 text-white px-6 py-3 rounded-lg hover:bg-gbp-blue-600 transition-colors">
+                  Request Reviews
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
               {sortedReviews.map((review) => (
                 <div
                   key={review.id}
-                  className="border border-gray-200 rounded-lg p-4"
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                          <span className="text-xs font-medium text-gray-600">
+                        <div className="w-10 h-10 bg-gradient-to-br from-gbp-blue-400 to-gbp-blue-600 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-semibold text-white">
                             {review.author
                               .split(" ")
                               .map((n) => n[0])
-                              .join("")}
+                              .join("")
+                              .substring(0, 2)}
                           </span>
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-semibold text-gray-900">
                             {review.author}
                           </p>
                           <div className="flex items-center space-x-2">
@@ -1273,12 +2143,16 @@ const monthlyData = useMemo(() => {
                           </div>
                         </div>
                       </div>
-                      <p className="text-gray-700 text-sm mb-3">
-                        {review.text}
-                      </p>
-                      <div className="flex items-center space-x-3">
+                      
+                      {review.text && (
+                        <p className="text-gray-700 text-sm mb-3 leading-relaxed">
+                          {review.text}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center space-x-3 mb-3">
                         <span
-                          className={`text-xs px-2 py-1 rounded-full ${
+                          className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                             review.sentiment === "positive"
                               ? "bg-green-100 text-green-700"
                               : review.sentiment === "negative"
@@ -1288,59 +2162,84 @@ const monthlyData = useMemo(() => {
                         >
                           {review.sentiment}
                         </span>
-                        {!review.replied && !review.ownerReplyText && (
-                          <button
-                            onClick={() => handleEditToggle(review.id)}
-                            className="text-xs text-gbp-blue-600 hover:text-gbp-blue-700"
-                          >
-                            Reply
-                          </button>
-                        )}
                       </div>
 
                       {/* Owner Response Section */}
-                      <div className="mt-4 pt-3 border-t border-gray-100">
-                        <p className="text-sm font-semibold text-gray-800 mb-2">
-                          Owner's Response:
-                        </p>
-                        {review.isEditingReply ? (
-                          <textarea
-                            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-gbp-blue-500 focus:border-gbp-blue-500"
-                            rows={3}
-                            value={review.ownerReplyText}
-                            onChange={(e) =>
-                              handleOwnerResponseChange(review.id, e.target.value)
-                            }
-                          />
-                        ) : (
-                          <p className="text-gray-600 text-sm italic">
-                            {review.ownerReplyText || "No response yet."}
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-semibold text-gray-800">
+                            Owner's Response
                           </p>
-                        )}
-                        <div className="flex justify-end mt-2 space-x-2">
-                          {review.isEditingReply ? (
+                          {review.replied && !review.isEditingReply && (
                             <button
-                              onClick={() => handleSaveResponse(review.id)}
-                              className="bg-gbp-blue-500 text-white px-4 py-1.5 rounded-md text-sm hover:bg-gbp-blue-600 transition-colors"
+                              onClick={() => handleDeleteResponse(review.id)}
+                              disabled={deletingReplyId === review.id}
+                              className="text-red-600 hover:text-red-700 text-xs flex items-center space-x-1 disabled:opacity-50"
                             >
-                              Save
+                              {deletingReplyId === review.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3 h-3" />
+                              )}
+                              <span>Delete</span>
                             </button>
-                          ) : (
-                            (review.ownerReplyText || !review.replied) && (
-                              <button
-                                onClick={() => handleEditToggle(review.id)}
-                                className="text-gbp-blue-600 border border-gbp-blue-600 px-4 py-1.5 rounded-md text-sm hover:bg-gbp-blue-50 transition-colors"
-                              >
-                                {review.ownerReplyText ? "Edit" : "Add Reply"}
-                              </button>
-                            )
                           )}
                         </div>
+                        
+                        {review.isEditingReply ? (
+                          <div>
+                            <textarea
+                              className="w-full p-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-gbp-blue-500 focus:border-gbp-blue-500 transition-all"
+                              rows={3}
+                              value={review.ownerReplyText}
+                              onChange={(e) =>
+                                handleOwnerResponseChange(review.id, e.target.value)
+                              }
+                              placeholder="Write your response..."
+                            />
+                            <div className="flex justify-end mt-2 space-x-2">
+                              <button
+                                onClick={() => handleEditToggle(review.id)}
+                                className="text-gray-600 border border-gray-300 px-4 py-1.5 rounded-md text-sm hover:bg-gray-50 transition-colors"
+                                disabled={savingReplyId === review.id}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => handleSaveResponse(review.id)}
+                                disabled={savingReplyId === review.id || !review.ownerReplyText.trim()}
+                                className="bg-gbp-blue-500 text-white px-4 py-1.5 rounded-md text-sm hover:bg-gbp-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                              >
+                                {savingReplyId === review.id && (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                )}
+                                <span>{savingReplyId === review.id ? "Saving..." : "Save Reply"}</span>
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            {review.ownerReplyText ? (
+                              <div className="bg-gray-50 rounded-lg p-3 mb-2">
+                                <p className="text-gray-700 text-sm leading-relaxed">
+                                  {review.ownerReplyText}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-gray-400 text-sm italic mb-2">
+                                No response yet
+                              </p>
+                            )}
+                            <button
+                              onClick={() => handleEditToggle(review.id)}
+                              className="text-gbp-blue-600 border border-gbp-blue-600 px-4 py-1.5 rounded-md text-sm hover:bg-gbp-blue-50 transition-colors"
+                            >
+                              {review.ownerReplyText ? "Edit Reply" : "Add Reply"}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
                   </div>
                 </div>
               ))}

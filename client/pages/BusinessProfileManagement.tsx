@@ -36,7 +36,9 @@ import {
   RefreshCw,
   Save,
   Settings,
+  Plus, X, Cloud
 } from "lucide-react";
+
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
