@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { SERVER } from "@/constants";
@@ -36,7 +35,10 @@ import {
   RefreshCw,
   Save,
   Settings,
-  Plus, X, Cloud
+  Plus,
+  X,
+  Cloud,
+  ChevronDown,
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
@@ -44,7 +46,6 @@ import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import * as Yup from "yup";
 
-// Define TypeScript interfaces (unchanged)
 interface BusinessProfile {
   name: string;
   title: string;
@@ -123,160 +124,22 @@ interface BusinessProfile {
   };
 }
 
-interface ApiResponse {
-  location: {
-    _id: string;
-    name: string;
-    account: string;
-    title: string;
-    category?: string;
-    description?: string;
-    phoneNumbers?: {
-      primary: string;
-      secondary?: string;
-    };
-    websiteUri?: string;
-    storefrontAddress: {
-      regionCode: string;
-      languageCode: string;
-      postalCode: string;
-      administrativeArea: string;
-      locality: string;
-      addressLines: string[];
-    };
-    rawGoogleData: {
-      regularHours: Array<{
-        openDay: string;
-        openTime: { hours: number; minutes?: number };
-        closeDay: string;
-        closeTime: { hours: number; minutes?: number };
-      }>;
-      specialHours: any;
-      moreHours: any[];
-      profile: any;
-      serviceArea: any;
-    };
-    stats: {
-      hasWebsite: boolean;
-      hasPhoneNumber: boolean;
-      hasRegularHours: boolean;
-      isVerified?: boolean;
-    };
-  };
-}
-
 interface ILocation {
   _id: string;
-  name: string;
-  __v: number;
-  info: {
-    accountHandoverEmail: boolean;
-    businessCategory: string | null;
-    businessCategoryId: string | null;
-    businessLocation: string;
-    cities: string[];
-    seoKeywords: string[];
-    reviewIdea: string;
-    copyGBPImagesLastRun: string;
-    profileCompleteness: number;
-    serviceItemsCount: number;
-    attributesCount: number;
-    daysOpenPerWeek: number;
-    isAlwaysOpen: boolean;
-  };
-  latlng: {
-    latitude: number;
-    longitude: number;
-  };
-  metadata: {
-    canModifyServiceList: boolean;
-    mapsUri: string;
-    newReviewUri: string;
-    placeId: string;
-    hasGoogleUpdated: boolean;
-    canDelete: boolean;
-    hasVoiceOfMerchant: boolean;
-    photoCount: number;
-  };
-  placeInfo: {
-    placeIds: string[];
-  };
-  responseLanguage: string;
-  storefrontAddress: {
-    regionCode: string;
-    languageCode: string;
-    postalCode: string;
-    administrativeArea: string;
-    locality: string;
-    addressLines: string[];
-  };
   title: string;
-  slug: string;
-  stats: {
-    averageRating: number;
-    reviewCount: number;
-    photoCount: number;
-    automationScore: number;
-    optimisationScore: number;
-    engagementScore: number;
-    profileCompletenessScore: number;
-    serviceItemsCount: number;
-    attributesCount: number;
-    daysOpenPerWeek: number;
-    hasWebsite: boolean;
-    hasPhoneNumber: boolean;
-    lastUpdated: string;
-    dataFetchedAt: string;
-    insights: Record<string, any>;
-    completenessFactors: {
-      has_website: boolean;
-      has_phone: boolean;
-      has_regular_hours: boolean;
-      has_address: boolean;
-      has_categories: boolean;
-      has_services: boolean;
-    };
-    businessStatus: string;
-    canReopen: boolean;
-    isVerified: boolean;
-    hasRegularHours: boolean;
-    hasSpecialHours: boolean;
-    hasMoreHours: boolean;
-  };
-  accessLevels: {
-    accessLevel: string;
-    isOverdue: boolean;
-  }[];
-  isSubscribed: boolean;
-  rawGoogleData: {
-    serviceItems: any[];
-    labels: any[];
-    regularHours: {
-      openDay: string;
-      openTime: {
-        hours: number;
-      };
-      closeDay: string;
-      closeTime: {
-        hours: number;
-      };
-    }[];
-    specialHours: Record<string, any>;
-    moreHours: any[];
-    openInfo: {
-      status: string;
-      canReopen: boolean;
-    };
-    categories: Record<string, any>;
-    profile: Record<string, any>;
-    relationshipData: Record<string, any>;
-    serviceArea: Record<string, any>;
-    adWordsLocationExtensions: Record<string, any>;
-    storeCode: string;
-  };
+  phone?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  description?: string;
+  websiteUri?: string;
+  primaryCategoryName?: string;
+  stats?: any;
+  rawGoogleData?: any;
+  [key: string]: any;
 }
 
-// Validation schema using Yup (unchanged)
 const validationSchema = Yup.object({
   name: Yup.string().required("Business name is required"),
   title: Yup.string().required("Business title is required"),
@@ -291,7 +154,6 @@ const validationSchema = Yup.object({
   }),
 });
 
-// Days of the week and business categories (unchanged)
 const daysOfWeek = [
   { value: "MONDAY", label: "Monday" },
   { value: "TUESDAY", label: "Tuesday" },
@@ -316,7 +178,6 @@ const businessCategories = [
   "Other",
 ];
 
-// Utility function to get changed fields and their paths
 const getChangedFields = (
   initialValues: any,
   currentValues: any,
@@ -348,7 +209,6 @@ const getChangedFields = (
       return undefined;
     }
 
-    // object
     const subChanged: any = {};
     let hasChange = false;
     Object.keys(current).forEach((key) => {
@@ -372,13 +232,12 @@ const getChangedFields = (
   return { changed: nested || {}, paths };
 };
 
-// API service to fetch and update business profile
 const apiService = {
   getBusinessProfile: async (locationId: string, accountId: string) => {
     console.log(
       `Fetching business profile for locationId: ${locationId}, accountId: ${accountId}`,
     );
-    const response = await axios.get<ApiResponse>(
+    const response = await axios.get(
       `${SERVER}/api/v1/locations/${locationId}?account_id=${accountId}`,
       { withCredentials: true },
     );
@@ -396,7 +255,6 @@ const apiService = {
     );
     const response = await axios.patch(
       `${SERVER}/api/v1/accounts/${accountId}/locations/${locationId}`,
-
       payload,
       {
         withCredentials: true,
@@ -407,77 +265,191 @@ const apiService = {
   },
 };
 
+// Fixed transform function
+const transformApiDataToProfile = (data: ILocation | null): BusinessProfile => {
+  if (!data) {
+    return {
+      name: "",
+      title: "",
+      category: "",
+      description: "",
+      openingDate: "",
+      phoneNumbers: {
+        primary: "",
+        secondary: "",
+      },
+      chatEnabled: false,
+      websiteUri: "",
+      storefrontAddress: {
+        addressLines: [""],
+        locality: "",
+        administrativeArea: "",
+        postalCode: "",
+        regionCode: "IN",
+      },
+      serviceArea: {
+        businessType: "BUSINESS_LOCATION_ONLY",
+        regionCode: "IN",
+        places: [],
+      },
+      regularHours: {
+        periods: [
+          {
+            openDay: "MONDAY",
+            openTime: "09:00",
+            closeDay: "MONDAY",
+            closeTime: "17:00",
+          },
+        ],
+      },
+      specialHours: [],
+      moreHours: [],
+      accessibility: {
+        wheelchairAccessible: false,
+        wheelchairAccessibleParking: false,
+        wheelchairAccessibleRestroom: false,
+        wheelchairAccessibleSeating: false,
+      },
+      amenities: {
+        wifi: false,
+        parking: false,
+        delivery: false,
+        takeout: false,
+        dineIn: false,
+        curbsidePickup: false,
+        outdoorSeating: false,
+        liveMusic: false,
+        acceptsCreditCards: false,
+        acceptsCash: false,
+        acceptsNfc: false,
+      },
+      crowd: {
+        family: false,
+        groups: false,
+        lgbtqFriendly: false,
+        safespace: false,
+        touristFriendly: false,
+      },
+      parking: {
+        freeParking: false,
+        paidParking: false,
+        streetParking: false,
+        valetParking: false,
+        garageParking: false,
+      },
+      pets: {
+        petsAllowed: false,
+        dogFriendly: false,
+      },
+      serviceOptions: {
+        onlineEstimates: false,
+        onSiteServices: false,
+        languageSpoken: [],
+      },
+    };
+  }
 
-const transformApiDataToProfile = (data: any): BusinessProfile => {
-  // Helper function to format time with minutes
-  const formatTime = (
-    timeObj: { hours: number; minutes?: number } | undefined,
-  ) => {
+  // Helper function to format time
+  const formatTime = (timeObj: any): string => {
     if (!timeObj) return "09:00";
-    const hours = String(timeObj.hours).padStart(2, "0");
+    if (typeof timeObj === "string") return timeObj;
+    const hours = String(timeObj.hours || 9).padStart(2, "0");
     const minutes = String(timeObj.minutes || 0).padStart(2, "0");
     return `${hours}:${minutes}`;
   };
 
   // Helper function to format opening date
-  const formatOpeningDate = (openingDateObj: any) => {
-    if (!openingDateObj) return "";
-    const { year, month, day } = openingDateObj;
+  const formatOpeningDate = (dateObj: any): string => {
+    if (!dateObj) return "";
+    if (typeof dateObj === "string") return dateObj;
+    const { year, month, day } = dateObj;
     if (!year || !month || !day) return "";
-    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(
+      2,
+      "0",
+    )}`;
   };
+
+  // Get raw Google data safely
+  const rawData = data?.rawGoogleData || {};
+  console.log("Raw data for hours:", rawData?.regularHours);
+
+  // Transform regular hours - FIXED
+  let regularHours: Array<{
+    openDay: string;
+    openTime: string;
+    closeDay: string;
+    closeTime: string;
+  }> = [];
+
+  if (rawData?.regularHours) {
+    // Check if it's already an array
+    if (Array.isArray(rawData.regularHours)) {
+      regularHours = rawData.regularHours.map((period: any) => ({
+        openDay: period.openDay || "MONDAY",
+        openTime: formatTime(period.openTime),
+        closeDay: period.closeDay || "MONDAY",
+        closeTime: formatTime(period.closeTime),
+      }));
+    } else if (typeof rawData.regularHours === "object") {
+      // If it's an object with periods property
+      const periods = rawData.regularHours.periods;
+      if (Array.isArray(periods)) {
+        regularHours = periods.map((period: any) => ({
+          openDay: period.openDay || "MONDAY",
+          openTime: formatTime(period.openTime),
+          closeDay: period.closeDay || "MONDAY",
+          closeTime: formatTime(period.closeTime),
+        }));
+      }
+    }
+  }
+
+  // Default hours if none found
+  if (regularHours.length === 0) {
+    regularHours = [
+      {
+        openDay: "MONDAY",
+        openTime: "09:00",
+        closeDay: "MONDAY",
+        closeTime: "17:00",
+      },
+    ];
+  }
 
   return {
     name: data?.title || "",
     title: data?.title || "",
     category: data?.primaryCategoryName || "",
     description: data?.description || "",
-    openingDate: formatOpeningDate(data?.rawGoogleData?.openInfo?.openingDate),
+    openingDate: formatOpeningDate(rawData?.openInfo?.openingDate),
     phoneNumbers: {
-      primary:
-        data?.phone || data?.rawGoogleData?.phoneNumbers?.primaryPhone || "",
-      secondary: "",
+      primary: data?.phone || rawData?.phoneNumbers?.primaryPhone || "",
+      secondary: rawData?.phoneNumbers?.secondaryPhone || "",
     },
     chatEnabled: false,
     websiteUri: data?.websiteUri || "",
     storefrontAddress: {
-      addressLines: data?.rawGoogleData?.storefrontAddress?.addressLines || [
+      addressLines: rawData?.storefrontAddress?.addressLines || [
         data?.street || "",
       ],
-      locality:
-        data?.city || data?.rawGoogleData?.storefrontAddress?.locality || "",
+      locality: data?.city || rawData?.storefrontAddress?.locality || "",
       administrativeArea:
-        data?.state ||
-        data?.rawGoogleData?.storefrontAddress?.administrativeArea ||
-        "",
+        data?.state || rawData?.storefrontAddress?.administrativeArea || "",
       postalCode:
-        data?.postalCode ||
-        data?.rawGoogleData?.storefrontAddress?.postalCode ||
-        "",
-      regionCode:
-        data?.regionCode ||
-        data?.rawGoogleData?.storefrontAddress?.regionCode ||
-        "IN",
+        data?.postalCode || rawData?.storefrontAddress?.postalCode || "",
+      regionCode: rawData?.storefrontAddress?.regionCode || "IN",
     },
     serviceArea: {
       businessType: "BUSINESS_LOCATION_ONLY",
-      regionCode:
-        data?.regionCode ||
-        data?.rawGoogleData?.storefrontAddress?.regionCode ||
-        "IN",
+      regionCode: rawData?.storefrontAddress?.regionCode || "IN",
       places: [],
     },
     regularHours: {
-      periods:
-        data?.regularHours?.periods?.map((period: any) => ({
-          openDay: period.openDay || "MONDAY",
-          openTime: formatTime(period.openTime),
-          closeDay: period.closeDay || "MONDAY",
-          closeTime: formatTime(period.closeTime),
-        })) || [],
+      periods: regularHours,
     },
-    specialHours: data?.specialHours || data?.rawGoogleData?.specialHours || [],
-    moreHours: data?.moreHours || data?.rawGoogleData?.moreHours || [],
+    specialHours: rawData?.specialHours || [],
+    moreHours: rawData?.moreHours || [],
     accessibility: {
       wheelchairAccessible: false,
       wheelchairAccessibleParking: false,
@@ -523,40 +495,51 @@ const transformApiDataToProfile = (data: any): BusinessProfile => {
   };
 };
 
-
 export default function BusinessProfileManagement() {
   const [location, setLocation] = useState<ILocation | null>(null);
-  const { locationName, accountId } = useParams<{
-    locationName: string;
-    accountId: string;
-  }>();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [aiSuggestionsLoading, setAiSuggestionsLoading] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [aiSuggestionsError, setAiSuggestionsError] = useState(null);
+
   const { user } = useSelector((state: RootState) => state.user);
   const params = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Fetch location details
-  async function fetchLocationDetails({ id }: { id: string }) {
-    setIsLoading(true);
+  async function fetchLocationDetails(id: string) {
     try {
-      const res = await axios.get(`${SERVER}/api/v1/locations/${id}?account_id=${user?.accountId}`, {
-        withCredentials: true,
-      });
+      setIsLoading(true);
+      setError(null);
+      const res = await axios.get(
+        `${SERVER}/api/v1/locations/${id}?account_id=${user?.accountId}`,
+        {
+          withCredentials: true,
+        },
+      );
       console.log("LocationDetails", res.data);
       if (res.data?.location) {
         setLocation(res.data.location);
-        setIsLoading(false);
+      } else {
+        setError("Failed to load location data");
       }
-    } catch (error) {
-      console.error("Failed to fetch location details", error);
+    } catch (err: any) {
+      console.error("Failed to fetch location details", err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to load business profile";
+      setError(errorMessage);
+    } finally {
       setIsLoading(false);
     }
   }
 
   useEffect(() => {
     if (params?.locationId && user) {
-      fetchLocationDetails({ id: params?.locationId });
+      fetchLocationDetails(params.locationId);
     }
   }, [params?.locationId, user]);
 
@@ -567,7 +550,6 @@ export default function BusinessProfileManagement() {
     validationSchema,
     enableReinitialize: true,
     onSubmit: async (values, { setStatus }) => {
-      // Get changed fields and their paths
       const { changed, paths } = getChangedFields(formik.initialValues, values);
       console.log("Changed data:", changed);
       console.log("Changed paths:", paths);
@@ -577,7 +559,6 @@ export default function BusinessProfileManagement() {
         return;
       }
 
-      // Prepare payload with location and updateMask
       const payload = {
         location: changed,
         updateMask: paths.join(","),
@@ -593,15 +574,14 @@ export default function BusinessProfileManagement() {
     },
   });
 
-  console.log("Formik errors:", formik.errors);
-
+  // Update initial values when location loads
   useEffect(() => {
     if (location) {
-      formik.setValues(transformApiDataToProfile(location));
+      const transformed = transformApiDataToProfile(location);
+      formik.setValues(transformed);
     }
   }, [location]);
 
-  // Mutation for updating profile with PATCH
   const updateProfileMutation = useMutation({
     mutationFn: ({
       accountId,
@@ -615,18 +595,17 @@ export default function BusinessProfileManagement() {
     onSuccess: (response) => {
       console.log("Profile patch successful:", response);
       queryClient.invalidateQueries({
-        queryKey: ["businessProfile", locationName, accountId],
+        queryKey: ["businessProfile", params?.locationId],
       });
       formik.setStatus("success");
       setTimeout(() => formik.setStatus("idle"), 3000);
     },
-    onError: (err) => {
+    onError: (err: any) => {
       console.error("Error patching profile:", err);
       formik.setStatus("error");
     },
   });
 
-  // Add hours period
   const addHoursPeriod = () => {
     formik.setFieldValue("regularHours.periods", [
       ...formik.values.regularHours.periods,
@@ -639,7 +618,6 @@ export default function BusinessProfileManagement() {
     ]);
   };
 
-  // Remove hours period
   const removeHoursPeriod = (index: number) => {
     formik.setFieldValue(
       "regularHours.periods",
@@ -647,101 +625,97 @@ export default function BusinessProfileManagement() {
     );
   };
 
-  // Add these state variables at the top of your component (after other useState declarations)
-  const [aiSuggestionsLoading, setAiSuggestionsLoading] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState(null);
-  const [aiSuggestionsError, setAiSuggestionsError] = useState(null);
-
-  // Add these functions after your other function declarations
-  // Function to generate AI suggestions
   const handleGenerateAISuggestions = async () => {
     setAiSuggestionsLoading(true);
     setAiSuggestionsError(null);
 
     try {
-      // Get locationId and accountId from the component's state/params
       const locationId = params?.locationId;
       const accountId = user?.accountId;
 
       if (!locationId || !accountId) {
-        setAiSuggestionsError('Missing location ID or account ID. Please try refreshing the page.');
+        setAiSuggestionsError(
+          "Missing location ID or account ID. Please try refreshing the page.",
+        );
         return;
       }
 
       const response = await axios.post(
         `${SERVER}/api/v1/locations/${locationId}/description-suggestions?account_id=${accountId}&tone_preference=all`,
-        {}, // Empty body since it's a POST request
+        {},
         {
           withCredentials: true,
           headers: {
-            'Content-Type': 'application/json',
-          }
-        }
+            "Content-Type": "application/json",
+          },
+        },
       );
 
-      if (response.data.success && response.data.data && response.data.data.suggestions) {
+      if (
+        response.data.success &&
+        response.data.data &&
+        response.data.data.suggestions
+      ) {
         setAiSuggestions({
           professional: response.data.data.suggestions.professional,
           modern: response.data.data.suggestions.modern,
-          friendly: response.data.data.suggestions.friendly
+          friendly: response.data.data.suggestions.friendly,
         });
       } else {
-        console.error('AI suggestions not found in response:', response.data);
-        setAiSuggestionsError('Failed to generate AI suggestions. Please try again.');
+        console.error("AI suggestions not found in response:", response.data);
+        setAiSuggestionsError(
+          "Failed to generate AI suggestions. Please try again.",
+        );
       }
-    } catch (error) {
-      console.error('Error generating AI suggestions:', error);
+    } catch (error: any) {
+      console.error("Error generating AI suggestions:", error);
       if (error.response) {
-        // Server responded with error status
-        const errorMessage = error.response.data?.detail?.error ||
+        const errorMessage =
+          error.response.data?.detail?.error ||
           error.response.data?.message ||
           `Server error: ${error.response.status}`;
         setAiSuggestionsError(errorMessage);
       } else if (error.request) {
-        // Network error
-        setAiSuggestionsError('Network error. Please check your connection and try again.');
+        setAiSuggestionsError(
+          "Network error. Please check your connection and try again.",
+        );
       } else {
-        // Other error
-        setAiSuggestionsError('An unexpected error occurred. Please try again.');
+        setAiSuggestionsError(
+          "An unexpected error occurred. Please try again.",
+        );
       }
     } finally {
       setAiSuggestionsLoading(false);
     }
   };
 
-  // Function to approve a specific description
-  const handleApproveDescription = (type) => {
-    const selectedDescription = aiSuggestions[type];
-    formik.setFieldValue('description', selectedDescription);
-
-    // Mark this suggestion as selected instead of hiding all suggestions
-    setAiSuggestions(prev => ({
+  const handleApproveDescription = (type: string) => {
+    const selectedDescription =
+      aiSuggestions[type as keyof typeof aiSuggestions];
+    formik.setFieldValue("description", selectedDescription);
+    setAiSuggestions((prev) => ({
       ...prev,
-      selectedType: type
+      selectedType: type,
     }));
   };
 
-  // Function to generate new suggestions
   const handleGenerateNewSuggestions = () => {
-    setAiSuggestionsError(null); // Clear any existing errors
+    setAiSuggestionsError(null);
     handleGenerateAISuggestions();
   };
 
-  // Function to discard all suggestions
   const handleDiscardSuggestions = () => {
     setAiSuggestions(null);
     setAiSuggestionsError(null);
   };
 
-  // Handle refresh
   const handleRefresh = () => {
     console.log("Refreshing business profile...");
-    queryClient.invalidateQueries({
-      queryKey: ["businessProfile", locationName, accountId],
-    });
+    if (params?.locationId) {
+      fetchLocationDetails(params.locationId);
+    }
   };
 
-  // Handle invalid parameters
   if (!params?.locationId) {
     return (
       <div className="p-6 bg-gray-50 min-h-full">
@@ -766,9 +740,41 @@ export default function BusinessProfileManagement() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-full">
+        <div className="flex items-center justify-center py-12">
+          <Card className="w-full max-w-md border-red-200 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-red-600 flex items-center space-x-2">
+                <AlertCircle className="w-5 h-5" />
+                <span>Error Loading Profile</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-red-700">{error}</p>
+              <Button
+                onClick={handleRefresh}
+                className="w-full bg-red-600 hover:bg-red-700 text-white"
+              >
+                Try Again
+              </Button>
+              <Button
+                onClick={() => navigate("/businesses")}
+                variant="outline"
+                className="w-full"
+              >
+                Back to Businesses
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 bg-gray-50 min-h-full">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
           <Button
@@ -791,7 +797,6 @@ export default function BusinessProfileManagement() {
         </div>
 
         <div className="flex items-center space-x-3">
-          {/* Save Status */}
           {formik.status === "success" && (
             <div className="flex items-center space-x-2 text-green-600">
               <CheckCircle className="w-4 h-4" />
@@ -805,13 +810,12 @@ export default function BusinessProfileManagement() {
             </div>
           )}
 
-          {/* Action Buttons */}
           <Button
             variant="outline"
             size="sm"
             onClick={handleRefresh}
             disabled={isLoading}
-            className="flex items-center space-x-2 bg-gbp-blue-500 hover:bg-gbp-blue-600 border-gbp-blue-500 text-white hover:text-white disabled:bg-gbp-blue-300 disabled:border-gbp-blue-300"
+            className="flex items-center space-x-2 bg-gbp-blue-500 hover:bg-gbp-blue-600 border-gbp-blue-500 text-white hover:text-white disabled:bg-gbp-blue-300"
           >
             {isLoading ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -825,7 +829,7 @@ export default function BusinessProfileManagement() {
             //@ts-ignore
             onClick={formik.handleSubmit}
             disabled={updateProfileMutation.isPending || !formik.dirty}
-            className="flex items-center space-x-2 bg-gbp-blue-500 hover:bg-gbp-blue-600 border-gbp-blue-500 text-white hover:text-white"
+            className="flex items-center space-x-2 bg-gbp-blue-500 hover:bg-gbp-blue-600 text-white hover:text-white"
           >
             {updateProfileMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -837,7 +841,6 @@ export default function BusinessProfileManagement() {
         </div>
       </div>
 
-      {/* Dirty State Indicator */}
       {formik.dirty && (
         <div className="mb-4 p-3 bg-gbp-blue-50 border border-gbp-blue-200 rounded-lg">
           <div className="flex items-center space-x-2">
@@ -849,7 +852,6 @@ export default function BusinessProfileManagement() {
         </div>
       )}
 
-      {/* Main Content */}
       <div className="bg-white rounded-lg border border-gray-200">
         <Tabs defaultValue="business-info" className="w-full">
           <TabsList className="grid w-full grid-cols-5 rounded-t-lg bg-[#eff6ff] border-b border-gbp-blue-200">
@@ -891,124 +893,6 @@ export default function BusinessProfileManagement() {
           </TabsList>
 
           {/* Business Information Tab */}
-          {/* <TabsContent value="business-info" className="">
-            <Card className="bg-[#eff6ff] border-gbp-blue-200">
-              <CardHeader>
-                <CardTitle className="text-black">
-                  Business Information
-                </CardTitle>
-                <CardDescription className="text-gray-600">
-                  Basic information about your business
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-black font-medium">
-                      Business Name
-                    </Label>
-                    <Input
-                      id="name"
-                      {...formik.getFieldProps("name")}
-                      placeholder="Enter business name"
-                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
-                    />
-                    {formik.touched.name && formik.errors.name && (
-                      <span className="text-red-600 text-sm">
-                        {formik.errors.name}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="title" className="text-black font-medium">
-                      Business Title
-                    </Label>
-                    <Input
-                      id="title"
-                      {...formik.getFieldProps("title")}
-                      placeholder="Enter business title"
-                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
-                    />
-                    {formik.touched.title && formik.errors.title && (
-                      <span className="text-red-600 text-sm">
-                        {formik.errors.title}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="category"
-                      className="text-black font-medium"
-                    >
-                      Business Category
-                    </Label>
-                    <Select
-                      value={formik.values.category}
-                      onValueChange={(value) =>
-                        formik.setFieldValue("category", value)
-                      }
-                    >
-                      <SelectTrigger className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black">
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent className="border-gbp-blue-200 bg-white max-h-[200px] overflow-y-auto">
-                        {businessCategories.map((category) => (
-                          <SelectItem
-                            key={category}
-                            value={category}
-                            className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
-                          >
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {formik.touched.category && formik.errors.category && (
-                      <span className="text-red-600 text-sm">
-                        {formik.errors.category}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="openingDate"
-                      className="text-black font-medium"
-                    >
-                      Opening Date
-                    </Label>
-                    <Input
-                      id="openingDate"
-                      type="date"
-                      {...formik.getFieldProps("openingDate")}
-                      className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="description"
-                    className="text-black font-medium"
-                  >
-                    Description
-                  </Label>
-                  <Textarea
-                    id="description"
-                    rows={4}
-                    {...formik.getFieldProps("description")}
-                    placeholder="Describe your business..."
-                    className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400 resize-none"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent> */}
-
           <TabsContent value="business-info" className="">
             <Card className="bg-[#eff6ff] border-gbp-blue-200">
               <CardHeader>
@@ -1057,40 +941,14 @@ export default function BusinessProfileManagement() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="category"
-                      className="text-black font-medium"
-                    >
-                      Business Category
-                    </Label>
-                    <Select
-                      value={formik.values.category}
-                      onValueChange={(value) =>
-                        formik.setFieldValue("category", value)
-                      }
-                    >
-                      <SelectTrigger className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black">
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent className="border-gbp-blue-200 bg-white max-h-[200px] overflow-y-auto">
-                        {businessCategories.map((category) => (
-                          <SelectItem
-                            key={category}
-                            value={category}
-                            className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
-                          >
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {formik.touched.category && formik.errors.category && (
-                      <span className="text-red-600 text-sm">
-                        {formik.errors.category}
-                      </span>
-                    )}
-                  </div>
+                  <CategorySelect
+                    value={formik.values.category}
+                    onChange={(value) =>
+                      formik.setFieldValue("category", value)
+                    }
+                    error={formik.errors.category}
+                    touched={formik.touched.category}
+                  />
 
                   <div className="space-y-2">
                     <Label
@@ -1125,16 +983,14 @@ export default function BusinessProfileManagement() {
                 </div>
 
                 {/* AI Suggestions Section */}
-
-                {/* AI Suggestions Section */}
-                <div className="space-y-4">
+                <div className="space-y-4 border-t border-gbp-blue-200 pt-6">
                   {/* AI Loading State */}
                   {aiSuggestionsLoading && (
                     <div className="flex items-center justify-center py-8">
                       <div className="flex items-center space-x-3">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gbp-blue-500"></div>
                         <span className="text-gbp-blue-600 font-medium">
-                          Loading your AI suggestions...
+                          Generating AI suggestions...
                         </span>
                       </div>
                     </div>
@@ -1143,119 +999,124 @@ export default function BusinessProfileManagement() {
                   {/* Error State */}
                   {aiSuggestionsError && !aiSuggestionsLoading && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <div className="flex items-center space-x-2">
-                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                      <div className="flex items-center space-x-2 mb-2">
+                        <AlertCircle className="w-5 h-5 text-red-500" />
                         <span className="text-red-700 font-medium">Error</span>
                       </div>
-                      <p className="text-red-600 text-sm mt-2">{aiSuggestionsError}</p>
+                      <p className="text-red-600 text-sm mb-3">
+                        {aiSuggestionsError}
+                      </p>
                       <button
                         onClick={() => {
                           setAiSuggestionsError(null);
                           handleGenerateAISuggestions();
                         }}
-                        className="mt-3 px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors text-sm font-medium"
+                        className="px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors text-sm font-medium"
                       >
                         Try Again
                       </button>
                     </div>
                   )}
 
-                  {/* AI Suggestions Containers */}
+                  {/* AI Suggestions Display */}
                   {!aiSuggestionsLoading && aiSuggestions && (
                     <>
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-black mb-4">
-                          AI Generated Descriptions
-                        </h3>
+                      <h3 className="text-lg font-semibold text-black mb-4">
+                        AI Generated Descriptions
+                      </h3>
 
-                        {/* Professional Description */}
+                      <div className="space-y-3">
+                        {/* Professional */}
                         <div className="bg-white border border-gbp-blue-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                          <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-start justify-between mb-3">
                             <h4 className="font-medium text-black flex items-center">
                               <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                              Professional Description
+                              Professional
                             </h4>
                             <button
-                              onClick={() => handleApproveDescription('professional')}
+                              onClick={() =>
+                                handleApproveDescription("professional")
+                              }
                               className="px-3 py-1 text-xs bg-gbp-blue-50 text-gbp-blue-600 rounded-md hover:bg-gbp-blue-100 transition-colors"
                             >
                               Use This
                             </button>
                           </div>
                           <p className="text-gray-700 text-sm leading-relaxed">
-                            {aiSuggestions.professional || "Loading professional description..."}
+                            {aiSuggestions.professional}
                           </p>
                         </div>
 
-                        {/* Modern Description */}
+                        {/* Modern */}
                         <div className="bg-white border border-gbp-blue-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                          <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-start justify-between mb-3">
                             <h4 className="font-medium text-black flex items-center">
                               <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                              Modern Description
+                              Modern
                             </h4>
                             <button
-                              onClick={() => handleApproveDescription('modern')}
+                              onClick={() => handleApproveDescription("modern")}
                               className="px-3 py-1 text-xs bg-gbp-blue-50 text-gbp-blue-600 rounded-md hover:bg-gbp-blue-100 transition-colors"
                             >
                               Use This
                             </button>
                           </div>
                           <p className="text-gray-700 text-sm leading-relaxed">
-                            {aiSuggestions.modern || "Loading modern description..."}
+                            {aiSuggestions.modern}
                           </p>
                         </div>
 
-                        {/* Friendly Description */}
+                        {/* Friendly */}
                         <div className="bg-white border border-gbp-blue-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                          <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-start justify-between mb-3">
                             <h4 className="font-medium text-black flex items-center">
                               <span className="inline-block w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-                              Friendly Description
+                              Friendly
                             </h4>
                             <button
-                              onClick={() => handleApproveDescription('friendly')}
+                              onClick={() =>
+                                handleApproveDescription("friendly")
+                              }
                               className="px-3 py-1 text-xs bg-gbp-blue-50 text-gbp-blue-600 rounded-md hover:bg-gbp-blue-100 transition-colors"
                             >
                               Use This
                             </button>
                           </div>
                           <p className="text-gray-700 text-sm leading-relaxed">
-                            {aiSuggestions.friendly || "Loading friendly description..."}
+                            {aiSuggestions.friendly}
                           </p>
                         </div>
                       </div>
 
-                      {/* Approve/Discard Buttons */}
-                      <div className="flex justify-center space-x-4 pt-4 border-t border-gbp-blue-200">
+                      {/* Action Buttons */}
+                      <div className="flex justify-center gap-3 pt-4 border-t border-gbp-blue-200">
                         <button
                           onClick={handleGenerateNewSuggestions}
-                          className="px-6 py-2 bg-white border border-gbp-blue-200 text-gbp-blue-600 rounded-lg hover:bg-gbp-blue-50 transition-colors font-medium"
+                          className="px-6 py-2 bg-white border border-gbp-blue-200 text-gbp-blue-600 rounded-lg hover:bg-gbp-blue-50 transition-colors font-medium text-sm"
                         >
-                          Generate New Suggestions
+                          Generate New
                         </button>
                         <button
                           onClick={handleDiscardSuggestions}
-                          className="px-6 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium"
+                          className="px-6 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm"
                         >
-                          Discard All
+                          Discard
                         </button>
                       </div>
                     </>
                   )}
 
-                  {/* Generate AI Suggestions Button (when no suggestions are loaded) */}
+                  {/* Generate Button */}
                   {!aiSuggestionsLoading && !aiSuggestions && (
-                    <div className="text-center py-4">
+                    <div className="text-center py-6 bg-gbp-blue-50 rounded-lg border border-gbp-blue-200">
+                      <p className="text-gray-600 mb-4">
+                        Get AI-powered description suggestions for your business
+                      </p>
                       <button
                         onClick={handleGenerateAISuggestions}
-                        className="px-6 py-3 bg-gbp-blue-500 text-white rounded-lg hover:bg-gbp-blue-600 transition-colors font-medium inline-flex items-center space-x-2"
+                        className="px-6 py-2 bg-gbp-blue-500 text-white rounded-lg hover:bg-gbp-blue-600 transition-colors font-medium inline-flex items-center space-x-2"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
+                        <Cloud className="w-4 h-4" />
                         <span>Generate AI Descriptions</span>
                       </button>
                     </div>
@@ -1264,7 +1125,6 @@ export default function BusinessProfileManagement() {
               </CardContent>
             </Card>
           </TabsContent>
-
 
           {/* Contact Information Tab */}
           <TabsContent value="contact" className="p-6">
@@ -1284,13 +1144,13 @@ export default function BusinessProfileManagement() {
                       htmlFor="phoneNumbers.primary"
                       className="text-black font-medium"
                     >
-                      Primary Phone Number
+                      Primary Phone
                     </Label>
                     <Input
                       id="phoneNumbers.primary"
                       type="tel"
                       {...formik.getFieldProps("phoneNumbers.primary")}
-                      placeholder="+1 (555) 123-4567"
+                      placeholder="+91 XXXXX XXXXX"
                       className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
                   </div>
@@ -1300,13 +1160,13 @@ export default function BusinessProfileManagement() {
                       htmlFor="phoneNumbers.secondary"
                       className="text-black font-medium"
                     >
-                      Secondary Phone Number
+                      Secondary Phone
                     </Label>
                     <Input
                       id="phoneNumbers.secondary"
                       type="tel"
                       {...formik.getFieldProps("phoneNumbers.secondary")}
-                      placeholder="+1 (555) 123-4568"
+                      placeholder="+91 XXXXX XXXXX"
                       className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
                   </div>
@@ -1327,7 +1187,6 @@ export default function BusinessProfileManagement() {
                     className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                   />
                 </div>
-
               </CardContent>
             </Card>
           </TabsContent>
@@ -1360,7 +1219,10 @@ export default function BusinessProfileManagement() {
                   {formik.touched.storefrontAddress?.addressLines?.[0] &&
                     formik.errors.storefrontAddress?.addressLines?.[0] && (
                       <span className="text-red-600 text-sm">
-                        {formik.errors.storefrontAddress.addressLines[0]}
+                        {
+                          formik.errors.storefrontAddress
+                            .addressLines[0] as string
+                        }
                       </span>
                     )}
                 </div>
@@ -1376,13 +1238,13 @@ export default function BusinessProfileManagement() {
                     <Input
                       id="storefrontAddress.locality"
                       {...formik.getFieldProps("storefrontAddress.locality")}
-                      placeholder="New York"
+                      placeholder="Jaipur"
                       className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
                     {formik.touched.storefrontAddress?.locality &&
                       formik.errors.storefrontAddress?.locality && (
                         <span className="text-red-600 text-sm">
-                          {formik.errors.storefrontAddress.locality}
+                          {formik.errors.storefrontAddress.locality as string}
                         </span>
                       )}
                   </div>
@@ -1399,13 +1261,16 @@ export default function BusinessProfileManagement() {
                       {...formik.getFieldProps(
                         "storefrontAddress.administrativeArea",
                       )}
-                      placeholder="NY"
+                      placeholder="Rajasthan"
                       className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
                     {formik.touched.storefrontAddress?.administrativeArea &&
                       formik.errors.storefrontAddress?.administrativeArea && (
                         <span className="text-red-600 text-sm">
-                          {formik.errors.storefrontAddress.administrativeArea}
+                          {
+                            formik.errors.storefrontAddress
+                              .administrativeArea as string
+                          }
                         </span>
                       )}
                   </div>
@@ -1420,13 +1285,13 @@ export default function BusinessProfileManagement() {
                     <Input
                       id="storefrontAddress.postalCode"
                       {...formik.getFieldProps("storefrontAddress.postalCode")}
-                      placeholder="10001"
+                      placeholder="302021"
                       className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
                     />
                     {formik.touched.storefrontAddress?.postalCode &&
                       formik.errors.storefrontAddress?.postalCode && (
                         <span className="text-red-600 text-sm">
-                          {formik.errors.storefrontAddress.postalCode}
+                          {formik.errors.storefrontAddress.postalCode as string}
                         </span>
                       )}
                   </div>
@@ -1437,7 +1302,7 @@ export default function BusinessProfileManagement() {
                     htmlFor="serviceArea.businessType"
                     className="text-black font-medium"
                   >
-                    Service Area
+                    Service Area Type
                   </Label>
                   <Select
                     value={formik.values.serviceArea.businessType}
@@ -1450,6 +1315,12 @@ export default function BusinessProfileManagement() {
                     </SelectTrigger>
                     <SelectContent className="border-gbp-blue-200 bg-white">
                       <SelectItem
+                        value="BUSINESS_LOCATION_ONLY"
+                        className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
+                      >
+                        Business Location Only
+                      </SelectItem>
+                      <SelectItem
                         value="CUSTOMER_LOCATION_ONLY"
                         className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
                       >
@@ -1459,13 +1330,7 @@ export default function BusinessProfileManagement() {
                         value="CUSTOMER_AND_BUSINESS_LOCATION"
                         className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
                       >
-                        Customer & Business Location
-                      </SelectItem>
-                      <SelectItem
-                        value="BUSINESS_LOCATION_ONLY"
-                        className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
-                      >
-                        Business Location Only
+                        Both Locations
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -1488,67 +1353,83 @@ export default function BusinessProfileManagement() {
                   {formik.values.regularHours.periods.map((period, index) => (
                     <div
                       key={index}
-                      className="flex items-center space-x-4 p-4 border border-gbp-blue-200 rounded-lg bg-white"
+                      className="flex items-end gap-3 p-4 border border-gbp-blue-200 rounded-lg bg-white"
                     >
-                      <Select
-                        value={period.openDay}
-                        onValueChange={(value) =>
-                          formik.setFieldValue(
-                            `regularHours.periods[${index}].openDay`,
-                            value,
-                          )
-                        }
-                      >
-                        <SelectTrigger className="w-32 border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black">
-                          <SelectValue placeholder="Day" />
-                        </SelectTrigger>
-                        <SelectContent className="border-gbp-blue-200 bg-white">
-                          {daysOfWeek.map((day) => (
-                            <SelectItem
-                              key={day.value}
-                              value={day.value}
-                              className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
-                            >
-                              {day.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex-1">
+                        <Label className="text-xs text-gray-600 mb-1 block">
+                          Day
+                        </Label>
+                        <Select
+                          value={period.openDay}
+                          onValueChange={(value) =>
+                            formik.setFieldValue(
+                              `regularHours.periods[${index}].openDay`,
+                              value,
+                            )
+                          }
+                        >
+                          <SelectTrigger className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="border-gbp-blue-200 bg-white">
+                            {daysOfWeek.map((day) => (
+                              <SelectItem
+                                key={day.value}
+                                value={day.value}
+                                className="hover:bg-gbp-blue-50 focus:bg-gbp-blue-50 text-black cursor-pointer"
+                              >
+                                {day.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                      <Input
-                        type="time"
-                        {...formik.getFieldProps(
-                          `regularHours.periods[${index}].openTime`,
-                        )}
-                        className="w-32 border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
-                      />
+                      <div className="flex-1">
+                        <Label className="text-xs text-gray-600 mb-1 block">
+                          Opens
+                        </Label>
+                        <Input
+                          type="time"
+                          {...formik.getFieldProps(
+                            `regularHours.periods[${index}].openTime`,
+                          )}
+                          className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black text-sm"
+                        />
+                      </div>
 
-                      <span className="text-black font-medium">to</span>
-
-                      <Input
-                        type="time"
-                        {...formik.getFieldProps(
-                          `regularHours.periods[${index}].closeTime`,
-                        )}
-                        className="w-32 border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black"
-                      />
+                      <div className="flex-1">
+                        <Label className="text-xs text-gray-600 mb-1 block">
+                          Closes
+                        </Label>
+                        <Input
+                          type="time"
+                          {...formik.getFieldProps(
+                            `regularHours.periods[${index}].closeTime`,
+                          )}
+                          className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black text-sm"
+                        />
+                      </div>
 
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => removeHoursPeriod(index)}
-                        className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50 bg-white"
+                        className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50 bg-white h-10 px-2"
                       >
-                        Remove
+                        <X className="w-4 h-4" />
                       </Button>
                     </div>
                   ))}
 
                   <Button
+                    type="button"
                     variant="outline"
                     onClick={addHoursPeriod}
                     className="w-full border-gbp-blue-200 text-gbp-blue-600 hover:bg-gbp-blue-50 hover:border-gbp-blue-300 bg-white"
                   >
+                    <Plus className="w-4 h-4 mr-2" />
                     Add Hours Period
                   </Button>
                 </div>
@@ -1576,7 +1457,7 @@ export default function BusinessProfileManagement() {
                             id={`accessibility-${key}`}
                             checked={
                               formik.values.accessibility[
-                              key as keyof BusinessProfile["accessibility"]
+                                key as keyof BusinessProfile["accessibility"]
                               ]
                             }
                             onCheckedChange={(checked) =>
@@ -1607,7 +1488,7 @@ export default function BusinessProfileManagement() {
                 <CardHeader>
                   <CardTitle className="text-black">Amenities</CardTitle>
                   <CardDescription className="text-gray-600">
-                    Services and amenities offered at your business
+                    Services and amenities offered
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -1618,7 +1499,7 @@ export default function BusinessProfileManagement() {
                           id={`amenities-${key}`}
                           checked={
                             formik.values.amenities[
-                            key as keyof BusinessProfile["amenities"]
+                              key as keyof BusinessProfile["amenities"]
                             ]
                           }
                           onCheckedChange={(checked) =>
@@ -1640,50 +1521,12 @@ export default function BusinessProfileManagement() {
                 </CardContent>
               </Card>
 
-              {/* Crowd */}
-              <Card className="bg-[#eff6ff] border-gbp-blue-200">
-                <CardHeader>
-                  <CardTitle className="text-black">Crowd</CardTitle>
-                  <CardDescription className="text-gray-600">
-                    Types of customers your business welcomes
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {Object.entries(formik.values.crowd).map(([key]) => (
-                      <div key={key} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`crowd-${key}`}
-                          checked={
-                            formik.values.crowd[
-                            key as keyof BusinessProfile["crowd"]
-                            ]
-                          }
-                          onCheckedChange={(checked) =>
-                            formik.setFieldValue(`crowd.${key}`, checked)
-                          }
-                          className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
-                        />
-                        <Label
-                          htmlFor={`crowd-${key}`}
-                          className="text-sm text-black cursor-pointer select-none"
-                        >
-                          {key
-                            .replace(/([A-Z])/g, " $1")
-                            .replace(/^./, (str) => str.toUpperCase())}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Parking */}
               <Card className="bg-[#eff6ff] border-gbp-blue-200">
                 <CardHeader>
                   <CardTitle className="text-black">Parking</CardTitle>
                   <CardDescription className="text-gray-600">
-                    Parking options available at your business
+                    Parking options available
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -1694,7 +1537,7 @@ export default function BusinessProfileManagement() {
                           id={`parking-${key}`}
                           checked={
                             formik.values.parking[
-                            key as keyof BusinessProfile["parking"]
+                              key as keyof BusinessProfile["parking"]
                             ]
                           }
                           onCheckedChange={(checked) =>
@@ -1732,7 +1575,7 @@ export default function BusinessProfileManagement() {
                           id={`pets-${key}`}
                           checked={
                             formik.values.pets[
-                            key as keyof BusinessProfile["pets"]
+                              key as keyof BusinessProfile["pets"]
                             ]
                           }
                           onCheckedChange={(checked) =>
@@ -1753,88 +1596,61 @@ export default function BusinessProfileManagement() {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Service Options */}
-              <Card className="bg-[#eff6ff] border-gbp-blue-200">
-                <CardHeader>
-                  <CardTitle className="text-black">Service Options</CardTitle>
-                  <CardDescription className="text-gray-600">
-                    Additional service options and languages
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="serviceOptions.onlineEstimates"
-                          checked={formik.values.serviceOptions.onlineEstimates}
-                          onCheckedChange={(checked) =>
-                            formik.setFieldValue(
-                              "serviceOptions.onlineEstimates",
-                              checked,
-                            )
-                          }
-                          className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
-                        />
-                        <Label
-                          htmlFor="serviceOptions.onlineEstimates"
-                          className="text-sm text-black cursor-pointer select-none"
-                        >
-                          Online Estimates
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="serviceOptions.onSiteServices"
-                          checked={formik.values.serviceOptions.onSiteServices}
-                          onCheckedChange={(checked) =>
-                            formik.setFieldValue(
-                              "serviceOptions.onSiteServices",
-                              checked,
-                            )
-                          }
-                          className="border-gbp-blue-300 data-[state=checked]:bg-gbp-blue-500 data-[state=checked]:border-gbp-blue-500 cursor-pointer"
-                        />
-                        <Label
-                          htmlFor="serviceOptions.onSiteServices"
-                          className="text-sm text-black cursor-pointer select-none"
-                        >
-                          On-site Services
-                        </Label>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="serviceOptions.languageSpoken"
-                        className="text-black font-medium"
-                      >
-                        Languages Spoken
-                      </Label>
-                      <Input
-                        id="serviceOptions.languageSpoken"
-                        value={formik.values.serviceOptions.languageSpoken.join(
-                          ", ",
-                        )}
-                        onChange={(e) =>
-                          formik.setFieldValue(
-                            "serviceOptions.languageSpoken",
-                            e.target.value.split(", ").filter(Boolean),
-                          )
-                        }
-                        placeholder="English, Spanish, French"
-                        className="border-gbp-blue-200 focus:border-gbp-blue-500 focus:ring-gbp-blue-500 bg-white text-black placeholder:text-gray-400"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+function CategorySelect({ value, onChange, error, touched }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="space-y-2 relative">
+      <Label className="text-black font-medium">Business Category</Label>
+
+      <div className="relative">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex items-center justify-between px-4 py-2 border border-gbp-blue-200 rounded-lg bg-white text-black hover:border-gbp-blue-300 focus:outline-none focus:ring-2 focus:ring-gbp-blue-500 focus:border-transparent"
+        >
+          <span className={value ? "text-black" : "text-gray-400"}>
+            {value || "Select a category"}
+          </span>
+          <ChevronDown
+            className={`w-4 h-4 transition-transform ${
+              isOpen ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        {isOpen && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gbp-blue-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+            {businessCategories.map((category) => (
+              <button
+                key={category}
+                onClick={() => {
+                  onChange(category);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-4 py-3 hover:bg-gbp-blue-50 transition-colors text-sm ${
+                  value === category
+                    ? "bg-gbp-blue-100 text-gbp-blue-700 font-medium"
+                    : "text-black"
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {touched && error && (
+        <span className="text-red-600 text-sm">{error}</span>
+      )}
     </div>
   );
 }

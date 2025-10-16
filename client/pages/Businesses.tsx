@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Globe, Loader2 } from "lucide-react";
+import { Search, Plus, Globe, Loader2, MapPin, Phone } from "lucide-react";
 import axios from "axios";
 import { SERVER } from "@/constants";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
 import { formatAddress } from "@/utils";
-
 
 export interface UserBusiness {
   id: string;
@@ -17,18 +16,8 @@ export interface UserBusiness {
   category: string;
   phone?: string;
   website?: string;
-  location?: any; // Full location data from API
-}
-
-interface StatusBreakdown {
-  verified: number;
-  unverified: number;
-  suspended: number;
-  disabled: number;
-  incomplete: number;
-  duplicate: number;
-  googleUpdates: number;
-  missingStoreCodes: number;
+  location?: any;
+  isVerified?: boolean;
 }
 
 export default function Businesses() {
@@ -47,25 +36,29 @@ export default function Businesses() {
         withCredentials: true,
       });
       console.log("My Businesses Response", res.data);
-      // Extract and transform the businesses data
+      
       if (res.data.success && res.data.businesses) {
         const transformedBusinesses: UserBusiness[] = res.data.businesses.map(
           (business: any) => ({
             id: business.id,
             name: business.title,
-            rating: business?.rating || 0, // Not provided in API response, set default
-            reviewCount: business?.reviewCount || 0, // Not provided in API response, set default
-            address: formatAddress(business.address),
-            category: business.category?.primaryCategory?.displayName || "Uncategorized",
+            rating: business.stats?.averageRating || 0,
+            reviewCount: business.stats?.reviewCount || 0,
+            address: business.street && business.city 
+              ? `${business.street}, ${business.city}, ${business.state} ${business.postalCode}`
+              : "Address not available",
+            category: business.primaryCategoryName || "Uncategorized",
             phone: business.phone,
             website: business.websiteUri,
+            isVerified: business.stats?.isVerified || false,
             location: {
               locationId: business.locationId,
-              placeId: business.metadata?.placeId,
-              mapsUri: business.metadata?.mapsUri,
-              newReviewUri: business.metadata?.newReviewUri,
-              address: business.address,
-              metadata: business.metadata,
+              placeId: business.placeId,
+              mapsUri: business.mapsUri,
+              reviewUri: business.reviewUri,
+              address: business.street,
+              city: business.city,
+              state: business.state,
             },
           })
         );
@@ -80,9 +73,6 @@ export default function Businesses() {
     }
   }
 
-  
-
-  // Load businesses from localStorage
   useEffect(() => {
     if (user) {
       fetchMyBusinesses();
@@ -91,7 +81,6 @@ export default function Businesses() {
 
   // Filter businesses based on selected filter and search term
   const filteredBusinesses = businesses.filter((business) => {
-    // Apply search filter
     const matchesSearch =
       business.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       business.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -99,42 +88,16 @@ export default function Businesses() {
 
     if (!matchesSearch) return false;
 
-    // Apply status filter (simplified for localStorage businesses)
     if (selectedFilter === "all") return true;
+    if (selectedFilter === "verified") return business.isVerified === true;
+    if (selectedFilter === "unverified") return business.isVerified === false;
 
-    // For localStorage businesses, we can only filter by basic criteria
-    // since we don't have the full status information
-    if (selectedFilter === "verified") {
-      return (
-        business.location?.status?.some((status: string) =>
-          status.includes("VERIFIED")
-        ) || false
-      );
-    }
-
-    return true; // For other filters, show all for now
+    return true;
   });
 
-  console.log(filteredBusinesses, "Filtered Businesses");
-  
-
-  // Calculate status breakdown from current businesses
-  // const statusBreakdown: StatusBreakdown = {
-  //   verified: businesses.filter((b) =>
-  //     b.location?.status?.some((s: string) => s.includes("VERIFIED")),
-  //   ).length,
-  //   unverified: businesses.filter((b) =>
-  //     b.location?.status?.some((s: string) => s.includes("UNVERIFIED")),
-  //   ).length,
-  //   suspended: businesses.filter((b) =>
-  //     b.location?.status?.some((s: string) => s.includes("SUSPENDED")),
-  //   ).length,
-  //   disabled: 0,
-  //   incomplete: 0,
-  //   duplicate: 0,
-  //   googleUpdates: 0,
-  //   missingStoreCodes: 0,
-  // };
+  // Calculate status breakdown
+  const verifiedCount = businesses.filter((b) => b.isVerified).length;
+  const unverifiedCount = businesses.filter((b) => !b.isVerified).length;
 
   if (loading) {
     return (
@@ -201,8 +164,7 @@ export default function Businesses() {
                 <div className="flex items-center justify-between">
                   <span>Verified</span>
                   <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">
-                    {/* {statusBreakdown.verified} */}
-                    verified
+                    {verifiedCount}
                   </span>
                 </div>
               </button>
@@ -218,8 +180,7 @@ export default function Businesses() {
                 <div className="flex items-center justify-between">
                   <span>Unverified</span>
                   <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full">
-                    {/* {statusBreakdown.unverified} */}
-                    unverified
+                    {unverifiedCount}
                   </span>
                 </div>
               </button>
@@ -246,8 +207,7 @@ export default function Businesses() {
           {/* Results Count */}
           <div className="mb-4">
             <p className="text-sm text-gray-600">
-              Showing {filteredBusinesses.length} of {businesses.length}{" "}
-              businesses
+              Showing {filteredBusinesses.length} of {businesses.length} businesses
             </p>
           </div>
 
@@ -301,16 +261,18 @@ export default function Businesses() {
                             <h3 className="text-lg font-semibold text-gray-900 truncate">
                               {business.name}
                             </h3>
-                            {/* {business.location?.status?.some((s: string) =>
-                              s.includes("VERIFIED")
-                            ) && ( */}
-                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
-                              Verified
-                            </span>
-                            {/* )}  */}
+                            {business.isVerified ? (
+                              <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                                Verified
+                              </span>
+                            ) : (
+                              <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-medium">
+                                Unverified
+                              </span>
+                            )}
                           </div>
 
-                          <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                          <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
                             <span className="flex items-center">
                               <span className="text-yellow-400 mr-1">★</span>
                               {business.rating} ({business.reviewCount} reviews)
@@ -320,22 +282,26 @@ export default function Businesses() {
                             </span>
                           </div>
 
-                          <p className="text-sm text-gray-600 mb-3">
-                            {business.address}
-                          </p>
+                          {/* Address */}
+                          <div className="flex items-start space-x-2 text-sm text-gray-600 mb-3">
+                            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                            <span>{business.address}</span>
+                          </div>
 
+                          {/* Phone */}
                           <div className="flex items-center space-x-4 text-sm">
                             {business.phone && (
-                              <span className="text-gray-600">
-                                {business.phone}
-                              </span>
+                              <div className="flex items-center space-x-2 text-gray-600">
+                                <Phone className="w-4 h-4 text-gray-400" />
+                                <span>{business.phone}</span>
+                              </div>
                             )}
                             {business.website && (
                               <a
                                 href={business.website}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-gbp-blue-600 hover:text-gbp-blue-700"
+                                className="text-gbp-blue-600 hover:text-gbp-blue-700 font-medium"
                               >
                                 Visit website
                               </a>
@@ -349,8 +315,6 @@ export default function Businesses() {
                     <div className="flex-shrink-0 ml-4">
                       <button
                         onClick={() =>
-                          // console.log("Manage",business)
-                          
                           navigate(
                             `/businesses/${encodeURIComponent(
                               business?.location?.locationId || ""
