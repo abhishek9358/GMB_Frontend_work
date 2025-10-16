@@ -67,6 +67,7 @@ export default function Reviews() {
   const [placeId, setPlaceId] = useState<string>("");
 
   const { activeLocation } = useSelector((state: RootState) => state.activeLocation);
+  const { user } = useSelector((state: RootState) => state.user)
 
   // Helper function to extract clean location ID (removes "locations/" prefix if present)
   const extractLocationId = (rawLocationId: string | null | undefined): string => {
@@ -76,12 +77,11 @@ export default function Reviews() {
   };
 
   // Get location ID from localStorage or Redux state and clean it
-  const rawLocationId = localStorage.getItem("activeLocation") || activeLocation?.locationId || "";
-  const locationId = extractLocationId(rawLocationId);
+  const locationId = activeLocation?.locationId;
   
   // Get account ID - MAKE SURE THIS IS SET IN YOUR APP
   // You can set it like: localStorage.setItem("accountId", "116574816291503260287");
-  const accountId = localStorage.getItem("accountId") || "116574816291503260287"; // Default for testing
+  const accountId = user?.accountId || ""; // Default for testing
 
   // Ref for the QR code canvas to facilitate download
   const qrCodeRef = useRef<HTMLDivElement>(null);
@@ -100,10 +100,9 @@ export default function Reviews() {
 
         // Construct the correct API URL matching your Postman request
         // Format: /api/v1/reviews/{location_id}/all?account_id={account_id}
-        const url = `${SERVER}/api/v1/reviews/${locationId}/all?account_id=${accountId}`;
+        const url = `${SERVER}/api/v1/reviews/${locationId}/all?account_id=${user?.accountId}`;
         
         console.log("🔍 Fetching reviews from:", url);
-        console.log("📍 Raw Location ID:", rawLocationId);
         console.log("✨ Cleaned Location ID:", locationId);
 
         const response = await axios.get(url, { 
@@ -195,7 +194,7 @@ export default function Reviews() {
     };
 
     fetchReviews();
-  }, [rawLocationId, accountId, SERVER, activeLocation?.placeId]);
+  }, [locationId, accountId, SERVER, activeLocation?.placeId]);
 
   // Separate useEffect to fetch place_id ONLY if not received from backend
   useEffect(() => {
@@ -475,7 +474,6 @@ export default function Reviews() {
               <p className="text-red-600 mb-4">{error}</p>
               <div className="bg-white border border-red-200 rounded p-3 mb-4">
                 <p className="text-sm text-gray-700 font-mono">
-                  Raw Location ID: {rawLocationId || "Not set"}<br />
                   Cleaned Location ID: {locationId || "Not set"}<br />
                   Account ID: {accountId || "Not set"}<br />
                   Place ID: {placeId || "Not set"}
@@ -559,9 +557,6 @@ export default function Reviews() {
   return (
     <div className="p-6 bg-gray-50 min-h-full">
       {/* Debug Info (Remove in production) */}
-      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-xs">
-        <strong>Debug Info:</strong> Raw Location: {rawLocationId} | Cleaned Location: {locationId} | Account: {accountId} | Place ID: {placeId || "Not found"} | Reviews: {reviews.length}
-      </div>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
