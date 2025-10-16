@@ -281,6 +281,9 @@ export default function Reviews() {
       const url = `${SERVER}/api/v1/reviews/${locationId}/${reviewToUpdate.reviewId}/reply?account_id=${accountId}`;
 
       console.log("💾 Saving reply to:", url);
+      console.log("📝 Review ID:", reviewToUpdate.reviewId);
+      console.log("📍 Location ID:", locationId);
+      console.log("🔑 Account ID:", accountId);
 
       const response = await axios.put(
         url,
@@ -309,14 +312,25 @@ export default function Reviews() {
       console.error("❌ Failed to save reply:", error);
       console.error("Error details:", {
         status: error.response?.status,
+        statusText: error.response?.statusText,
         data: error.response?.data,
         url: error.config?.url
       });
       
       let errorMessage = "Failed to save reply";
-      if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
+      
+      if (error.response?.status === 401) {
+        errorMessage = "Authentication expired. Please refresh the page and try again.";
+      } else if (error.response?.status === 403) {
+        errorMessage = "You don't have permission to reply to this review.";
+      } else if (error.response?.status === 404) {
+        errorMessage = "Review not found. It may have been deleted.";
+      } else if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : JSON.stringify(error.response.data.detail);
       }
+      
       alert(`Error: ${errorMessage}`);
     } finally {
       setSavingReplyId(null);
@@ -338,6 +352,9 @@ export default function Reviews() {
       const url = `${SERVER}/api/v1/reviews/${locationId}/${reviewToUpdate.reviewId}/reply?account_id=${accountId}`;
 
       console.log("🗑️ Deleting reply from:", url);
+      console.log("📝 Review ID:", reviewToUpdate.reviewId);
+      console.log("📍 Location ID:", locationId);
+      console.log("🔑 Account ID:", accountId);
 
       await axios.delete(url, { 
         withCredentials: true,
@@ -362,14 +379,25 @@ export default function Reviews() {
       console.error("❌ Failed to delete reply:", error);
       console.error("Error details:", {
         status: error.response?.status,
+        statusText: error.response?.statusText,
         data: error.response?.data,
         url: error.config?.url
       });
       
       let errorMessage = "Failed to delete reply";
-      if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
+      
+      if (error.response?.status === 401) {
+        errorMessage = "Authentication expired. Please refresh the page and try again.";
+      } else if (error.response?.status === 403) {
+        errorMessage = "You don't have permission to delete this reply.";
+      } else if (error.response?.status === 404) {
+        errorMessage = "Reply not found. It may have already been deleted.";
+      } else if (error.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : JSON.stringify(error.response.data.detail);
       }
+      
       alert(`Error: ${errorMessage}`);
     } finally {
       setDeletingReplyId(null);
