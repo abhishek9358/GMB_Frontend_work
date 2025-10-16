@@ -1,16 +1,32 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Star, TrendingUp, MessageSquare, Reply, Download, Plus, ExternalLink, ArrowUpRight, ArrowDownRight, Minus, ChevronDown, Loader2, Sparkles } from 'lucide-react';
-import axios from 'axios';
-import { SERVER } from '@/constants';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/redux/store';
-import DynamicReviewChart from '@/components/dynamicCompatitorReviewChart';
-import CompetitorComparisonDashboard from '@/components/CompetitorComparisionDashboard';
+import { useState, useMemo, useEffect } from "react";
+import {
+  Star,
+  TrendingUp,
+  MessageSquare,
+  Reply,
+  Download,
+  Plus,
+  ExternalLink,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
+  ChevronDown,
+  Loader2,
+  Sparkles,
+  MoreVertical,
+} from "lucide-react";
+import axios from "axios";
+import { SERVER } from "@/constants";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+import DynamicReviewChart from "@/components/dynamicCompatitorReviewChart";
+import CompetitorComparisonDashboard from "@/components/CompetitorComparisionDashboard";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 // =============================================
 // TYPE DEFINITIONS
 // =============================================
-
 
 interface CompetitorsReviewDataResponse {
   success: boolean;
@@ -46,8 +62,6 @@ interface ReviewStatistics {
   reviews_with_response: number; // e.g., 27
 }
 
-
-
 interface Metadata {
   competitor_id: string;
   competitor_title: string;
@@ -71,13 +85,11 @@ interface RequestParams {
   use_cache: boolean;
 }
 
-
-
 interface ReviewStatistics {
   average_rating: number;
   owner_response_rate: number;
   reviews_with_response: number;
-} 
+}
 
 interface DateRangeReviewData {
   success: boolean;
@@ -129,32 +141,41 @@ interface AIRecommendations {
 
 function calculateAnalytics(reviews: Review[]) {
   const total = reviews?.length || 0;
-  const avgRating = total > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / total : 0;
-  const responseRate = total > 0 ? (reviews.filter(r => r.response_by_owner === 'yes').length / total) * 100 : 0;
+  const avgRating =
+    total > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / total : 0;
+  const responseRate =
+    total > 0
+      ? (reviews.filter((r) => r.response_by_owner === "yes").length / total) *
+        100
+      : 0;
 
   const ratingDist: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-  reviews.forEach(r => {
+  reviews.forEach((r) => {
     if (r.rating >= 1 && r.rating <= 5) {
       ratingDist[r.rating]++;
     }
   });
 
-  const positiveCount = reviews.filter(r => r.rating >= 4).length;
-  const negativeCount = reviews.filter(r => r.rating <= 2).length;
+  const positiveCount = reviews.filter((r) => r.rating >= 4).length;
+  const negativeCount = reviews.filter((r) => r.rating <= 2).length;
 
   return {
     totalReviews: total,
     avgRating: avgRating.toFixed(1),
     responseRate: Math.round(responseRate),
-    positivePercentage: total > 0 ? Math.round((positiveCount / total) * 100) : 0,
-    negativePercentage: total > 0 ? Math.round((negativeCount / total) * 100) : 0,
-    ratingDistribution: Object.entries(ratingDist).reverse().map(([rating, count]) => ({
-      rating: Number(rating),
-      count,
-      percentage: total > 0 ? (count / total) * 100 : 0
-    })),
+    positivePercentage:
+      total > 0 ? Math.round((positiveCount / total) * 100) : 0,
+    negativePercentage:
+      total > 0 ? Math.round((negativeCount / total) * 100) : 0,
+    ratingDistribution: Object.entries(ratingDist)
+      .reverse()
+      .map(([rating, count]) => ({
+        rating: Number(rating),
+        count,
+        percentage: total > 0 ? (count / total) * 100 : 0,
+      })),
     highestRatingCount: ratingDist[5],
-    lowestRatingCount: ratingDist[1] + ratingDist[2]
+    lowestRatingCount: ratingDist[1] + ratingDist[2],
   };
 }
 
@@ -166,8 +187,8 @@ const mergeCompetitorData = (competitors: any[], timeRange: number) => {
   if (!competitors || competitors.length === 0) return null;
 
   // Filter out failed/error entries
-  const validCompetitors = competitors.filter(comp => 
-    comp.success && comp.reviews && Array.isArray(comp.reviews)
+  const validCompetitors = competitors.filter(
+    (comp) => comp.success && comp.reviews && Array.isArray(comp.reviews),
   );
 
   if (validCompetitors.length === 0) return null;
@@ -192,13 +213,13 @@ const mergeCompetitorData = (competitors: any[], timeRange: number) => {
       (sum, comp) => sum + (comp.statistics?.average_rating || 0),
       0,
     ) / validCompetitors.length;
-    
+
   const avgResponseRate =
     validCompetitors.reduce(
       (sum, comp) => sum + (comp.statistics?.owner_response_rate || 0),
       0,
     ) / validCompetitors.length;
-    
+
   const totalResponsesWithReview = validCompetitors.reduce(
     (sum, comp) => sum + (comp.statistics?.reviews_with_response || 0),
     0,
@@ -234,7 +255,7 @@ const prepareAIAnalyticsData = (
   yourClientData: any,
   competitors: any[],
   selectedBusiness: any,
-  timeRange: string
+  timeRange: string,
 ) => {
   const calculateNeutralPercentage = (analytics: any) => {
     if (analytics.neutralPercentage !== undefined) {
@@ -246,8 +267,8 @@ const prepareAIAnalyticsData = (
   };
 
   const yourAnalytics = calculateAnalytics(yourClientData.reviews || []);
-  
-  const allCompetitorsAnalytics = competitors.map(competitor => {
+
+  const allCompetitorsAnalytics = competitors.map((competitor) => {
     const analytics = calculateAnalytics(competitor.reviews || []);
     return {
       place_name: competitor.place_name,
@@ -258,23 +279,39 @@ const prepareAIAnalyticsData = (
         responseRate: Number(analytics.responseRate) || 0,
         positivePercentage: Number(analytics.positivePercentage) || 0,
         neutralPercentage: calculateNeutralPercentage(analytics),
-        negativePercentage: Number(analytics.negativePercentage) || 0
-      }
+        negativePercentage: Number(analytics.negativePercentage) || 0,
+      },
     };
   });
 
   const selectedAnalytics = calculateAnalytics(selectedBusiness.reviews || []);
 
   const totalCompetitors = competitors.length;
-  const avgMarketRating = totalCompetitors > 0 
-    ? allCompetitorsAnalytics.reduce((sum, c) => sum + c.analytics.avgRating, 0) / totalCompetitors
-    : 0;
-  const avgMarketReviews = totalCompetitors > 0
-    ? Math.round(allCompetitorsAnalytics.reduce((sum, c) => sum + c.analytics.totalReviews, 0) / totalCompetitors)
-    : 0;
-  const avgMarketResponseRate = totalCompetitors > 0
-    ? Math.round(allCompetitorsAnalytics.reduce((sum, c) => sum + c.analytics.responseRate, 0) / totalCompetitors)
-    : 0;
+  const avgMarketRating =
+    totalCompetitors > 0
+      ? allCompetitorsAnalytics.reduce(
+          (sum, c) => sum + c.analytics.avgRating,
+          0,
+        ) / totalCompetitors
+      : 0;
+  const avgMarketReviews =
+    totalCompetitors > 0
+      ? Math.round(
+          allCompetitorsAnalytics.reduce(
+            (sum, c) => sum + c.analytics.totalReviews,
+            0,
+          ) / totalCompetitors,
+        )
+      : 0;
+  const avgMarketResponseRate =
+    totalCompetitors > 0
+      ? Math.round(
+          allCompetitorsAnalytics.reduce(
+            (sum, c) => sum + c.analytics.responseRate,
+            0,
+          ) / totalCompetitors,
+        )
+      : 0;
 
   const yourRating = Number(yourAnalytics.avgRating);
   const yourReviews = Number(yourAnalytics.totalReviews);
@@ -282,9 +319,9 @@ const prepareAIAnalyticsData = (
 
   const data = {
     yourClient: {
-      place_name: yourClientData.place_name || yourClientData.name || 'Unknown',
+      place_name: yourClientData.place_name || yourClientData.name || "Unknown",
       place_id: yourClientData.place_id,
-      category: yourClientData.category || null
+      category: yourClientData.category || null,
     },
     yourAnalytics: {
       avgRating: yourRating,
@@ -292,10 +329,11 @@ const prepareAIAnalyticsData = (
       responseRate: yourResponseRate,
       positivePercentage: Number(yourAnalytics.positivePercentage) || 0,
       neutralPercentage: calculateNeutralPercentage(yourAnalytics),
-      negativePercentage: Number(yourAnalytics.negativePercentage) || 0
+      negativePercentage: Number(yourAnalytics.negativePercentage) || 0,
     },
     primaryCompetitor: {
-      place_name: selectedBusiness.place_name || selectedBusiness.name || 'Unknown',
+      place_name:
+        selectedBusiness.place_name || selectedBusiness.name || "Unknown",
       place_id: selectedBusiness.place_id,
       category: selectedBusiness.category || null,
       analytics: {
@@ -304,8 +342,8 @@ const prepareAIAnalyticsData = (
         responseRate: Number(selectedAnalytics.responseRate) || 0,
         positivePercentage: Number(selectedAnalytics.positivePercentage) || 0,
         neutralPercentage: calculateNeutralPercentage(selectedAnalytics),
-        negativePercentage: Number(selectedAnalytics.negativePercentage) || 0
-      }
+        negativePercentage: Number(selectedAnalytics.negativePercentage) || 0,
+      },
     },
     allCompetitors: allCompetitorsAnalytics,
     marketInsights: {
@@ -313,14 +351,23 @@ const prepareAIAnalyticsData = (
       averageMarketRating: avgMarketRating.toFixed(2),
       averageMarketReviews: avgMarketReviews,
       averageMarketResponseRate: avgMarketResponseRate,
-      yourRankByReviews: allCompetitorsAnalytics.filter(c => c.analytics.totalReviews > yourReviews).length + 1,
-      yourRankByRating: allCompetitorsAnalytics.filter(c => c.analytics.avgRating > yourRating).length + 1,
-      yourRankByResponseRate: allCompetitorsAnalytics.filter(c => c.analytics.responseRate > yourResponseRate).length + 1,
+      yourRankByReviews:
+        allCompetitorsAnalytics.filter(
+          (c) => c.analytics.totalReviews > yourReviews,
+        ).length + 1,
+      yourRankByRating:
+        allCompetitorsAnalytics.filter(
+          (c) => c.analytics.avgRating > yourRating,
+        ).length + 1,
+      yourRankByResponseRate:
+        allCompetitorsAnalytics.filter(
+          (c) => c.analytics.responseRate > yourResponseRate,
+        ).length + 1,
     },
-    timeRange: timeRange || 'Not specified'
+    timeRange: timeRange || "Not specified",
   };
 
-  console.log('📊 Prepared AI Analytics Data:', data);
+  console.log("📊 Prepared AI Analytics Data:", data);
   return data;
 };
 
@@ -330,15 +377,20 @@ const prepareAIAnalyticsData = (
 
 function CompetitorDashboard() {
   const [timeRange, setTimeRange] = useState<number>(3);
-  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendations | null>(null);
+  const [aiRecommendations, setAiRecommendations] =
+    useState<AIRecommendations | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [competitorss, setCompetitorss] = useState<BusinessData[]>([]);
   const [clientReviews, setClientReviews] = useState<Review[]>([]);
-  const [competitorsData, setCompetitorsData] = useState<CompetitorsReviewDataResponse | null>();
-  
-  const { activeLocation } = useSelector((state: RootState) => state.activeLocation);
+  const [competitorsData, setCompetitorsData] =
+    useState<CompetitorsReviewDataResponse | null>();
+  const [showMenu, setShowMenu] = useState(false);
+
+  const { activeLocation } = useSelector(
+    (state: RootState) => state.activeLocation,
+  );
   const activeLocationId = localStorage.getItem("activeLocation");
 
   const yourClientData: BusinessData = useMemo(() => {
@@ -346,30 +398,38 @@ function CompetitorDashboard() {
       place_name: activeLocation?.title || "Your Business",
       place_id: activeLocation?.placeId || "",
       category: activeLocation?.category?.primaryCategory?.displayName || null,
-      reviews: clientReviews
+      reviews: clientReviews,
     };
   }, [activeLocation, clientReviews]);
 
-  const [selectedBusiness, setSelectedBusiness] = useState<BusinessData>(yourClientData);
+  const [selectedBusiness, setSelectedBusiness] =
+    useState<BusinessData>(yourClientData);
 
   // Date range data states
-  const [dateRangeData, setDateRangeData] = useState<DateRangeReviewData | null>(null);
-  const [selfDateRangeData, setSelfDateRangeData] = useState<DateRangeReviewData | null>(null);
-  const [allCompetDateRangeData, setAllCompetDateRangeData] = useState<DateRangeReviewData[]>([]);
+  const [dateRangeData, setDateRangeData] =
+    useState<DateRangeReviewData | null>(null);
+  const [selfDateRangeData, setSelfDateRangeData] =
+    useState<DateRangeReviewData | null>(null);
+  const [allCompetDateRangeData, setAllCompetDateRangeData] = useState<
+    DateRangeReviewData[]
+  >([]);
 
   // Loading states
-  const [selfDateRangeLoading, setSelfDateRangeLoading] = useState<boolean>(false);
-  const [allCompetDateRangeLoading, setAllCompetDateRangeLoading] = useState<boolean>(false);
+  const [selfDateRangeLoading, setSelfDateRangeLoading] =
+    useState<boolean>(false);
+  const [allCompetDateRangeLoading, setAllCompetDateRangeLoading] =
+    useState<boolean>(false);
   const [dateRangeLoading, setDateRangeLoading] = useState<boolean>(false);
   const [isHardRefreshing, setIsHardRefreshing] = useState(false);
 
-  const dateRangeDataLoading = selfDateRangeLoading || allCompetDateRangeLoading || dateRangeLoading;
+  const dateRangeDataLoading =
+    selfDateRangeLoading || allCompetDateRangeLoading || dateRangeLoading;
 
   // Add Competitor Dialog State
   const [showAddCompetitorDialog, setShowAddCompetitorDialog] = useState(false);
-  const [newPlaceId, setNewPlaceId] = useState('');
+  const [newPlaceId, setNewPlaceId] = useState("");
   const [isAddingCompetitor, setIsAddingCompetitor] = useState(false);
-  const [addCompetitorError, setAddCompetitorError] = useState('');
+  const [addCompetitorError, setAddCompetitorError] = useState("");
 
   // =============================================
   // API FUNCTIONS
@@ -381,12 +441,12 @@ function CompetitorDashboard() {
       const res = await axios.post(
         `${SERVER}/api/v1/scraper/date-range-reviews`,
         { months: timeRange, place_id: yourClientData?.place_id },
-        { withCredentials: true, timeout: 2 * 60 * 1000 }
+        { withCredentials: true, timeout: 2 * 60 * 1000 },
       );
-      
+
       console.log("Self DateRange Reviews Data:", res.data);
       const dta = res.data;
-      
+
       if (dta) {
         setSelfDateRangeData(dta);
         if (selectedBusiness?.place_id === activeLocation?.placeId) {
@@ -396,8 +456,8 @@ function CompetitorDashboard() {
     } catch (error) {
       console.error("Error fetching self date range reviews:", error);
       if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNABORTED') {
-          alert('Request timeout. Please try with a shorter time range.');
+        if (error.code === "ECONNABORTED") {
+          alert("Request timeout. Please try with a shorter time range.");
         }
       }
     } finally {
@@ -408,25 +468,25 @@ function CompetitorDashboard() {
   async function fetchAllCompetDateRangeData() {
     try {
       setAllCompetDateRangeLoading(true);
-      
+
       const timeRangeDays = timeRange * 30;
-      
+
       const res = await axios.post(
         `${SERVER}/api/v1/scraper/all-comp/date-range-reviews`,
-        { 
+        {
           time_range: timeRangeDays,
           use_cache: true,
           cache_ttl_hours: 24,
           // competitor_ids: competitorss.map(c => c.place_id).filter(Boolean)
         },
-        { withCredentials: true, timeout: 5 * 60 * 1000 }
+        { withCredentials: true, timeout: 5 * 60 * 1000 },
       );
-      
+
       const dta = res.data;
       console.log("All Competitors Data:", dta);
 
       setCompetitorsData(res.data);
-      
+
       if (dta?.success && dta?.data) {
         const processedData = dta.data.map((comp: any) => ({
           success: comp.success || false,
@@ -440,18 +500,18 @@ function CompetitorDashboard() {
           statistics: comp.statistics || {
             average_rating: 0,
             owner_response_rate: 0,
-            reviews_with_response: 0
+            reviews_with_response: 0,
           },
-          reviews: comp.reviews || []
+          reviews: comp.reviews || [],
         }));
-        
+
         setAllCompetDateRangeData(processedData);
       }
     } catch (error) {
       console.error("Error fetching all competitors data:", error);
       if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNABORTED') {
-          alert('Request timeout. Please try with a shorter time range.');
+        if (error.code === "ECONNABORTED") {
+          alert("Request timeout. Please try with a shorter time range.");
         }
       }
     } finally {
@@ -544,18 +604,18 @@ function CompetitorDashboard() {
     if (selectedBusiness?.place_id === activeLocation?.placeId) {
       return null;
     }
-    
+
     try {
       setDateRangeLoading(true);
       const res = await axios.post(
         `${SERVER}/api/v1/scraper/date-range-reviews`,
         { months: timeRange, place_id: selectedBusiness?.place_id },
-        { withCredentials: true, timeout: 2 * 60 * 1000 }
+        { withCredentials: true, timeout: 2 * 60 * 1000 },
       );
-      
+
       console.log("Selected Business DateRange Reviews:", res.data);
       const dta = res.data;
-      
+
       if (dta) {
         setDateRangeData(dta);
       }
@@ -569,42 +629,43 @@ function CompetitorDashboard() {
   async function fetchClientReviews() {
     try {
       console.log("Fetching client reviews for:", activeLocation);
-      
+
       if (!activeLocation?.placeId) {
         console.warn("No placeId available");
         return;
       }
-      
+
       const res = await axios.get(
         `${SERVER}/api/v1/location/${activeLocationId}/reviews`,
-        { 
+        {
           withCredentials: true,
-          params: { place_id: activeLocation.placeId }
-        }
+          params: { place_id: activeLocation.placeId },
+        },
       );
-      
+
       console.log("Client reviews response:", res.data);
-      
+
       if (res.data?.reviews && Array.isArray(res.data.reviews)) {
         const formattedReviews = res.data.reviews.map((r: any) => ({
           author: r.author_name || "Anonymous",
           rating: r.rating || 0,
           date: r.relative_time_description || "Unknown",
           review_text: r.text || "",
-          response_by_owner: r.ownerReply ? "yes" : "no"
+          response_by_owner: r.ownerReply ? "yes" : "no",
         }));
-        
+
         setClientReviews(formattedReviews);
-        
+
         if (selectedBusiness?.place_id === activeLocation.placeId) {
           setSelectedBusiness({
             place_name: activeLocation.title,
             place_id: activeLocation.placeId,
-            category: activeLocation.category?.primaryCategory?.displayName || null,
-            reviews: formattedReviews
+            category:
+              activeLocation.category?.primaryCategory?.displayName || null,
+            reviews: formattedReviews,
           });
         }
-        
+
         console.log("✅ Formatted client reviews:", formattedReviews);
       }
     } catch (error) {
@@ -614,40 +675,39 @@ function CompetitorDashboard() {
 
   const fetchServerCompetitors = async () => {
     try {
-      const res = await axios.get(`${SERVER}/api/v1/competitors`, { 
+      const res = await axios.get(`${SERVER}/api/v1/competitors`, {
         withCredentials: true,
         params: {
           fetch_missing_reviews: true,
-          wait_for_reviews: false
-        }
+          wait_for_reviews: false,
+        },
       });
 
-      
-      
       console.log("Competitors response:", res.data);
-      
+
       if (res.data?.data && Array.isArray(res.data.data)) {
         const formattedCompetitors = res.data.data.map((c: any) => {
           let reviews = [];
           if (c.reviews) {
             try {
-              reviews = typeof c.reviews === 'string' 
-                ? JSON.parse(c.reviews) 
-                : c.reviews;
+              reviews =
+                typeof c.reviews === "string"
+                  ? JSON.parse(c.reviews)
+                  : c.reviews;
             } catch (e) {
               console.error(`Failed to parse reviews for ${c.title}:`, e);
               reviews = [];
             }
           }
-          
+
           return {
             place_name: c.title || "Unknown",
             place_id: c.placeId || "",
             category: c.category?.primaryCategory?.displayName || null,
-            reviews: Array.isArray(reviews) ? reviews : []
+            reviews: Array.isArray(reviews) ? reviews : [],
           };
         });
-        
+
         setCompetitorss(formattedCompetitors);
         console.log("✅ Fetched competitors:", formattedCompetitors);
       }
@@ -658,45 +718,47 @@ function CompetitorDashboard() {
 
   const handleAddNewCompetitor = async () => {
     if (!newPlaceId.trim()) {
-      setAddCompetitorError('Please enter a valid Place ID');
+      setAddCompetitorError("Please enter a valid Place ID");
       return;
     }
-    
+
     setIsAddingCompetitor(true);
-    setAddCompetitorError('');
-    
+    setAddCompetitorError("");
+
     try {
       const res = await axios.post(
         `${SERVER}/api/v1/competitors`,
         { placeId: newPlaceId.trim() },
-        { 
+        {
           withCredentials: true,
-          timeout: 2 * 60 * 1000
-        }
+          timeout: 2 * 60 * 1000,
+        },
       );
-      
+
       if (res.data?.success) {
         console.log("✅ Successfully added competitor:", res.data.data);
-        
+
         const newCompetitor = res.data.data;
         let reviews = [];
-        
+
         try {
-          reviews = typeof newCompetitor.reviews === 'string'
-            ? JSON.parse(newCompetitor.reviews)
-            : newCompetitor.reviews || [];
+          reviews =
+            typeof newCompetitor.reviews === "string"
+              ? JSON.parse(newCompetitor.reviews)
+              : newCompetitor.reviews || [];
         } catch (e) {
           console.error("Failed to parse new competitor reviews:", e);
         }
-        
+
         const formattedCompetitor = {
           place_name: newCompetitor.title || "New Competitor",
           place_id: newCompetitor.placeId,
-          category: newCompetitor.category?.primaryCategory?.displayName || null,
-          reviews: reviews
+          category:
+            newCompetitor.category?.primaryCategory?.displayName || null,
+          reviews: reviews,
         };
-        
-        setCompetitorss(prev => [...prev, formattedCompetitor]);
+
+        setCompetitorss((prev) => [...prev, formattedCompetitor]);
         setShowAddCompetitorDialog(false);
         setNewPlaceId("");
         alert(`✅ ${formattedCompetitor.place_name} added successfully!`);
@@ -704,11 +766,11 @@ function CompetitorDashboard() {
       }
     } catch (error: any) {
       console.error("Failed to add competitor:", error);
-      
+
       let errorMessage = "Failed to add competitor. ";
-      
+
       if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNABORTED') {
+        if (error.code === "ECONNABORTED") {
           errorMessage += "Request timeout.";
         } else if (error.response?.status === 400) {
           errorMessage += error.response.data?.detail || "Invalid Place ID.";
@@ -718,7 +780,7 @@ function CompetitorDashboard() {
           errorMessage += error.response?.data?.detail || error.message;
         }
       }
-      
+
       setAddCompetitorError(errorMessage);
     } finally {
       setIsAddingCompetitor(false);
@@ -729,7 +791,7 @@ function CompetitorDashboard() {
   // USE EFFECTS
   // =============================================
 
-  console.log("Yha dekhte hai", {selfDateRangeData, competitorsData})
+  console.log("Yha dekhte hai", { selfDateRangeData, competitorsData });
 
   useEffect(() => {
     if (clientReviews.length === 0 && activeLocationId) {
@@ -771,17 +833,24 @@ function CompetitorDashboard() {
       {
         place_name: activeLocation?.title || yourClientData.place_name,
         place_id: activeLocation?.placeId || yourClientData.place_id,
-        category: activeLocation?.category?.primaryCategory?.displayName || null,
-        reviews: clientReviews
+        category:
+          activeLocation?.category?.primaryCategory?.displayName || null,
+        reviews: clientReviews,
       },
-      ...competitorss
+      ...competitorss,
     ];
   }, [activeLocation, yourClientData, clientReviews, competitorss]);
 
-  const yourAnalytics = useMemo(() => calculateAnalytics(yourClientData.reviews || []), [yourClientData]);
-  const selectedAnalytics = useMemo(() => calculateAnalytics(selectedBusiness?.reviews || []), [selectedBusiness]);
+  const yourAnalytics = useMemo(
+    () => calculateAnalytics(yourClientData.reviews || []),
+    [yourClientData],
+  );
+  const selectedAnalytics = useMemo(
+    () => calculateAnalytics(selectedBusiness?.reviews || []),
+    [selectedBusiness],
+  );
   const allCompetitorsAnalytics = useMemo(() => {
-    const allReviews = competitorss.flatMap(c => c.reviews || []);
+    const allReviews = competitorss.flatMap((c) => c.reviews || []);
     return calculateAnalytics(allReviews || []);
   }, [competitorss]);
 
@@ -791,12 +860,19 @@ function CompetitorDashboard() {
   // HELPER FUNCTIONS
   // =============================================
 
-  const getComparisonIcon = (yourVal: number, compVal: number, inverse = false) => {
-    if (Math.abs(yourVal - compVal) < 0.1) return <Minus className="w-4 h-4 text-gray-400" />;
+  const getComparisonIcon = (
+    yourVal: number,
+    compVal: number,
+    inverse = false,
+  ) => {
+    if (Math.abs(yourVal - compVal) < 0.1)
+      return <Minus className="w-4 h-4 text-gray-400" />;
     const isWinning = inverse ? yourVal < compVal : yourVal > compVal;
-    return isWinning ?
-      <ArrowUpRight className="w-4 h-4 text-green-600" /> :
-      <ArrowDownRight className="w-4 h-4 text-red-600" />;
+    return isWinning ? (
+      <ArrowUpRight className="w-4 h-4 text-green-600" />
+    ) : (
+      <ArrowDownRight className="w-4 h-4 text-red-600" />
+    );
   };
 
   function getReviewVelocity(reviews: any) {
@@ -820,33 +896,32 @@ function CompetitorDashboard() {
         yourClientData,
         competitorss,
         selectedBusiness,
-        String(timeRange)
+        String(timeRange),
       );
 
       const apiUrl = `${SERVER}/api/v1/ai-recommendations`;
-      console.log('🔍 Calling AI API:', apiUrl);
+      console.log("🔍 Calling AI API:", apiUrl);
 
       const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(analyticsData)
+        body: JSON.stringify(analyticsData),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ AI API Error:', errorText);
+        console.error("❌ AI API Error:", errorText);
         throw new Error(`HTTP ${response.status}`);
       }
 
       const aiResponse: AIRecommendations = await response.json();
-      console.log('✅ AI Response:', aiResponse);
+      console.log("✅ AI Response:", aiResponse);
       setAiRecommendations(aiResponse);
-
     } catch (error) {
-      console.error('💥 Error generating AI recommendations:', error);
-      alert('Failed to generate AI recommendations. Please try again.');
+      console.error("💥 Error generating AI recommendations:", error);
+      alert("Failed to generate AI recommendations. Please try again.");
     } finally {
       setIsLoadingAI(false);
     }
@@ -856,161 +931,264 @@ function CompetitorDashboard() {
   // HTML REPORT
   // =============================================
 
+  const generateReportContent = (
+    selectedBusiness: BusinessData,
+    yourClientData: BusinessData,
+    timeRange: number,
+    selectedAnalytics: any,
+    allBusinesses: BusinessData[],
+    latestReviews: Review[],
+    aiRecommendations: AIRecommendations | null,
+  ) => {
+    const reportData = {
+      reportDate: new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      selectedBusiness: {
+        name: selectedBusiness.place_name,
+        isYourBusiness: selectedBusiness.place_id === yourClientData.place_id,
+      },
+      timeRange: timeRange,
+      metrics: {
+        totalReviews: selectedAnalytics.totalReviews,
+        averageRating: selectedAnalytics.avgRating,
+        responseRate: selectedAnalytics.responseRate,
+        positivePercentage: selectedAnalytics.positivePercentage,
+        negativePercentage: selectedAnalytics.negativePercentage,
+      },
+      ratingDistribution: selectedAnalytics.ratingDistribution,
+      comparisonData: allBusinesses.map((business) => {
+        const analytics = calculateAnalytics(business.reviews || []);
+        return {
+          name: business.place_name,
+          isYourBusiness: business.place_id === yourClientData.place_id,
+          totalReviews: analytics.totalReviews,
+          avgRating: analytics.avgRating,
+          responseRate: analytics.responseRate,
+          positivePercentage: analytics.positivePercentage,
+          negativePercentage: analytics.negativePercentage,
+          highestRatingCount: analytics.highestRatingCount,
+          lowestRatingCount: analytics.lowestRatingCount,
+        };
+      }),
+      latestReviews: latestReviews.map((review) => ({
+        author: review.author || "Anonymous",
+        rating: review.rating,
+        date: review.date,
+        reviewText: review.review_text || "No review text",
+        responded: review.response_by_owner === "yes",
+      })),
+      aiInsights: aiRecommendations
+        ? {
+            summary: aiRecommendations.summary,
+            strengths: aiRecommendations.strengths,
+            weaknesses: aiRecommendations.weaknesses,
+            recommendations: aiRecommendations.recommendations,
+            actionPlan: aiRecommendations.actionPlan,
+          }
+        : null,
+    };
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Competitor Analysis Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 40px; line-height: 1.6; width: 794px; height: 1123px; box-sizing: border-box; }
+        .header { text-align: center; margin-bottom: 40px; border-bottom: 3px solid #2563eb; padding-bottom: 20px; }
+        .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin: 30px 0; }
+        .metric-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; background: #f9fafb; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #e5e7eb; padding: 12px; text-align: left; }
+        th { background: #f3f4f6; font-weight: 600; }
+        .ai-insights { background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Competitor Analysis Report</h1>
+        <p>${reportData.reportDate} | ${reportData.selectedBusiness.name}</p>
+      </div>
+      
+      <div class="metrics">
+        <div class="metric-card">
+          <div>Total Reviews</div>
+          <h2>${reportData.metrics.totalReviews}</h2>
+        </div>
+        <div class="metric-card">
+          <div>Average Rating</div>
+          <h2>${reportData.metrics.averageRating} ⭐</h2>
+        </div>
+        <div class="metric-card">
+          <div>Response Rate</div>
+          <h2>${reportData.metrics.responseRate}%</h2>
+        </div>
+        <div class="metric-card">
+          <div>Positive Reviews</div>
+          <h2>${reportData.metrics.positivePercentage}%</h2>
+        </div>
+      </div>
+
+      <h2>Competitive Comparison</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Business</th>
+            <th>Reviews</th>
+            <th>Rating</th>
+            <th>Response Rate</th>
+            <th>Positive %</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${reportData.comparisonData
+            .map(
+              (b) => `
+            <tr style="${b.isYourBusiness ? "background: #dbeafe;" : ""}">
+              <td><strong>${b.name}</strong></td>
+              <td>${b.totalReviews}</td>
+              <td>${b.avgRating} ⭐</td>
+              <td>${b.responseRate}%</td>
+              <td>${b.positivePercentage}%</td>
+            </tr>
+          `,
+            )
+            .join("")}
+        </tbody>
+      </table>
+
+      ${
+        reportData.aiInsights
+          ? `
+        <h2>AI Recommendations</h2>
+        <div class="ai-insights">
+          <h3>Summary</h3>
+          <p>${reportData.aiInsights.summary}</p>
+          
+          <h3>Strengths</h3>
+          <ul>
+            ${reportData.aiInsights.strengths.map((s) => `<li>${s}</li>`).join("")}
+          </ul>
+          
+          <h3>Recommendations</h3>
+          <ul>
+            ${reportData.aiInsights.recommendations.map((r) => `<li>${r}</li>`).join("")}
+          </ul>
+        </div>
+      `
+          : ""
+      }
+    </body>
+    </html>
+  `;
+
+    return { reportData, htmlContent };
+  };
+
   const openHTMLReport = () => {
     setIsDownloadingPDF(true);
 
     try {
-      const reportData = {
-        reportDate: new Date().toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }),
-        selectedBusiness: {
-          name: selectedBusiness.place_name,
-          isYourBusiness: selectedBusiness.place_id === yourClientData.place_id,
-        },
-        timeRange: timeRange,
-        metrics: {
-          totalReviews: selectedAnalytics.totalReviews,
-          averageRating: selectedAnalytics.avgRating,
-          responseRate: selectedAnalytics.responseRate,
-          positivePercentage: selectedAnalytics.positivePercentage,
-          negativePercentage: selectedAnalytics.negativePercentage,
-        },
-        ratingDistribution: selectedAnalytics.ratingDistribution,
-        comparisonData: allBusinesses.map(business => {
-          const analytics = calculateAnalytics(business.reviews || []);
-          return {
-            name: business.place_name,
-            isYourBusiness: business.place_id === yourClientData.place_id,
-            totalReviews: analytics.totalReviews,
-            avgRating: analytics.avgRating,
-            responseRate: analytics.responseRate,
-            positivePercentage: analytics.positivePercentage,
-            negativePercentage: analytics.negativePercentage,
-            highestRatingCount: analytics.highestRatingCount,
-            lowestRatingCount: analytics.lowestRatingCount,
-          };
-        }),
-        latestReviews: latestReviews.map(review => ({
-          author: review.author || 'Anonymous',
-          rating: review.rating,
-          date: review.date,
-          reviewText: review.review_text || 'No review text',
-          responded: review.response_by_owner === 'yes',
-        })),
-        aiInsights: aiRecommendations ? {
-          summary: aiRecommendations.summary,
-          strengths: aiRecommendations.strengths,
-          weaknesses: aiRecommendations.weaknesses,
-          recommendations: aiRecommendations.recommendations,
-          actionPlan: aiRecommendations.actionPlan,
-        } : null,
-      };
+      const { htmlContent } = generateReportContent(
+        selectedBusiness,
+        yourClientData,
+        timeRange,
+        selectedAnalytics,
+        allBusinesses,
+        latestReviews,
+        aiRecommendations,
+      );
 
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Competitor Analysis Report</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 40px; line-height: 1.6; }
-            .header { text-align: center; margin-bottom: 40px; border-bottom: 3px solid #2563eb; padding-bottom: 20px; }
-            .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin: 30px 0; }
-            .metric-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; background: #f9fafb; }
-            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            th, td { border: 1px solid #e5e7eb; padding: 12px; text-align: left; }
-            th { background: #f3f4f6; font-weight: 600; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Competitor Analysis Report</h1>
-            <p>${reportData.reportDate} | ${reportData.selectedBusiness.name}</p>
-          </div>
-          
-          <div class="metrics">
-            <div class="metric-card">
-              <div>Total Reviews</div>
-              <h2>${reportData.metrics.totalReviews}</h2>
-            </div>
-            <div class="metric-card">
-              <div>Average Rating</div>
-              <h2>${reportData.metrics.averageRating} ⭐</h2>
-            </div>
-            <div class="metric-card">
-              <div>Response Rate</div>
-              <h2>${reportData.metrics.responseRate}%</h2>
-            </div>
-            <div class="metric-card">
-              <div>Positive Reviews</div>
-              <h2>${reportData.metrics.positivePercentage}%</h2>
-            </div>
-          </div>
-
-          <h2>Competitive Comparison</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Business</th>
-                <th>Reviews</th>
-                <th>Rating</th>
-                <th>Response Rate</th>
-                <th>Positive %</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${reportData.comparisonData.map(b => `
-                <tr style="${b.isYourBusiness ? 'background: #dbeafe;' : ''}">
-                  <td><strong>${b.name}</strong></td>
-                  <td>${b.totalReviews}</td>
-                  <td>${b.avgRating} ⭐</td>
-                  <td>${b.responseRate}%</td>
-                  <td>${b.positivePercentage}%</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-
-          ${reportData.aiInsights ? `
-            <h2>AI Recommendations</h2>
-            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3>Summary</h3>
-              <p>${reportData.aiInsights.summary}</p>
-              
-              <h3>Strengths</h3>
-              <ul>
-                ${reportData.aiInsights.strengths.map(s => `<li>${s}</li>`).join('')}
-              </ul>
-              
-              <h3>Recommendations</h3>
-              <ul>
-                ${reportData.aiInsights.recommendations.map(r => `<li>${r}</li>`).join('')}
-              </ul>
-            </div>
-          ` : ''}
-        </body>
-        </html>
-      `;
-
-      const reportWindow = window.open('', '_blank');
+      const reportWindow = window.open("", "_blank");
       if (reportWindow) {
         reportWindow.document.write(htmlContent);
         reportWindow.document.close();
       } else {
-        alert('⚠️ Please allow pop-ups to view the report');
+        alert("⚠️ Please allow pop-ups to view the report");
       }
-
     } catch (error) {
-      console.error('Error generating report:', error);
-      alert('⚠️ Error generating report. Please try again.');
+      console.error("Error generating report:", error);
+      alert("⚠️ Error generating report. Please try again.");
     } finally {
       setIsDownloadingPDF(false);
     }
   };
 
+  const downloadReport = async () => {
+    setIsDownloadingPDF(true);
+    try {
+      const { htmlContent, reportData } = generateReportContent(
+        selectedBusiness,
+        yourClientData,
+        timeRange,
+        selectedAnalytics,
+        allBusinesses,
+        latestReviews,
+        aiRecommendations,
+      );
+
+      // Create a temporary container for HTML content
+      const container = document.createElement("div");
+      container.style.position = "absolute";
+      container.style.left = "-9999px";
+      container.style.width = "794px"; // A4 width in pixels at 96 DPI
+      container.style.height = "auto";
+      container.innerHTML = htmlContent;
+      document.body.appendChild(container);
+
+      // Use html2canvas to render the HTML to a canvas
+      const canvas = await html2canvas(container, {
+        scale: 2, // Increase resolution for better quality
+        width: 794, // A4 width in pixels
+        windowWidth: 794,
+      });
+
+      // Create PDF with jsPDF
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      let position = 0;
+
+      // Add first page
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add additional pages if content overflows
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Save the PDF
+      pdf.save(
+        `Competitor_Analysis_Report_${reportData.selectedBusiness.name}.pdf`,
+      );
+
+      // Clean up
+      document.body.removeChild(container);
+      console.log("✅ PDF Download complete!");
+    } catch (err) {
+      console.error("Error generating PDF:", err);
+      alert("⚠️ Error generating PDF report. Please try again.");
+    } finally {
+      setIsDownloadingPDF(false);
+    }
+  };
   // =============================================
   // RENDER
   // =============================================
@@ -1090,30 +1268,62 @@ function CompetitorDashboard() {
               )}
             </button>
 
-            <button
-              onClick={() => setShowAddCompetitorDialog(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Add Competitor
-            </button>
-            <button
-              onClick={openHTMLReport}
-              disabled={isDownloadingPDF}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isDownloadingPDF ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <ExternalLink className="w-5 h-5" />
-                  View Report
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-4 relative">
+              {/* Add Competitor Button */}
+              <button
+                onClick={() => console.log("Open Add Competitor Dialog")}
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                Add Competitor
+              </button>
+
+              {/* 3-dot menu button */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowMenu((prev) => !prev)}
+                  className="p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  <MoreVertical className="w-5 h-5 text-gray-700" />
+                </button>
+
+                {/* Dropdown menu */}
+                {showMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        openHTMLReport();
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      View Report
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        downloadReport();
+                      }}
+                      disabled={isDownloadingPDF}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isDownloadingPDF ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          Download Report
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
