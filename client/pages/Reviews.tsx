@@ -1410,98 +1410,113 @@ export default function Reviews() {
   }, [locationId, placeId, activeLocation?.placeId, loading]);
 
   // Handler for generating AI response suggestion
-  const handleGenerateAIResponse = async (id: string) => {
-    const reviewToUpdate = reviews.find((review) => review.id === id);
-    if (!reviewToUpdate) return;
+ const handleGenerateAIResponse = async (id: string) => {
+  const reviewToUpdate = reviews.find((review) => review.id === id);
+  if (!reviewToUpdate) return;
 
-    setGeneratingAIId(id);
+  setGeneratingAIId(id);
 
-    try {
-      console.log("🤖 Requesting AI response suggestion...");
+  try {
+    console.log("🤖 Requesting AI response suggestion...");
 
-      // Build request with available data
-      const requestData = {
-        review_text: reviewToUpdate.text || "No review text provided",
-        star_rating: reviewToUpdate.rating,
-        reviewer_name: reviewToUpdate.author,
-        // Use optional chaining and provide undefined if properties don't exist
-        business_name:
-          (activeLocation as any)?.title ||
-          (activeLocation as any)?.name ||
-          undefined,
-        business_type:
-          (activeLocation as any)?.businessType ||
-          (activeLocation as any)?.category ||
-          undefined,
-      };
+    // 🔥 FIX: Extract business type string from nested object structure
+    let businessType: string | undefined = undefined;
+    
+    // Try to extract from various possible object structures
+    if ((activeLocation as any)?.primaryCategory?.displayName) {
+      businessType = (activeLocation as any).primaryCategory.displayName;
+    } else if ((activeLocation as any)?.category?.displayName) {
+      businessType = (activeLocation as any).category.displayName;
+    } else if (typeof (activeLocation as any)?.businessType === 'string') {
+      businessType = (activeLocation as any).businessType;
+    } else if (typeof (activeLocation as any)?.category === 'string') {
+      businessType = (activeLocation as any).category;
+    }
 
-      console.log("📤 Sending AI request:", {
-        star_rating: requestData.star_rating,
-        review_length: requestData.review_text.length,
-      });
+    // Build request with available data
+    const requestData = {
+      review_text: reviewToUpdate.text || "No review text provided",
+      star_rating: reviewToUpdate.rating,
+      reviewer_name: reviewToUpdate.author,
+      business_name:
+        (activeLocation as any)?.title ||
+        (activeLocation as any)?.name ||
+        undefined,
+      business_type: businessType, // ✅ Now sending a string, not an object
+    };
 
-      const response = await axios.post(
-        `${SERVER}/api/v1/ai/generate-review-response`,
-        requestData,
-        {
-          withCredentials: true,
-          headers: {
-            "Content-Type": "application/json",
-          },
+    console.log("📤 Sending AI request:", {
+      star_rating: requestData.star_rating,
+      review_length: requestData.review_text.length,
+      business_type: requestData.business_type, // Log to verify it's a string
+    });
+
+    const response = await axios.post(
+      `${SERVER}/api/v1/ai/generate-review-response`,
+      requestData,
+      {
+        withCredentials: true,
+        headers: {
+          "Content-Type": "application/json",
         },
+      },
+    );
+
+    if (response.data.success && response.data.response) {
+      console.log("✅ AI response generated successfully");
+      console.log(
+        "📝 Response length:",
+        response.data.response.length,
+        "characters",
       );
 
-      if (response.data.success && response.data.response) {
-        console.log("✅ AI response generated successfully");
-        console.log(
-          "📝 Response length:",
-          response.data.response.length,
-          "characters",
-        );
-
-        // Auto-fill the AI-generated response
-        setReviews((prevReviews) =>
-          prevReviews.map((review) =>
-            review.id === id
-              ? {
-                  ...review,
-                  ownerReplyText: response.data.response,
-                  isEditingReply: true,
-                }
-              : review,
-          ),
-        );
-      } else {
-        throw new Error(
-          response.data.error || "Failed to generate AI response",
-        );
-      }
-    } catch (error: any) {
-      console.error("❌ Failed to generate AI response:", error);
-
-      let errorMessage = "Failed to generate AI suggestion";
-
-      if (error.response?.status === 400) {
-        errorMessage = "Invalid request. Please check the review data.";
-      } else if (error.response?.status === 500) {
-        const detail = error.response?.data?.detail || "";
-        if (detail.includes("GOOGLE_API_KEY")) {
-          errorMessage = "AI service not configured. Please contact support.";
-        } else {
-          errorMessage =
-            "AI service temporarily unavailable. Please try again.";
-        }
-      } else if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      alert(`❌ ${errorMessage}`);
-    } finally {
-      setGeneratingAIId(null);
+      // Auto-fill the AI-generated response
+      setReviews((prevReviews) =>
+        prevReviews.map((review) =>
+          review.id === id
+            ? {
+                ...review,
+                ownerReplyText: response.data.response,
+                isEditingReply: true,
+              }
+            : review,
+        ),
+      );
+    } else {
+      throw new Error(
+        response.data.error || "Failed to generate AI response",
+      );
     }
-  };
+  } catch (error: any) {
+    console.error("❌ Failed to generate AI response:", error);
+
+    let errorMessage = "Failed to generate AI suggestion";
+
+    if (error.response?.status === 422) {
+      // Handle validation errors
+      console.error("Validation error details:", error.response?.data?.detail);
+      errorMessage = "Invalid request data. Please check the review information.";
+    } else if (error.response?.status === 400) {
+      errorMessage = "Invalid request. Please check the review data.";
+    } else if (error.response?.status === 500) {
+      const detail = error.response?.data?.detail || "";
+      if (detail.includes("GOOGLE_API_KEY")) {
+        errorMessage = "AI service not configured. Please contact support.";
+      } else {
+        errorMessage =
+          "AI service temporarily unavailable. Please try again.";
+      }
+    } else if (error.response?.data?.detail) {
+      errorMessage = error.response.data.detail;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    alert(`❌ ${errorMessage}`);
+  } finally {
+    setGeneratingAIId(null);
+  }
+};
 
   // Handler for toggling edit mode for an owner's reply
   const handleEditToggle = (id: string) => {
